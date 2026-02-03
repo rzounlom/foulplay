@@ -6,9 +6,13 @@ const isProtectedRoute = createRouteMatcher([
   "/api/rooms(.*)",
 ]);
 
-export default clerkMiddleware((auth, req) => {
+export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
-    auth().protect();
+    const { userId } = await auth();
+    if (!userId) {
+      // Redirect to sign-in or return unauthorized
+      return new Response("Unauthorized", { status: 401 });
+    }
   }
 });
 
