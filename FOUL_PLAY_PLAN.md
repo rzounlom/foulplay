@@ -1,0 +1,248 @@
+🧱 PHASE 1 — FOUNDATION (Project Setup)
+
+Outcome: App runs locally, auth works, DB connected, styling ready.
+
+🔹 Card 1.1 — Initialize Project
+
+Create Next.js app (App Router, TS)
+
+Install core deps:
+
+@clerk/nextjs
+
+@prisma/client, prisma
+
+ably
+
+next-themes
+
+tailwindcss
+
+zod
+
+Setup Tailwind config
+
+Setup global layout + theme provider
+
+🔹 Card 1.2 — Folder Structure
+
+Create structure:
+
+/app
+  /(auth)
+  /(game)
+  /api
+/components
+  /ui
+  /game
+/lib
+  /db
+  /ably
+  /game
+  /auth
+/prisma
+/tests
+
+🔹 Card 1.3 — Clerk Auth Setup
+
+Wrap app with Clerk provider
+
+Protect game routes
+
+Store clerkId in DB
+
+🔹 Card 1.4 — Prisma Setup
+
+Create schema.prisma
+
+Run first migration
+
+Create DB client helper /lib/db/prisma.ts
+
+🔹 Card 1.5 — Husky + CI Setup
+
+Install Husky
+
+Pre-commit hook → run tests
+
+GitHub Action:
+
+install
+
+lint
+
+test
+
+build
+
+🏠 PHASE 2 — ROOM SYSTEM
+
+Outcome: Users can create/join rooms and see lobby.
+
+🔹 Card 2.1 — Room DB Model Migration
+
+Add Room, Player models
+
+Run migration.
+
+🔹 Card 2.2 — API: Create Room
+
+POST /api/rooms
+
+Generate code
+
+Insert room + host player
+
+🔹 Card 2.3 — API: Join Room
+
+POST /api/rooms/join
+
+Add player to room
+
+🔹 Card 2.4 — Lobby UI
+
+Player list
+
+Mode selector
+
+Start button disabled <2 players
+
+🔹 Card 2.5 — Ably Hook
+
+/lib/ably/useRoomChannel.ts
+
+Subscribe to room:{code}
+
+Emit player_joined
+
+🎮 PHASE 3 — GAME ENGINE
+
+Outcome: Turn-based flow + card draw.
+
+🔹 Card 3.1 — Card Models Migration
+
+Add Card + CardInstance
+
+🔹 Card 3.2 — GameState Model
+
+Migration for turn + active card
+
+🔹 Card 3.3 — Game Logic Utilities
+
+/lib/game/engine.ts
+
+Functions:
+
+generateDeck(seed)
+
+drawNextCard(state)
+
+advanceTurn(state)
+
+Pure logic (fully testable)
+
+🔹 Card 3.4 — API: Start Game
+
+Initialize deck + first turn
+
+🔹 Card 3.5 — API: Draw Card
+
+Creates CardInstance
+Publishes Ably event
+
+🗳 PHASE 4 — SUBMISSION + VOTING
+
+Outcome: Approval system functional.
+
+🔹 Card 4.1 — Submission Models Migration
+
+Add CardSubmission + CardVote
+
+🔹 Card 4.2 — Approval Logic Utility
+
+/lib/game/approval.ts
+
+Functions:
+
+requiredApprovals(count)
+
+canResolveSubmission(submission, votes)
+
+🔹 Card 4.3 — API: Submit Card
+
+Create submission
+
+Emit card_submitted
+
+🔹 Card 4.4 — API: Vote
+
+Add vote
+
+Check threshold
+
+If met → approve & advance turn
+
+⚡ PHASE 5 — REALTIME SYNC
+
+Outcome: All players see updates instantly.
+
+🔹 Card 5.1 — Ably Event System
+
+Standard event names:
+
+player_joined
+
+game_started
+
+card_drawn
+
+card_submitted
+
+vote_cast
+
+submission_approved
+
+🔹 Card 5.2 — Client Sync Layer
+
+Hook listens + refetches state
+
+🎨 PHASE 6 — UI POLISH
+🔹 Card 6.1 — Game Table UI
+
+Turn indicator
+
+Card modal
+
+Scoreboard
+
+🔹 Card 6.2 — Voting UI
+
+Modal with vote buttons + progress
+
+🔹 Card 6.3 — Animations + Transitions
+
+Card flip, approval animation
+
+🧪 PHASE 7 — TESTING
+🔹 Card 7.1 — Game Engine Tests
+
+Deck, turn, state logic
+
+🔹 Card 7.2 — Approval Logic Tests
+
+Threshold math, edge cases
+
+🔹 Card 7.3 — API Route Tests
+🚀 FINAL RESULT
+
+You now have:
+
+Modular architecture
+
+Mobile-ready API
+
+Fully testable game engine
+
+Realtime multiplayer
+
+Clean UI
