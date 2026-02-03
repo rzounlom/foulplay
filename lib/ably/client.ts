@@ -8,9 +8,12 @@ let ablyClient: Ably.Realtime | null = null;
  */
 export function getAblyClient(): Ably.Realtime {
   if (!ablyClient) {
-    const apiKey = process.env.ABLY_API_KEY;
+    // Try ABLY_API_KEY first (server-only), fallback to NEXT_PUBLIC_ABLY_API_KEY
+    const apiKey = process.env.ABLY_API_KEY || process.env.NEXT_PUBLIC_ABLY_API_KEY;
     if (!apiKey) {
-      throw new Error("ABLY_API_KEY environment variable is not set");
+      throw new Error(
+        "ABLY_API_KEY or NEXT_PUBLIC_ABLY_API_KEY environment variable must be set"
+      );
     }
     ablyClient = new Ably.Realtime({ key: apiKey });
   }

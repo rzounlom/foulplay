@@ -31,3 +31,14 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Ensure all enabled buttons have pointer cursor by default */
+/* This can be overridden with cursor-not-allowed for disabled states */
+button:not(:disabled):not([disabled]) {
+  cursor: pointer;
+}
+
+/* Links styled as buttons should also have pointer cursor */
+a {
+  cursor: pointer;
+}
