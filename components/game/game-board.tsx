@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoomChannel, RoomEvent } from "@/lib/ably/useRoomChannel";
 import { PlayerList } from "./player-list";
+import { Hand } from "./hand";
+import { VotingUI } from "./voting-ui";
 
 interface Player {
   id: string;
@@ -66,10 +68,44 @@ interface GameBoardProps {
   initialRoom: Room;
 }
 
+interface HandCard {
+  id: string;
+  card: Card;
+  status: string;
+}
+
+interface Submission {
+  id: string;
+  status: string;
+  cardInstance: CardInstance;
+  submittedBy: {
+    id: string;
+    user: {
+      id: string;
+      name: string;
+    };
+  };
+  votes: Array<{
+    id: string;
+    vote: boolean;
+    voter: {
+      id: string;
+      user: {
+        id: string;
+        name: string;
+      };
+    };
+  }>;
+}
+
 export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardProps) {
   const [room, setRoom] = useState<Room>(initialRoom);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hand, setHand] = useState<HandCard[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [isVoting, setIsVoting] = useState(false);
 
   const fetchRoom = async () => {
     try {
@@ -82,6 +118,36 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       console.error("Failed to fetch room:", error);
     }
   };
+
+  const fetchHand = async () => {
+    try {
+      const response = await fetch(`/api/game/hand?roomCode=${roomCode}`);
+      if (response.ok) {
+        const data = await response.json();
+        setHand(data.cards || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch hand:", error);
+    }
+  };
+
+  const fetchSubmissions = async () => {
+    try {
+      const response = await fetch(`/api/game/submissions?roomCode=${roomCode}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSubmissions(data.submissions || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch submissions:", error);
+    }
+  };
+
+  // Fetch initial data
+  useEffect(() => {
+    fetchHand();
+    fetchSubmissions();
+  }, [roomCode]);
 
   // Subscribe to game events
   useRoomChannel(roomCode, (event: RoomEvent, data) => {
@@ -96,6 +162,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       event === "turn_changed"
     ) {
       fetchRoom();
+      fetchHand();
+      fetchSubmissions();
     }
   });
 
@@ -138,12 +206,41 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       if (!response.ok) {
         const error = await response.json();
         alert(error.error || "Failed to submit card");
+      } else {
+        // Clear selection and refresh
+        setSelectedCardId(null);
+        fetchHand();
+        fetchSubmissions();
       }
     } catch (error) {
       console.error("Failed to submit card:", error);
       alert("Failed to submit card");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleVote = async (submissionId: string, vote: boolean) => {
+    setIsVoting(true);
+    try {
+      const response = await fetch("/api/game/vote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomCode, submissionId, vote }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || "Failed to vote");
+      } else {
+        fetchSubmissions();
+        fetchRoom();
+      }
+    } catch (error) {
+      console.error("Failed to vote:", error);
+      alert("Failed to vote");
+    } finally {
+      setIsVoting(false);
     }
   };
 
@@ -237,11 +334,52 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           )}
 
           {/* Waiting Message */}
-          {!isCurrentTurn && (
+          {!isCurrentTurn && !activeCard && (
             <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 text-center">
               <p className="text-neutral-600 dark:text-neutral-400">
                 Waiting for {room.gameState?.currentTurnPlayer.user.name}&apos;s turn...
               </p>
+            </div>
+          )}
+
+          {/* Pending Submissions */}
+          {submissions.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Pending Submissions</h2>
+              {submissions.map((submission) => (
+                <VotingUI
+                  key={submission.id}
+                  submission={submission}
+                  currentUserId={currentUserId}
+                  currentPlayerId={currentPlayer?.id || ""}
+                  totalPlayers={room.players.length}
+                  onVote={handleVote}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Player Hand */}
+          {currentPlayer && (
+            <Hand
+              cards={hand}
+              onCardSelect={setSelectedCardId}
+              selectedCardId={selectedCardId}
+              currentUserId={currentUserId}
+              playerId={currentPlayer.id}
+            />
+          )}
+
+          {/* Submit Selected Card Button */}
+          {selectedCardId && currentPlayer && (
+            <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
+              <button
+                onClick={() => handleSubmitCard(selectedCardId)}
+                disabled={isSubmitting}
+                className="w-full px-6 py-4 bg-primary text-white rounded-lg text-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isSubmitting ? "Submitting..." : "Submit Selected Card"}
+              </button>
             </div>
           )}
         </div>
