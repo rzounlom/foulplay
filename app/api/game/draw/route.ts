@@ -59,6 +59,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check hand size limit (max 5 cards)
+    const HAND_SIZE_LIMIT = 5;
+    const cardsInHand = await prisma.cardInstance.count({
+      where: {
+        roomId: room.id,
+        drawnById: currentPlayer.id,
+        status: "drawn", // Only count cards that haven't been submitted/resolved
+      },
+    });
+
+    if (cardsInHand >= HAND_SIZE_LIMIT) {
+      return NextResponse.json(
+        {
+          error: `You already have ${cardsInHand} cards in your hand. Maximum hand size is ${HAND_SIZE_LIMIT}. Please submit a card before drawing another.`,
+        },
+        { status: 400 }
+      );
+    }
+
     // Get all cards for the sport
     const cards = await prisma.card.findMany({
       where: { sport: room.sport! },
