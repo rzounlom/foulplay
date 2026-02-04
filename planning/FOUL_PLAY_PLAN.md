@@ -182,6 +182,48 @@ Check threshold
 
 If met → approve & advance turn
 
+🔄 PHASE 4.5 — CARD CLEARING & QUARTER SYSTEM (Future)
+
+Outcome: Host-controlled card clearing with penalty system.
+
+🔹 Card 4.5.1 — Room Settings: Enable Quarter Clearing
+
+Add room setting: allowQuarterClearing (boolean)
+
+Host can toggle this when creating/editing room
+
+🔹 Card 4.5.2 — API: Discard Card (with penalty)
+
+POST /api/game/discard
+
+Player selects cards to discard
+
+Must drink penalty for each card discarded
+
+Card status changes to "discarded"
+
+Player can draw new cards to replace discarded ones
+
+🔹 Card 4.5.3 — Host Controls: Enable/Disable Card Turn-In
+
+Host can toggle when players can turn in cards
+
+API endpoint: PATCH /api/game/turn-in-control
+
+Emit realtime event when control state changes
+
+🔹 Card 4.5.4 — Quarter System
+
+Track current quarter (Q1, Q2, Q3, Q4)
+
+Host can advance quarter
+
+When quarter advances and quarterClearing enabled:
+
+All players can discard cards (with penalties)
+
+Reset hand or allow fresh draws
+
 ⚡ PHASE 5 — REALTIME SYNC
 
 Outcome: All players see updates instantly.

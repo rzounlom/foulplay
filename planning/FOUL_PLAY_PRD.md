@@ -49,6 +49,24 @@ Required approvals = ceil(activePlayers * 0.5)
 
 Approval resolves instantly once threshold met
 
+Card Clearing & Quarter System (Future Feature)
+
+Host can enable "Quarter Clearing" option when creating room
+
+Players can discard cards at quarter breaks (Q1, Q2, Q3, Q4)
+
+To discard a card, player must drink the penalty on that card
+
+Host controls when players can turn in cards (enable/disable toggle)
+
+When quarter advances and clearing is enabled, players can:
+
+Select which cards to discard
+
+Drink penalties for each discarded card
+
+Draw fresh cards to replace discarded ones
+
 4. 🏗 Tech Stack
 Layer	Tech
 Framework	Next.js (App Router)
@@ -153,6 +171,8 @@ POST /api/game/start	Start game
 POST /api/game/draw	Draw card
 POST /api/game/submit	Submit card
 POST /api/game/vote	Cast vote
+POST /api/game/discard	Discard card (with penalty) - Future
+PATCH /api/game/turn-in-control	Host toggle for card turn-in - Future
 8. ⚡ Realtime Events (Ably)
 
 Channel: room:{code}
@@ -174,6 +194,12 @@ submission_approved
 submission_rejected
 
 turn_changed
+
+card_discarded (Future)
+
+quarter_advanced (Future)
+
+turn_in_control_changed (Future)
 
 9. 🧪 Testing
 
