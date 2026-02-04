@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Draw next card
-    const { cardIndex, newState } = drawNextCard(gameState);
+    const { cardIndex } = drawNextCard(gameState);
 
     if (cardIndex === null) {
       return NextResponse.json(

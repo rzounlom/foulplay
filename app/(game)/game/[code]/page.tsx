@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { redirect } from "next/navigation";
 import { Lobby } from "@/components/game/lobby";
+import { GameBoard } from "@/components/game/game-board";
 
 export default async function GameRoomPage({
   params,
@@ -16,7 +17,7 @@ export default async function GameRoomPage({
   const { code } = await params;
   const roomCode = code.toUpperCase();
 
-  // Fetch room data
+  // Fetch room data with game state
   const room = await prisma.room.findUnique({
     where: { code: roomCode },
     include: {
@@ -26,6 +27,25 @@ export default async function GameRoomPage({
         },
         orderBy: {
           createdAt: "asc",
+        },
+      },
+      gameState: {
+        include: {
+          currentTurnPlayer: {
+            include: {
+              user: true,
+            },
+          },
+          activeCardInstance: {
+            include: {
+              card: true,
+              drawnBy: {
+                include: {
+                  user: true,
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -42,5 +62,15 @@ export default async function GameRoomPage({
     redirect(`/join?code=${roomCode}`);
   }
 
+  // Render lobby or game board based on room status
+  if (room.status === "lobby") {
+    return <Lobby roomCode={roomCode} currentUserId={user.id} initialRoom={room} />;
+  }
+
+  if (room.status === "active") {
+    return <GameBoard roomCode={roomCode} currentUserId={user.id} initialRoom={room} />;
+  }
+
+  // Ended game state - could add a game over screen later
   return <Lobby roomCode={roomCode} currentUserId={user.id} initialRoom={room} />;
 }

@@ -32,6 +32,25 @@ export async function GET(
             createdAt: "asc",
           },
         },
+        gameState: {
+          include: {
+            currentTurnPlayer: {
+              include: {
+                user: true,
+              },
+            },
+            activeCardInstance: {
+              include: {
+                card: true,
+                drawnBy: {
+                  include: {
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 

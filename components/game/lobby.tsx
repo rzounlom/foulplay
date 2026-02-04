@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRoomChannel, RoomEvent } from "@/lib/ably/useRoomChannel";
 import { PlayerList } from "./player-list";
 
@@ -56,6 +56,10 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
       fetchRoom();
     } else if (event === "room_settings_updated") {
       // Refetch room data when settings are updated
+      fetchRoom();
+    } else if (event === "game_started") {
+      // Game started, refetch to show game board
+      console.log("Game started, refetching room data...");
       fetchRoom();
     }
   });
