@@ -28,6 +28,9 @@ model Room {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   players   Player[]
+  gameState GameState?
+  cardInstances CardInstance[]
+  submissions CardSubmission[]
 }
 
 model Player {
@@ -40,7 +43,87 @@ model Player {
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  gameStates GameState[]
+  cardInstances CardInstance[]
+  submissions CardSubmission[]
+  votes      CardVote[]
 
   @@unique([userId, roomId])
   @@index([roomId])
+}
+
+model GameState {
+  id                  String   @id @default(cuid())
+  roomId              String   @unique
+  currentTurnPlayerId String
+  activeCardInstanceId String? @unique
+  deckSeed            String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  room                Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  currentTurnPlayer   Player   @relation(fields: [currentTurnPlayerId], references: [id])
+  activeCardInstance  CardInstance? @relation("ActiveCardInstance", fields: [activeCardInstanceId], references: [id])
+}
+
+model Card {
+  id          String   @id @default(cuid())
+  sport       String   // "football" | "basketball"
+  title       String
+  description String
+  severity    String   // "mild" | "moderate" | "severe"
+  type        String   // "action" | "challenge" | "penalty"
+  points      Int      @default(0) // Points awarded for this card
+  createdAt   DateTime @default(now())
+  cardInstances CardInstance[]
+
+  @@index([sport])
+  @@index([severity])
+}
+
+model CardInstance {
+  id        String   @id @default(cuid())
+  roomId    String
+  cardId    String
+  drawnById String
+  status    String   @default("drawn") // "drawn" | "submitted" | "resolved"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  drawnBy   Player   @relation(fields: [drawnById], references: [id], onDelete: Cascade)
+  gameState GameState? @relation("ActiveCardInstance")
+  submission CardSubmission?
+
+  @@index([roomId])
+  @@index([drawnById])
+}
+
+model CardSubmission {
+  id             String   @id @default(cuid())
+  roomId         String
+  cardInstanceId String   @unique
+  submittedById  String
+  status         String   @default("pending") // "pending" | "approved" | "rejected"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  room           Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  cardInstance   CardInstance @relation(fields: [cardInstanceId], references: [id], onDelete: Cascade)
+  submittedBy    Player   @relation(fields: [submittedById], references: [id], onDelete: Cascade)
+  votes          CardVote[]
+
+  @@index([roomId])
+  @@index([submittedById])
+}
+
+model CardVote {
+  id            String   @id @default(cuid())
+  submissionId  String
+  voterPlayerId String
+  vote          Boolean  // true = approve, false = reject
+  createdAt     DateTime @default(now())
+  submission    CardSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  voter         Player   @relation(fields: [voterPlayerId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, voterPlayerId])
+  @@index([submissionId])
 }
