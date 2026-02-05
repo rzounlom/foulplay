@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRoomChannel, RoomEvent } from "@/lib/ably/useRoomChannel";
 import { PlayerList } from "./player-list";
 import { Hand } from "./hand";
@@ -14,6 +14,7 @@ interface Player {
   };
   isHost: boolean;
   points: number;
+  nickname?: string | null;
 }
 
 interface Card {
@@ -34,6 +35,7 @@ interface CardInstance {
       id: string;
       name: string;
     };
+    nickname?: string | null;
   };
   status: string;
 }
@@ -58,6 +60,7 @@ interface Room {
   status: string;
   mode: string | null;
   sport: string | null;
+  showPoints: boolean;
   players: Player[];
   gameState: GameState | null;
 }
@@ -100,12 +103,10 @@ interface Submission {
 
 export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardProps) {
   const [room, setRoom] = useState<Room>(initialRoom);
-  const [isDrawing, setIsDrawing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hand, setHand] = useState<HandCard[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-  const [isVoting, setIsVoting] = useState(false);
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
 
   const fetchRoom = async () => {
     try {
@@ -119,7 +120,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     }
   };
 
-  const fetchHand = async () => {
+  const fetchHand = useCallback(async () => {
     try {
       const response = await fetch(`/api/game/hand?roomCode=${roomCode}`);
       if (response.ok) {
@@ -129,9 +130,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     } catch (error) {
       console.error("Failed to fetch hand:", error);
     }
-  };
+  }, [roomCode]);
 
-  const fetchSubmissions = async () => {
+  const fetchSubmissions = useCallback(async () => {
     try {
       const response = await fetch(`/api/game/submissions?roomCode=${roomCode}`);
       if (response.ok) {
@@ -141,13 +142,13 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     } catch (error) {
       console.error("Failed to fetch submissions:", error);
     }
-  };
+  }, [roomCode]);
 
   // Fetch initial data
   useEffect(() => {
     fetchHand();
     fetchSubmissions();
-  }, [roomCode]);
+  }, [fetchHand, fetchSubmissions]);
 
   // Subscribe to game events
   useRoomChannel(roomCode, (event: RoomEvent, data) => {
@@ -168,39 +169,21 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   });
 
   const currentPlayer = room.players.find((p) => p.userId === currentUserId);
-  const isCurrentTurn = room.gameState?.currentTurnPlayerId === currentPlayer?.id;
+  const isHost = room.players.some(
+    (p) => p.userId === currentUserId && p.isHost
+  );
   const activeCard = room.gameState?.activeCardInstance;
 
-  const handleDrawCard = async () => {
-    if (!isCurrentTurn) return;
-
-    setIsDrawing(true);
-    try {
-      const response = await fetch("/api/game/draw", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomCode }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        alert(error.error || "Failed to draw card");
-      }
-    } catch (error) {
-      console.error("Failed to draw card:", error);
-      alert("Failed to draw card");
-    } finally {
-      setIsDrawing(false);
-    }
-  };
-
-  const handleSubmitCard = async (cardInstanceId: string) => {
+  const handleSubmitCard = async (cardInstanceIds: string | string[]) => {
     setIsSubmitting(true);
     try {
+      // Convert single ID to array if needed
+      const ids = Array.isArray(cardInstanceIds) ? cardInstanceIds : [cardInstanceIds];
+      
       const response = await fetch("/api/game/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomCode, cardInstanceId }),
+        body: JSON.stringify({ roomCode, cardInstanceIds: ids }),
       });
 
       if (!response.ok) {
@@ -208,7 +191,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         alert(error.error || "Failed to submit card");
       } else {
         // Clear selection and refresh
-        setSelectedCardId(null);
+        setSelectedCardIds([]);
         fetchHand();
         fetchSubmissions();
       }
@@ -258,20 +241,39 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         {/* Left Column - Players & Scoreboard */}
         <div className="md:col-span-1">
           <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 sticky top-6">
-            <PlayerList players={room.players} currentUserId={currentUserId} />
+            <PlayerList players={room.players} currentUserId={currentUserId} showPoints={room.showPoints} />
             
-            {/* Turn Indicator */}
-            {room.gameState && (
-              <div className="mt-6 p-4 bg-primary/10 rounded-lg border border-primary/20">
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
-                  Current Turn:
-                </p>
-                <p className="font-semibold text-primary">
-                  {room.gameState.currentTurnPlayer.user.name}
-                </p>
-                {isCurrentTurn && (
-                  <p className="text-xs text-primary mt-1">It&apos;s your turn!</p>
-                )}
+            {/* Host Controls */}
+            {isHost && (
+              <div className="mt-6 p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                <h4 className="text-sm font-semibold mb-3 text-neutral-700 dark:text-neutral-300">
+                  Host Controls
+                </h4>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={room.showPoints}
+                    onChange={async (e) => {
+                      try {
+                        const response = await fetch(`/api/rooms/${roomCode}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ showPoints: e.target.checked }),
+                        });
+                        if (response.ok) {
+                          const updatedRoom = await response.json();
+                          setRoom(updatedRoom);
+                        }
+                      } catch (error) {
+                        console.error("Failed to update showPoints:", error);
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700"
+                  />
+                  <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                    Show all players&apos; points
+                  </span>
+                </label>
               </div>
             )}
           </div>
@@ -288,7 +290,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                   <div>
                     <h3 className="text-2xl font-bold mb-2">{activeCard.card.title}</h3>
                     <p className="text-neutral-600 dark:text-neutral-400">
-                      Drawn by: {activeCard.drawnBy.user.name}
+                      Drawn by: {activeCard.drawnBy.nickname || activeCard.drawnBy.user.name}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -307,7 +309,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                   </div>
                 </div>
                 <p className="text-lg mb-4">{activeCard.card.description}</p>
-                {isCurrentTurn && activeCard.drawnBy.id === currentPlayer?.id && (
+                {activeCard.drawnBy.id === currentPlayer?.id && (
                   <button
                     onClick={() => handleSubmitCard(activeCard.id)}
                     disabled={isSubmitting}
@@ -320,27 +322,6 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             </div>
           )}
 
-          {/* Draw Card Button */}
-          {isCurrentTurn && !activeCard && (
-            <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
-              <button
-                onClick={handleDrawCard}
-                disabled={isDrawing}
-                className="w-full px-6 py-4 bg-primary text-white rounded-lg text-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {isDrawing ? "Drawing..." : "Draw Card"}
-              </button>
-            </div>
-          )}
-
-          {/* Waiting Message */}
-          {!isCurrentTurn && !activeCard && (
-            <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 text-center">
-              <p className="text-neutral-600 dark:text-neutral-400">
-                Waiting for {room.gameState?.currentTurnPlayer.user.name}&apos;s turn...
-              </p>
-            </div>
-          )}
 
           {/* Pending Submissions */}
           {submissions.length > 0 && (
@@ -351,7 +332,6 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                   key={submission.id}
                   submission={submission}
                   currentUserId={currentUserId}
-                  currentPlayerId={currentPlayer?.id || ""}
                   totalPlayers={room.players.length}
                   onVote={handleVote}
                 />
@@ -363,25 +343,18 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           {currentPlayer && (
             <Hand
               cards={hand}
-              onCardSelect={setSelectedCardId}
-              selectedCardId={selectedCardId}
-              currentUserId={currentUserId}
-              playerId={currentPlayer.id}
+              onCardSelect={(cardId) => {
+                setSelectedCardIds((prev) => 
+                  prev.includes(cardId) 
+                    ? prev.filter(id => id !== cardId)
+                    : [...prev, cardId]
+                );
+              }}
+              onCardSubmit={handleSubmitCard}
+              selectedCardIds={selectedCardIds}
             />
           )}
 
-          {/* Submit Selected Card Button */}
-          {selectedCardId && currentPlayer && (
-            <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
-              <button
-                onClick={() => handleSubmitCard(selectedCardId)}
-                disabled={isSubmitting}
-                className="w-full px-6 py-4 bg-primary text-white rounded-lg text-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {isSubmitting ? "Submitting..." : "Submit Selected Card"}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>

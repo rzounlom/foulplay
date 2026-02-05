@@ -9,6 +9,7 @@ export default function JoinRoomPage() {
   const searchParams = useSearchParams();
   const { isSignedIn, isLoaded } = useUser();
   const [code, setCode] = useState("");
+  const [nickname, setNickname] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +53,10 @@ export default function JoinRoomPage() {
       const response = await fetch("/api/rooms/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code.toUpperCase() }),
+        body: JSON.stringify({ 
+          code: code.toUpperCase(),
+          nickname: nickname.trim() || undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -116,6 +120,24 @@ export default function JoinRoomPage() {
               className="w-full p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-center text-2xl font-mono tracking-widest uppercase"
               required
             />
+          </div>
+
+          <div>
+            <label htmlFor="nickname" className="block text-sm font-medium mb-2">
+              Nickname <span className="text-neutral-500 dark:text-neutral-400 text-xs">(optional)</span>
+            </label>
+            <input
+              id="nickname"
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value.slice(0, 30))}
+              placeholder="Enter a nickname for this game"
+              maxLength={30}
+              className="w-full p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800"
+            />
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+              Leave blank to use your account name
+            </p>
           </div>
 
           {error && (

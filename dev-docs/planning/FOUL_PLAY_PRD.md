@@ -227,6 +227,46 @@ Test
 
 Build
 
+11. 👤 USER PROFILE & NAVIGATION (Future Features)
+
+User Profile
+
+Users can view and edit their profile
+
+Set a permanent default nickname
+
+View game statistics (games played, wins, total points)
+
+Navigation
+
+Main navigation bar with links to:
+- Home
+- Profile
+- Create Room
+- Join Room
+- User menu (sign out)
+
+Database Schema Updates
+
+Add to User model:
+- defaultNickname (String?, optional)
+- gamesPlayed (Int, default 0)
+- gamesWon (Int, default 0)
+- totalPoints (Int, default 0)
+
+API Endpoints
+
+GET /api/user/profile - Get current user's profile
+
+PATCH /api/user/profile - Update user profile (nickname, etc.)
+
+Nickname Priority Logic
+
+When joining a room:
+1. If user has a permanent defaultNickname, use it as the default
+2. User can override with a room-specific nickname
+3. If no nickname provided, use defaultNickname or account name
+
 11. 🚀 BUILD ORDER (to hit Wednesday)
 Phase 1 — Foundations
 

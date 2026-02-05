@@ -1,7 +1,14 @@
-import { config } from "dotenv";
+// Load environment variables FIRST - must be imported before anything else
+// This automatically loads .env from the project root
+import "dotenv/config";
 
-// Load environment variables FIRST before importing anything that uses them
-config();
+// Verify DATABASE_URL is set before importing prisma
+if (!process.env.DATABASE_URL) {
+  console.error("❌ DATABASE_URL environment variable is not set!");
+  console.error("Please ensure you have a .env file in the project root with DATABASE_URL set.");
+  console.error(`Current working directory: ${process.cwd()}`);
+  process.exit(1);
+}
 
 import { prisma } from "../lib/db/prisma";
 import { FOOTBALL_CARDS, BASKETBALL_CARDS } from "../lib/game/cards";
@@ -35,6 +42,7 @@ async function main() {
         description: card.description,
         severity: card.severity,
         type: card.type,
+        points: card.points || 0,
       },
     });
   }

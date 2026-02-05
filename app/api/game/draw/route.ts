@@ -50,11 +50,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify user is the current turn player
-    const currentPlayer = room.players.find((p) => p.id === room.gameState!.currentTurnPlayerId);
-    if (!currentPlayer || currentPlayer.userId !== user.id) {
+    // Find the current player (no turn restrictions - anyone can draw)
+    const currentPlayer = room.players.find((p) => p.userId === user.id);
+    if (!currentPlayer) {
       return NextResponse.json(
-        { error: "It's not your turn" },
+        { error: "You are not a player in this room" },
         { status: 403 }
       );
     }
@@ -159,6 +159,7 @@ export async function POST(request: NextRequest) {
         drawnBy: {
           id: currentPlayer.id,
           name: currentPlayer.user.name,
+          nickname: currentPlayer.nickname,
         },
         timestamp: new Date().toISOString(),
       });
@@ -180,6 +181,7 @@ export async function POST(request: NextRequest) {
         drawnBy: {
           id: currentPlayer.id,
           name: currentPlayer.user.name,
+          nickname: currentPlayer.nickname,
         },
       },
     });

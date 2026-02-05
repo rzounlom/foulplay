@@ -275,6 +275,47 @@ Deck, turn, state logic
 Threshold math, edge cases
 
 🔹 Card 7.3 — API Route Tests
+
+👤 PHASE 8 — USER PROFILE & NAVIGATION (Future)
+
+Outcome: Users can manage their profile and navigate the app easily.
+
+🔹 Card 8.1 — User Profile Page
+
+Create /profile page
+
+Display user stats (games played, wins, etc.)
+
+Edit profile settings
+
+🔹 Card 8.2 — Permanent Nickname
+
+Add `defaultNickname` field to User model
+
+Allow users to set a permanent nickname in profile
+
+Use permanent nickname as default when joining rooms (can still override per-room)
+
+🔹 Card 8.3 — Navigation Component
+
+Create main navigation header/bar
+
+Links to: Home, Profile, Create Room, Join Room
+
+User menu with sign-out option
+
+🔹 Card 8.4 — User Stats Tracking
+
+Track games played, games won, total points across all games
+
+Display in profile page
+
+🔹 Card 8.5 — Profile API
+
+GET /api/user/profile - Get user profile data
+
+PATCH /api/user/profile - Update user profile (including defaultNickname)
+
 🚀 FINAL RESULT
 
 You now have:

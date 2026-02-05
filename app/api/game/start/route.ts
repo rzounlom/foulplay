@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
-import { initializeGameState } from "@/lib/game/engine";
+import { initializeGameState, drawMultipleCards } from "@/lib/game/engine";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 
@@ -74,8 +74,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (cards.length === 0) {
+      console.error(`No cards found for sport: ${room.sport}`);
       return NextResponse.json(
-        { error: "No cards found for this sport" },
+        { 
+          error: "No cards found for this sport. Please run 'npm run db:seed' to seed the database.",
+          sport: room.sport
+        },
         { status: 500 }
       );
     }
@@ -97,6 +101,39 @@ export async function POST(request: NextRequest) {
         activeCardInstanceId: null,
       },
     });
+
+    // Deal 5 cards to each player
+    let currentGameState = gameState;
+    const cardInstancesToCreate: Array<{
+      roomId: string;
+      cardId: string;
+      drawnById: string;
+      status: string;
+    }> = [];
+
+    for (const player of room.players) {
+      // Draw 5 cards for this player
+      const { cardIndices, newState } = drawMultipleCards(currentGameState, 5);
+      currentGameState = newState;
+
+      // Create card instances for each drawn card
+      for (const cardIndex of cardIndices) {
+        const selectedCard = cards[cardIndex];
+        cardInstancesToCreate.push({
+          roomId: room.id,
+          cardId: selectedCard.id,
+          drawnById: player.id,
+          status: "drawn",
+        });
+      }
+    }
+
+    // Create all card instances in database
+    if (cardInstancesToCreate.length > 0) {
+      await prisma.cardInstance.createMany({
+        data: cardInstancesToCreate,
+      });
+    }
 
     // Update room status to active
     await prisma.room.update({
@@ -133,8 +170,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.error("Error starting game:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorStack = error instanceof Error ? error.stack : undefined;
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "Internal server error",
+        message: errorMessage,
+        ...(process.env.NODE_ENV === "development" && { stack: errorStack })
+      },
       { status: 500 }
     );
   }

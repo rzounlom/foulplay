@@ -121,7 +121,7 @@ export function initializeGameState(
   // Generate deck
   const deck = generateDeck(deckSeed, cardCount);
 
-  // First player starts
+  // First player starts (still needed for backwards compatibility, but turns are no longer enforced)
   const currentTurnPlayerId = playerIds[0];
 
   return {
@@ -131,5 +131,36 @@ export function initializeGameState(
     deckSeed,
     deck,
     drawnCards: [],
+  };
+}
+
+/**
+ * Draw multiple cards for a player
+ * Returns array of card indices and updated game state
+ */
+export function drawMultipleCards(
+  state: GameState,
+  count: number
+): {
+  cardIndices: number[];
+  newState: GameState;
+} {
+  const cardIndices: number[] = [];
+  let currentState = state;
+
+  for (let i = 0; i < count; i++) {
+    const result = drawNextCard(currentState);
+    if (result.cardIndex !== null) {
+      cardIndices.push(result.cardIndex);
+      currentState = result.newState;
+    } else {
+      // Deck exhausted, break
+      break;
+    }
+  }
+
+  return {
+    cardIndices,
+    newState: currentState,
   };
 }

@@ -6,6 +6,7 @@ import { getRoomChannel } from "@/lib/ably/client";
 
 const joinRoomSchema = z.object({
   code: z.string().length(6, "Room code must be 6 characters"),
+  nickname: z.string().max(30, "Nickname must be 30 characters or less").optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { code } = joinRoomSchema.parse(body);
+    const { code, nickname } = joinRoomSchema.parse(body);
 
     // Find room
     const room = await prisma.room.findUnique({
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
         roomId: room.id,
         isHost: false,
         points: 0,
+        nickname: nickname?.trim() || null,
       },
     });
 
@@ -84,6 +86,7 @@ export async function POST(request: NextRequest) {
       await channel.publish("player_joined", {
         playerId: user.id,
         playerName: user.name,
+        nickname: nickname?.trim() || null,
         roomCode: room.code,
         timestamp: new Date().toISOString(),
       });

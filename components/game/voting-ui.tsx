@@ -23,6 +23,7 @@ interface Submission {
         id: string;
         name: string;
       };
+      nickname?: string | null;
     };
   };
   submittedBy: {
@@ -31,6 +32,7 @@ interface Submission {
       id: string;
       name: string;
     };
+    nickname?: string | null;
   };
   votes: Array<{
     id: string;
@@ -48,7 +50,6 @@ interface Submission {
 interface VotingUIProps {
   submission: Submission;
   currentUserId: string;
-  currentPlayerId: string;
   totalPlayers: number;
   onVote: (submissionId: string, vote: boolean) => Promise<void>;
 }
@@ -56,7 +57,6 @@ interface VotingUIProps {
 export function VotingUI({
   submission,
   currentUserId,
-  currentPlayerId,
   totalPlayers,
   onVote,
 }: VotingUIProps) {
@@ -100,7 +100,7 @@ export function VotingUI({
       <div className="mb-4">
         <h3 className="text-lg font-semibold mb-2">Vote on Submission</h3>
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          Submitted by: {submission.submittedBy.user.name}
+          Submitted by: {submission.submittedBy.nickname || submission.submittedBy.user.name}
         </p>
       </div>
 

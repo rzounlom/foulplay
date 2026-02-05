@@ -7,6 +7,7 @@ import { getRoomChannel } from "@/lib/ably/client";
 const updateRoomSchema = z.object({
   mode: z.string().optional(),
   sport: z.string().optional(),
+  showPoints: z.boolean().optional(),
 });
 
 export async function GET(
@@ -80,7 +81,7 @@ export async function PATCH(
 
     const { code } = await params;
     const body = await request.json();
-    const { mode, sport } = updateRoomSchema.parse(body);
+    const { mode, sport, showPoints } = updateRoomSchema.parse(body);
 
     // Find room and verify user is host
     const room = await prisma.room.findUnique({
@@ -109,6 +110,7 @@ export async function PATCH(
       data: {
         ...(mode !== undefined && { mode }),
         ...(sport !== undefined && { sport }),
+        ...(showPoints !== undefined && { showPoints }),
       },
       include: {
         players: {
@@ -129,6 +131,7 @@ export async function PATCH(
         roomCode: room.code,
         mode: updatedRoom.mode,
         sport: updatedRoom.sport,
+        showPoints: updatedRoom.showPoints,
         timestamp: new Date().toISOString(),
       });
     } catch (ablyError) {

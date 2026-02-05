@@ -25,6 +25,7 @@ model Room {
   status    String   @default("lobby") // lobby | active | ended
   mode      String?
   sport     String?
+  showPoints Boolean  @default(false) // Host can toggle to show/hide other players' points
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   players   Player[]
@@ -39,6 +40,7 @@ model Player {
   roomId    String
   points    Int      @default(0)
   isHost    Boolean  @default(false)
+  nickname  String?  // Optional nickname for this room
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

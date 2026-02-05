@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useRoomChannel, RoomEvent } from "@/lib/ably/useRoomChannel";
 import { PlayerList } from "./player-list";
 
@@ -20,6 +21,7 @@ interface Room {
   status: string;
   mode: string | null;
   sport: string | null;
+  showPoints: boolean;
   players: Player[];
 }
 
@@ -30,6 +32,7 @@ interface LobbyProps {
 }
 
 export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
+  const router = useRouter();
   const [room, setRoom] = useState<Room>(initialRoom);
   const [isStarting, setIsStarting] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -58,9 +61,10 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
       // Refetch room data when settings are updated
       fetchRoom();
     } else if (event === "game_started") {
-      // Game started, refetch to show game board
-      console.log("Game started, refetching room data...");
-      fetchRoom();
+      // Game started, refresh the page to show game board
+      // The server component will re-render with the new status
+      console.log("Game started, refreshing page...");
+      router.refresh();
     }
   });
 
@@ -80,6 +84,10 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
       if (!response.ok) {
         throw new Error("Failed to start game");
       }
+
+      // After successful start, refresh the page to show game board
+      // The server component will re-fetch with the new status
+      router.refresh();
     } catch (error) {
       console.error("Failed to start game:", error);
     } finally {
@@ -132,7 +140,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
-          <PlayerList players={room.players} currentUserId={currentUserId} />
+          <PlayerList players={room.players} currentUserId={currentUserId} showPoints={room.showPoints} />
         </div>
 
         <div className="space-y-6">
@@ -209,6 +217,38 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                   </div>
                 )}
               </div>
+              {isHost && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
+                    Show Points
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={room.showPoints}
+                      onChange={async (e) => {
+                        try {
+                          const response = await fetch(`/api/rooms/${roomCode}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ showPoints: e.target.checked }),
+                          });
+                          if (response.ok) {
+                            const updatedRoom = await response.json();
+                            setRoom(updatedRoom);
+                          }
+                        } catch (error) {
+                          console.error("Failed to update showPoints:", error);
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700"
+                    />
+                    <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                      Show all players&apos; points
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
           </div>
 

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/clerk";
-import { prisma } from "@/lib/db/prisma";
-import { getRoomChannel } from "@/lib/ably/client";
-import { advanceTurn } from "@/lib/game/engine";
 import {
   canResolveSubmission,
   getVoteCounts,
   requiredApprovals,
 } from "@/lib/game/approval";
+
+import { drawNextCard } from "@/lib/game/engine";
+import { getCurrentUser } from "@/lib/auth/clerk";
+import { getRoomChannel } from "@/lib/ably/client";
+import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 
 const voteSchema = z.object({
@@ -157,7 +158,17 @@ export async function POST(request: NextRequest) {
     );
 
     let submissionStatus = submission.status;
-    let turnAdvanced = false;
+    const autoDrawnCards: Array<{
+      id: string;
+      card: {
+        id: string;
+        title: string;
+        description: string;
+        severity: string;
+        type: string;
+        points: number;
+      };
+    }> = [];
 
     // If submission can be resolved, update it
     if (resolution !== "pending") {
@@ -175,53 +186,130 @@ export async function POST(request: NextRequest) {
         data: { status: "resolved" },
       });
 
-      // If approved, award points and advance turn
+      // If approved, award points and auto-draw cards if needed
       if (resolution === "approved") {
-        // Award points to the player who submitted
-        await prisma.player.update({
-          where: { id: submission.submittedById },
-          data: {
-            points: {
-              increment: submission.cardInstance.card.points,
-            },
-          },
-        });
+        const submittingPlayer = room.players.find(
+          (p) => p.id === submission.submittedById
+        );
 
-        // Advance turn
-        if (room.gameState) {
-          const playerIds = room.players.map((p) => p.id);
-          const newGameState = advanceTurn(
-            {
-              roomId: room.id,
-              currentTurnPlayerId: room.gameState.currentTurnPlayerId,
-              activeCardInstanceId: null,
-              deckSeed: room.gameState.deckSeed,
-              deck: [],
-              drawnCards: [],
-            },
-            playerIds
-          );
-
-          await prisma.gameState.update({
-            where: { id: room.gameState.id },
+        if (submittingPlayer) {
+          // Award points to the player who submitted
+          await prisma.player.update({
+            where: { id: submission.submittedById },
             data: {
-              currentTurnPlayerId: newGameState.currentTurnPlayerId,
-              activeCardInstanceId: null,
+              points: {
+                increment: submission.cardInstance.card.points,
+              },
             },
           });
 
-          turnAdvanced = true;
+          // Auto-draw cards if player has less than 5 cards in hand
+          const HAND_SIZE_LIMIT = 5;
+          const cardsInHand = await prisma.cardInstance.count({
+            where: {
+              roomId: room.id,
+              drawnById: submittingPlayer.id,
+              status: "drawn",
+            },
+          });
 
-          // Emit turn_changed event
-          try {
-            const channel = getRoomChannel(room.code);
-            await channel.publish("turn_changed", {
-              roomCode: room.code,
-              currentTurnPlayerId: newGameState.currentTurnPlayerId,
-              timestamp: new Date().toISOString(),
+          if (cardsInHand < HAND_SIZE_LIMIT && room.gameState && room.sport) {
+            const cardsNeeded = HAND_SIZE_LIMIT - cardsInHand;
+
+            // Get all cards for the sport
+            const cards = await prisma.card.findMany({
+              where: { sport: room.sport },
+              orderBy: { id: "asc" },
             });
-          } catch (ablyError) {
-            console.error("Failed to publish Ably event:", ablyError);
+
+            if (cards.length > 0) {
+              // Get all drawn card instances to determine which cards have been used
+              const drawnInstances = await prisma.cardInstance.findMany({
+                where: { roomId: room.id },
+                include: { card: true },
+              });
+
+              // Map card IDs to their indices in the sorted cards array
+              const cardIdToIndex = new Map(
+                cards.map((card, index) => [card.id, index])
+              );
+              const drawnCardIndices = drawnInstances
+                .map((instance) => cardIdToIndex.get(instance.cardId))
+                .filter((index): index is number => index !== undefined);
+
+              // Reconstruct game state for engine
+              const gameState = {
+                roomId: room.id,
+                currentTurnPlayerId: room.gameState.currentTurnPlayerId,
+                activeCardInstanceId: room.gameState.activeCardInstanceId || null,
+                deckSeed: room.gameState.deckSeed,
+                deck: Array.from({ length: cards.length }, (_, i) => i),
+                drawnCards: drawnCardIndices,
+              };
+
+              // Draw cards needed to fill hand
+              for (let i = 0; i < cardsNeeded; i++) {
+                const { cardIndex, newState } = drawNextCard(gameState);
+                if (cardIndex !== null) {
+                  const selectedCard = cards[cardIndex];
+
+                  // Create card instance
+                  const cardInstance = await prisma.cardInstance.create({
+                    data: {
+                      roomId: room.id,
+                      cardId: selectedCard.id,
+                      drawnById: submittingPlayer.id,
+                      status: "drawn",
+                    },
+                    include: {
+                      card: true,
+                    },
+                  });
+
+                  autoDrawnCards.push({
+                    id: cardInstance.id,
+                    card: {
+                      id: selectedCard.id,
+                      title: selectedCard.title,
+                      description: selectedCard.description,
+                      severity: selectedCard.severity,
+                      type: selectedCard.type,
+                      points: selectedCard.points,
+                    },
+                  });
+
+                  // Update game state for next draw
+                  Object.assign(gameState, newState);
+
+                  // Emit card_drawn event
+                  try {
+                    const channel = getRoomChannel(room.code);
+                    await channel.publish("card_drawn", {
+                      roomCode: room.code,
+                      cardInstanceId: cardInstance.id,
+                      card: {
+                        id: selectedCard.id,
+                        title: selectedCard.title,
+                        description: selectedCard.description,
+                        severity: selectedCard.severity,
+                        type: selectedCard.type,
+                      },
+                      drawnBy: {
+                        id: submittingPlayer.id,
+                        name: submittingPlayer.user.name,
+                        nickname: submittingPlayer.nickname,
+                      },
+                      autoDrawn: true,
+                      timestamp: new Date().toISOString(),
+                    });
+                  } catch (ablyError) {
+                    console.error("Failed to publish Ably event:", ablyError);
+                  }
+                } else {
+                  break; // Deck exhausted
+                }
+              }
+            }
           }
         }
       }
@@ -246,6 +334,7 @@ export async function POST(request: NextRequest) {
             submittedBy: {
               id: submission.submittedBy.id,
               name: submission.submittedBy.user.name,
+              nickname: submission.submittedBy.nickname,
             },
             pointsAwarded:
               resolution === "approved"
@@ -306,12 +395,12 @@ export async function POST(request: NextRequest) {
         resolved: resolution !== "pending",
         resolution: resolution,
       },
-      turnAdvanced: turnAdvanced,
+      autoDrawnCards: autoDrawnCards,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid request body", details: error.errors },
+        { error: "Invalid request body", details: error.issues },
         { status: 400 }
       );
     }
