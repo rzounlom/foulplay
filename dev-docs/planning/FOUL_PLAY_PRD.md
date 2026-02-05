@@ -267,7 +267,158 @@ When joining a room:
 2. User can override with a room-specific nickname
 3. If no nickname provided, use defaultNickname or account name
 
-11. 🚀 BUILD ORDER (to hit Wednesday)
+Tour "Don't Show Again" Preference
+
+Users can opt out of the interactive tour that appears when games start.
+
+Add `skipTour` field to User model (Boolean, default false)
+
+Add checkbox in tour UI: "Don't show this tour again"
+
+When checked, save preference to user account
+
+Tour checks user preference before auto-starting on game_started event
+
+If skipTour = true, tour won't auto-start (but can still be manually started from instructions modal)
+
+Database Schema Update
+
+Add to User model:
+- skipTour (Boolean, default false)
+
+API Endpoint
+
+PATCH /api/user/profile - Update user profile (including skipTour preference)
+
+12. 🎮 HOST CONTROLS DURING GAMEPLAY (Future Features)
+
+Host Controls
+
+The host should be able to manage game state and player points during active gameplay.
+
+End Game & Declare Winner
+
+Host can end the current game and declare a winner (player with highest points)
+
+Game room remains open with same players
+
+New game automatically starts with same players
+
+All player points reset to 0 for the new game
+
+Useful for playing multiple rounds without recreating the room
+
+API: POST /api/game/end
+
+Request body: { roomCode: string }
+
+Response: { winner: Player, newGameState: GameState }
+
+Realtime Event: game_ended, new_game_started
+
+Reset Points Without Ending Game
+
+Host can reset all player points to 0 without ending the game
+
+Useful when players join very late and the group agrees to reset points for fairness
+
+Does not change game state, card submissions, or any other game data
+
+Only resets point values
+
+API: POST /api/game/reset-points
+
+Request body: { roomCode: string }
+
+Response: { success: boolean, players: Player[] }
+
+Realtime Event: points_reset
+
+Host Controls UI
+
+Add host control panel to game board (only visible to host)
+
+Buttons:
+- "End Game" - Opens confirmation modal, then ends game and starts new one
+- "Reset Points" - Opens confirmation modal, then resets all points
+
+Confirmation modals for destructive actions to prevent accidental clicks
+
+Database Schema Updates
+
+No schema changes required - uses existing Room, Player, and GameState models
+
+13. 💬 MESSAGING & REACTIONS (Future Features)
+
+In-Game Chat
+
+Real-time messaging within game rooms
+
+Players can send text messages to the room
+
+Message history persists during the game session
+
+Ably channel for chat messages (separate from game events or same channel with different event types)
+
+Message format:
+- sender: Player info
+- message: string
+- timestamp: DateTime
+
+Reaction System
+
+Quick reaction buttons (👍, 👎, 🎉, 😂, ❤️, 🔥, etc.)
+
+Animated reactions that appear on screen
+
+Visual feedback for game events (card approvals, rejections, point awards)
+
+Reactions can be:
+- General reactions (thumbs up, fire, etc.)
+- Event-specific reactions (celebrate approval, react to rejection)
+
+Reaction Animations
+
+Smooth animations for reactions appearing and disappearing
+
+Card approval/rejection animations with visual feedback
+
+Point award celebrations with confetti or similar effects
+
+Animated emoji reactions floating on screen
+
+Details to be determined during implementation phase
+
+Database Schema Updates
+
+Add Message model:
+- id: String
+- roomId: String
+- senderId: String (Player id)
+- message: String
+- createdAt: DateTime
+
+Add Reaction model (optional, if storing reaction history):
+- id: String
+- roomId: String
+- senderId: String
+- reactionType: String (emoji or type)
+- targetType: String? (optional - "card", "message", "event")
+- targetId: String? (optional - ID of target)
+- createdAt: DateTime
+
+API Endpoints
+
+POST /api/chat/message - Send a chat message
+GET /api/chat/messages?roomCode=XXX - Get message history
+POST /api/chat/reaction - Send a reaction
+
+Realtime Events
+
+message_sent - New chat message
+reaction_sent - New reaction
+
+14. 🚀 BUILD ORDER (to hit Wednesday)
 Phase 1 — Foundations
 
 Setup Next.js + Tailwind

@@ -93,100 +93,112 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if any submissions already exist
-    const existingSubmissions = await prisma.cardSubmission.findMany({
+    // Check if any cards are already part of a submission
+    const cardsAlreadySubmitted = await prisma.cardInstance.findMany({
       where: {
-        cardInstanceId: { in: cardInstanceIds },
+        id: { in: cardInstanceIds },
+        submission: { isNot: null },
       },
     });
 
-    if (existingSubmissions.length > 0) {
+    if (cardsAlreadySubmitted.length > 0) {
       return NextResponse.json(
         { error: "One or more cards have already been submitted" },
         { status: 400 }
       );
     }
 
-    // Create submissions for all cards
-    const submissions = await Promise.all(
-      cardInstances.map((cardInstance) =>
-        prisma.cardSubmission.create({
-          data: {
-            roomId: room.id,
-            cardInstanceId: cardInstance.id,
-            submittedById: submittingPlayer.id,
-            status: "pending",
-          },
-          include: {
-            submittedBy: {
-              include: {
-                user: true,
-              },
-            },
-            cardInstance: {
-              include: {
-                card: true,
-              },
-            },
-          },
-        })
-      )
-    );
-
-    // Update all card instance statuses
-    await prisma.cardInstance.updateMany({
+    // Check if player has an existing pending submission
+    const existingSubmission = await prisma.cardSubmission.findFirst({
       where: {
-        id: { in: cardInstanceIds },
+        roomId: room.id,
+        submittedById: submittingPlayer.id,
+        status: "pending",
       },
-      data: { status: "submitted" },
     });
 
-    // Emit card_submitted events via Ably
+    let submission;
+    if (existingSubmission) {
+      // Add cards to existing submission
+      submission = existingSubmission;
+      await prisma.cardInstance.updateMany({
+        where: {
+          id: { in: cardInstanceIds },
+        },
+        data: {
+          submissionId: existingSubmission.id,
+          status: "submitted",
+        },
+      });
+    } else {
+      // Create new submission with all cards
+      submission = await prisma.cardSubmission.create({
+        data: {
+          roomId: room.id,
+          submittedById: submittingPlayer.id,
+          status: "pending",
+        },
+      });
+
+      // Link all card instances to this submission
+      await prisma.cardInstance.updateMany({
+        where: {
+          id: { in: cardInstanceIds },
+        },
+        data: {
+          submissionId: submission.id,
+          status: "submitted",
+        },
+      });
+    }
+
+    // Fetch the submission with all related data
+    const submissionWithData = await prisma.cardSubmission.findUnique({
+      where: { id: submission.id },
+      include: {
+        submittedBy: {
+          include: {
+            user: true,
+          },
+        },
+        cardInstances: {
+          include: {
+            card: true,
+          },
+        },
+      },
+    });
+
+    // Emit card_submitted event via Ably
     try {
       const channel = getRoomChannel(room.code);
-      for (const submission of submissions) {
-        await channel.publish("card_submitted", {
-          roomCode: room.code,
-          submissionId: submission.id,
-          cardInstanceId: submission.cardInstanceId,
-          card: {
-            id: submission.cardInstance.card.id,
-            title: submission.cardInstance.card.title,
-            description: submission.cardInstance.card.description,
-            severity: submission.cardInstance.card.severity,
-            type: submission.cardInstance.card.type,
-            points: submission.cardInstance.card.points,
-          },
-          submittedBy: {
-            id: submittingPlayer.id,
-            name: submittingPlayer.user.name,
-            nickname: submittingPlayer.nickname,
-          },
-          timestamp: new Date().toISOString(),
-        });
-      }
+      await channel.publish("card_submitted", {
+        roomCode: room.code,
+        submissionId: submission.id,
+        cardInstanceIds: cardInstanceIds,
+        cardCount: cardInstances.length,
+        submittedBy: {
+          id: submittingPlayer.id,
+          name: submittingPlayer.user.name,
+          nickname: submittingPlayer.nickname,
+        },
+        timestamp: new Date().toISOString(),
+      });
     } catch (ablyError) {
       console.error("Failed to publish Ably event:", ablyError);
     }
 
     return NextResponse.json({
       success: true,
-      submissions: submissions.map((s) => ({
-        id: s.id,
-        status: s.status,
-        card: {
-          id: s.cardInstance.card.id,
-          title: s.cardInstance.card.title,
-          description: s.cardInstance.card.description,
-          severity: s.cardInstance.card.severity,
-          type: s.cardInstance.card.type,
-          points: s.cardInstance.card.points,
-        },
+      submission: {
+        id: submission.id,
+        status: submission.status,
+        cardCount: cardInstances.length,
         submittedBy: {
           id: submittingPlayer.id,
           name: submittingPlayer.user.name,
         },
-      })),
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -11,6 +11,8 @@ export type RoomEvent =
   | "card_drawn"
   | "card_submitted"
   | "vote_cast"
+  | "card_approved"
+  | "card_rejected"
   | "submission_approved"
   | "submission_rejected"
   | "turn_changed"

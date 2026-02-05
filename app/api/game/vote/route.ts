@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   canResolveSubmission,
   getVoteCounts,
-  requiredApprovals,
 } from "@/lib/game/approval";
 
 import { drawNextCard } from "@/lib/game/engine";
@@ -14,6 +13,7 @@ import { z } from "zod";
 const voteSchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
   submissionId: z.string(),
+  cardInstanceIds: z.array(z.string()).min(1, "At least one card must be selected"), // Array of card instance IDs to vote on, or empty for "all"
   vote: z.boolean(), // true = approve, false = reject
 });
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { roomCode, submissionId, vote } = voteSchema.parse(body);
+    const { roomCode, submissionId, cardInstanceIds, vote } = voteSchema.parse(body);
 
     // Find room and verify game is active
     const room = await prisma.room.findUnique({
@@ -55,12 +55,21 @@ export async function POST(request: NextRequest) {
     const submission = await prisma.cardSubmission.findUnique({
       where: { id: submissionId },
       include: {
-        cardInstance: {
+        cardInstances: {
           include: {
             card: true,
             drawnBy: {
               include: {
                 user: true,
+              },
+            },
+            votes: {
+              include: {
+                voter: {
+                  include: {
+                    user: true,
+                  },
+                },
               },
             },
           },
@@ -70,7 +79,6 @@ export async function POST(request: NextRequest) {
             user: true,
           },
         },
-        votes: true,
       },
     });
 
@@ -106,17 +114,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify player hasn't already voted
-    const existingVote = submission.votes.find(
-      (v) => v.voterPlayerId === votingPlayer.id
-    );
-    if (existingVote) {
-      return NextResponse.json(
-        { error: "You have already voted on this submission" },
-        { status: 400 }
-      );
-    }
-
     // Verify player is not voting on their own submission
     if (submission.submittedById === votingPlayer.id) {
       return NextResponse.json(
@@ -125,20 +122,77 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create vote
-    const newVote = await prisma.cardVote.create({
-      data: {
-        submissionId: submission.id,
-        voterPlayerId: votingPlayer.id,
-        vote: vote,
-      },
-    });
+    // Determine which cards to vote on
+    const cardsToVoteOn = cardInstanceIds.length === 0 
+      ? submission.cardInstances // Empty array means "all cards"
+      : submission.cardInstances.filter(ci => cardInstanceIds.includes(ci.id));
 
-    // Get updated vote counts
+    if (cardsToVoteOn.length === 0) {
+      return NextResponse.json(
+        { error: "No valid cards selected to vote on" },
+        { status: 400 }
+      );
+    }
+
+    // Verify all selected cards belong to this submission and are still pending
+    const invalidCards = cardsToVoteOn.filter(ci => 
+      ci.submissionId !== submissionId || ci.status !== "submitted"
+    );
+    if (invalidCards.length > 0) {
+      return NextResponse.json(
+        { error: "One or more selected cards are not valid for voting" },
+        { status: 400 }
+      );
+    }
+
+    // Check if user has already voted on any of the selected cards
+    const alreadyVotedCards = cardsToVoteOn.filter(ci =>
+      ci.votes.some(v => v.voterPlayerId === votingPlayer.id)
+    );
+    if (alreadyVotedCards.length > 0) {
+      return NextResponse.json(
+        { error: "You have already voted on one or more of the selected cards" },
+        { status: 400 }
+      );
+    }
+
+    // Create votes for each selected card
+    const createdVotes = await Promise.all(
+      cardsToVoteOn.map(cardInstance =>
+        prisma.cardVote.create({
+          data: {
+            submissionId: submission.id,
+            cardInstanceId: cardInstance.id,
+            voterPlayerId: votingPlayer.id,
+            vote: vote,
+          },
+        })
+      )
+    );
+
+    // Get updated submission with all card instances and their votes
     const updatedSubmission = await prisma.cardSubmission.findUnique({
       where: { id: submissionId },
       include: {
-        votes: true,
+        cardInstances: {
+          include: {
+            card: true,
+            votes: {
+              include: {
+                voter: {
+                  include: {
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        submittedBy: {
+          include: {
+            user: true,
+          },
+        },
       },
     });
 
@@ -149,15 +203,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const voteCounts = getVoteCounts(updatedSubmission.votes);
     const totalPlayers = room.players.length;
-    const resolution = canResolveSubmission(
-      totalPlayers,
-      voteCounts.approvals,
-      voteCounts.rejections
-    );
-
-    let submissionStatus = submission.status;
     const autoDrawnCards: Array<{
       id: string;
       card: {
@@ -170,51 +216,111 @@ export async function POST(request: NextRequest) {
       };
     }> = [];
 
-    // If submission can be resolved, update it
-    if (resolution !== "pending") {
-      submissionStatus = resolution;
+    // Check each card instance individually for resolution
+    const approvedCards: typeof updatedSubmission.cardInstances = [];
+    const rejectedCards: typeof updatedSubmission.cardInstances = [];
+    const pendingCards: typeof updatedSubmission.cardInstances = [];
 
-      // Update submission status
-      await prisma.cardSubmission.update({
-        where: { id: submissionId },
-        data: { status: resolution },
-      });
+    for (const cardInstance of updatedSubmission.cardInstances) {
+      const voteCounts = getVoteCounts(cardInstance.votes);
+      const resolution = canResolveSubmission(
+        totalPlayers,
+        voteCounts.approvals,
+        voteCounts.rejections
+      );
 
-      // Update card instance status
-      await prisma.cardInstance.update({
-        where: { id: submission.cardInstanceId },
+      if (resolution === "approved") {
+        approvedCards.push(cardInstance);
+      } else if (resolution === "rejected") {
+        rejectedCards.push(cardInstance);
+      } else {
+        pendingCards.push(cardInstance);
+      }
+    }
+
+    // Resolve approved cards
+    if (approvedCards.length > 0) {
+      const approvedCardIds = approvedCards.map(ci => ci.id);
+      await prisma.cardInstance.updateMany({
+        where: {
+          id: { in: approvedCardIds },
+        },
         data: { status: "resolved" },
       });
+    }
 
-      // If approved, award points and auto-draw cards if needed
-      if (resolution === "approved") {
-        const submittingPlayer = room.players.find(
-          (p) => p.id === submission.submittedById
+    // Resolve rejected cards (return to hand)
+    if (rejectedCards.length > 0) {
+      const rejectedCardIds = rejectedCards.map(ci => ci.id);
+      await prisma.cardInstance.updateMany({
+        where: {
+          id: { in: rejectedCardIds },
+        },
+        data: {
+          status: "drawn",
+          submissionId: null, // Remove link to submission
+        },
+      });
+    }
+
+    // Check if submission is fully resolved (all cards are approved or rejected)
+    const allResolved = pendingCards.length === 0;
+    let submissionStatus = submission.status;
+    if (allResolved) {
+      // If all cards are resolved, mark submission as resolved
+      // Use "approved" if at least one card was approved, otherwise "rejected"
+      submissionStatus = approvedCards.length > 0 ? "approved" : "rejected";
+      await prisma.cardSubmission.update({
+        where: { id: submissionId },
+        data: { status: submissionStatus },
+      });
+    }
+
+    // Award points and auto-draw cards for approved cards
+    if (approvedCards.length > 0) {
+      const submittingPlayer = room.players.find(
+        (p) => p.id === submission.submittedById
+      );
+
+      if (submittingPlayer) {
+        // Calculate total points from approved cards only
+        const totalPoints = approvedCards.reduce(
+          (sum, cardInstance) => sum + cardInstance.card.points,
+          0
         );
 
-        if (submittingPlayer) {
-          // Award points to the player who submitted
+        // Award points to the player who submitted
+        if (totalPoints > 0) {
           await prisma.player.update({
             where: { id: submission.submittedById },
             data: {
               points: {
-                increment: submission.cardInstance.card.points,
+                increment: totalPoints,
               },
             },
           });
+        }
 
-          // Auto-draw cards if player has less than handSize cards in hand
-          const handSizeLimit = room.handSize || 5;
-          const cardsInHand = await prisma.cardInstance.count({
-            where: {
-              roomId: room.id,
-              drawnById: submittingPlayer.id,
-              status: "drawn",
-            },
-          });
+        // Auto-draw cards to replace approved cards
+        // Rejected cards are already returned to hand, so we only need to draw for approved cards
+        const handSizeLimit = room.handSize || 5;
+        
+        // Count cards currently in hand (after rejected cards have been returned)
+        const cardsInHand = await prisma.cardInstance.count({
+          where: {
+            roomId: room.id,
+            drawnById: submittingPlayer.id,
+            status: "drawn",
+          },
+        });
+        
+        // Calculate how many cards were approved (these need replacement)
+        const cardsApproved = approvedCards.length;
 
-          if (cardsInHand < handSizeLimit && room.gameState && room.sport) {
-            const cardsNeeded = handSizeLimit - cardsInHand;
+        // Draw new cards to replace approved cards, up to the hand size limit
+        if (room.gameState && room.sport && cardsApproved > 0) {
+          // Draw exactly the number of approved cards, but don't exceed hand size limit
+          const cardsNeeded = Math.min(handSizeLimit - cardsInHand, cardsApproved);
 
             // Get all cards for the sport
             const cards = await prisma.card.findMany({
@@ -314,38 +420,79 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Emit submission resolution event
-      try {
-        const channel = getRoomChannel(room.code);
+    // Emit events for resolved cards
+    try {
+      const channel = getRoomChannel(room.code);
+      
+      // Emit approval events for approved cards
+      if (approvedCards.length > 0) {
+        const approvedPoints = approvedCards.reduce(
+          (sum, cardInstance) => sum + cardInstance.card.points,
+          0
+        );
+        
+        await channel.publish("card_approved", {
+          roomCode: room.code,
+          submissionId: submission.id,
+          cardInstanceIds: approvedCards.map((ci) => ci.id),
+          cardCount: approvedCards.length,
+          cards: approvedCards.map((cardInstance) => ({
+            id: cardInstance.card.id,
+            title: cardInstance.card.title,
+            description: cardInstance.card.description,
+            severity: cardInstance.card.severity,
+            type: cardInstance.card.type,
+            points: cardInstance.card.points,
+          })),
+          submittedBy: {
+            id: updatedSubmission.submittedBy.id,
+            name: updatedSubmission.submittedBy.user.name,
+            nickname: updatedSubmission.submittedBy.nickname,
+          },
+          pointsAwarded: approvedPoints,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Emit rejection events for rejected cards
+      if (rejectedCards.length > 0) {
+        await channel.publish("card_rejected", {
+          roomCode: room.code,
+          submissionId: submission.id,
+          cardInstanceIds: rejectedCards.map((ci) => ci.id),
+          cardCount: rejectedCards.length,
+          cards: rejectedCards.map((cardInstance) => ({
+            id: cardInstance.card.id,
+            title: cardInstance.card.title,
+            description: cardInstance.card.description,
+            severity: cardInstance.card.severity,
+            type: cardInstance.card.type,
+            points: cardInstance.card.points,
+          })),
+          submittedBy: {
+            id: updatedSubmission.submittedBy.id,
+            name: updatedSubmission.submittedBy.user.name,
+            nickname: updatedSubmission.submittedBy.nickname,
+          },
+          cardsReturned: true, // Indicates cards were returned to hand
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Emit submission fully resolved event if all cards are resolved
+      if (allResolved) {
         await channel.publish(
-          resolution === "approved" ? "submission_approved" : "submission_rejected",
+          submissionStatus === "approved" ? "submission_approved" : "submission_rejected",
           {
             roomCode: room.code,
             submissionId: submission.id,
-            cardInstanceId: submission.cardInstanceId,
-            card: {
-              id: submission.cardInstance.card.id,
-              title: submission.cardInstance.card.title,
-              description: submission.cardInstance.card.description,
-              severity: submission.cardInstance.card.severity,
-              type: submission.cardInstance.card.type,
-              points: submission.cardInstance.card.points,
-            },
-            submittedBy: {
-              id: submission.submittedBy.id,
-              name: submission.submittedBy.user.name,
-              nickname: submission.submittedBy.nickname,
-            },
-            pointsAwarded:
-              resolution === "approved"
-                ? submission.cardInstance.card.points
-                : 0,
+            fullyResolved: true,
             timestamp: new Date().toISOString(),
           }
         );
-      } catch (ablyError) {
-        console.error("Failed to publish Ably event:", ablyError);
       }
+    } catch (ablyError) {
+      console.error("Failed to publish Ably event:", ablyError);
     }
 
     // Emit vote_cast event
@@ -354,48 +501,47 @@ export async function POST(request: NextRequest) {
       await channel.publish("vote_cast", {
         roomCode: room.code,
         submissionId: submission.id,
-        vote: vote,
+        cardInstanceIds: cardsToVoteOn.map(ci => ci.id),
         voter: {
           id: votingPlayer.id,
           name: votingPlayer.user.name,
+          nickname: votingPlayer.nickname,
         },
-        voteCounts: {
-          approvals: voteCounts.approvals,
-          rejections: voteCounts.rejections,
-          total: voteCounts.total,
-          required: requiredApprovals(totalPlayers),
-        },
-        resolved: resolution !== "pending",
-        resolution: resolution,
+        vote: vote,
         timestamp: new Date().toISOString(),
       });
     } catch (ablyError) {
       console.error("Failed to publish Ably event:", ablyError);
     }
 
+    // Get updated vote counts for each card
+    const cardVoteCounts = updatedSubmission.cardInstances.map(ci => ({
+      cardInstanceId: ci.id,
+      voteCounts: getVoteCounts(ci.votes),
+      resolution: canResolveSubmission(
+        totalPlayers,
+        getVoteCounts(ci.votes).approvals,
+        getVoteCounts(ci.votes).rejections
+      ),
+    }));
+
     return NextResponse.json({
       success: true,
-      vote: {
-        id: newVote.id,
-        vote: newVote.vote,
-        voter: {
-          id: votingPlayer.id,
-          name: votingPlayer.user.name,
-        },
-      },
-      voteCounts: {
-        approvals: voteCounts.approvals,
-        rejections: voteCounts.rejections,
-        total: voteCounts.total,
-        required: requiredApprovals(totalPlayers),
-      },
+      votes: createdVotes.map(v => ({
+        id: v.id,
+        cardInstanceId: v.cardInstanceId,
+        vote: v.vote,
+      })),
       submission: {
         id: submission.id,
         status: submissionStatus,
-        resolved: resolution !== "pending",
-        resolution: resolution,
+        cardVoteCounts: cardVoteCounts,
+        approvedCards: approvedCards.map(ci => ci.id),
+        rejectedCards: rejectedCards.map(ci => ci.id),
+        pendingCards: pendingCards.map(ci => ci.id),
+        allResolved: allResolved,
+        autoDrawnCards: autoDrawnCards,
       },
-      autoDrawnCards: autoDrawnCards,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

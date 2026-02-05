@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRoomChannel, RoomEvent } from "@/lib/ably/useRoomChannel";
-import { PlayerList } from "./player-list";
-import { Hand } from "./hand";
-import { VotingUI } from "./voting-ui";
-import { InstructionsModal } from "./instructions-modal";
+import { RoomEvent, useRoomChannel } from "@/lib/ably/useRoomChannel";
+import { useCallback, useEffect, useState } from "react";
+
 import { GameTour } from "./game-tour";
+import { Hand } from "./hand";
+import { InstructionsModal } from "./instructions-modal";
+import { PlayerList } from "./player-list";
+import { SubmissionPending } from "./submission-pending";
+import { VotingUI } from "./voting-ui";
 
 interface Player {
   id: string;
@@ -63,6 +65,7 @@ interface Room {
   mode: string | null;
   sport: string | null;
   showPoints: boolean;
+  handSize: number;
   players: Player[];
   gameState: GameState | null;
 }
@@ -82,13 +85,14 @@ interface HandCard {
 interface Submission {
   id: string;
   status: string;
-  cardInstance: CardInstance;
+  cardInstances: Array<CardInstance>;
   submittedBy: {
     id: string;
     user: {
       id: string;
       name: string;
     };
+    nickname?: string | null;
   };
   votes: Array<{
     id: string;
@@ -161,6 +165,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       event === "card_drawn" ||
       event === "card_submitted" ||
       event === "vote_cast" ||
+      event === "card_approved" ||
+      event === "card_rejected" ||
       event === "submission_approved" ||
       event === "submission_rejected" ||
       event === "turn_changed"
@@ -168,12 +174,22 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       fetchRoom();
       fetchHand();
       fetchSubmissions();
+      
+      // Start tour when a new game starts
+      if (event === "game_started") {
+        setStartTour(true);
+      }
+      
+      // Start tour when a new game starts
+      if (event === "game_started") {
+        setStartTour(true);
+      }
     }
   });
 
-  const currentPlayer = room.players.find((p) => p.userId === currentUserId);
+  const currentPlayer = room.players.find((p) => p.user.id === currentUserId);
   const isHost = room.players.some(
-    (p) => p.userId === currentUserId && p.isHost
+    (p) => p.user.id === currentUserId && p.isHost
   );
   const activeCard = room.gameState?.activeCardInstance;
 
@@ -206,13 +222,12 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     }
   };
 
-  const handleVote = async (submissionId: string, vote: boolean) => {
-    setIsVoting(true);
+  const handleVote = async (submissionId: string, cardInstanceIds: string[], vote: boolean) => {
     try {
       const response = await fetch("/api/game/vote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomCode, submissionId, vote }),
+        body: JSON.stringify({ roomCode, submissionId, cardInstanceIds, vote }),
       });
 
       if (!response.ok) {
@@ -225,8 +240,6 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     } catch (error) {
       console.error("Failed to vote:", error);
       alert("Failed to vote");
-    } finally {
-      setIsVoting(false);
     }
   };
 
@@ -248,6 +261,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         <div className="flex items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400">
           <span>Mode: {room.mode || "N/A"}</span>
           <span>Sport: {room.sport || "N/A"}</span>
+          {submissions.length > 0 && (
+            <span>Pending Submissions: {submissions.length}</span>
+          )}
         </div>
       </div>
 
@@ -358,16 +374,43 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           <div data-tour="pending-submissions" className="space-y-4">
             {submissions.length > 0 ? (
               <>
-                <h2 className="text-xl font-semibold">Pending Submissions</h2>
-                {submissions.map((submission) => (
-                  <VotingUI
-                    key={submission.id}
-                    submission={submission}
-                    currentUserId={currentUserId}
-                    totalPlayers={room.players.length}
-                    onVote={handleVote}
-                  />
-                ))}
+                {(() => {
+                  // Group submissions by submitter
+                  const submissionsBySubmitter = submissions.reduce((acc, submission) => {
+                    const submitterId = submission.submittedBy.user.id;
+                    if (!acc[submitterId]) {
+                      acc[submitterId] = [];
+                    }
+                    acc[submitterId].push(submission);
+                    return acc;
+                  }, {} as Record<string, typeof submissions>);
+
+                  return Object.entries(submissionsBySubmitter).map(([submitterId, submitterSubmissions]) => {
+                    const isCurrentUser = submitterId === currentUserId;
+                    
+                    if (isCurrentUser) {
+                      // Show pending view for submitter (one submission can have multiple cards)
+                      return submitterSubmissions.map((submission) => (
+                        <SubmissionPending
+                          key={submission.id}
+                          submission={submission}
+                          totalPlayers={room.players.length}
+                        />
+                      ));
+                    } else {
+                      // Show voting UI for other players
+                      return submitterSubmissions.map((submission) => (
+                        <VotingUI
+                          key={submission.id}
+                          submission={submission}
+                          currentUserId={currentUserId}
+                          totalPlayers={room.players.length}
+                          onVote={handleVote}
+                        />
+                      ));
+                    }
+                  });
+                })()}
               </>
             ) : (
               <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">

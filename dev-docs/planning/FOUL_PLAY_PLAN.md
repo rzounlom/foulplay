@@ -316,6 +316,84 @@ GET /api/user/profile - Get user profile data
 
 PATCH /api/user/profile - Update user profile (including defaultNickname)
 
+🔹 Card 8.6 — Tour "Don't Show Again" Preference
+
+Add `skipTour` (Boolean, default false) field to User model
+
+Add checkbox/option in tour UI: "Don't show this tour again"
+
+When checked, save preference to user account via API
+
+Tour will check user preference before auto-starting on game start
+
+If user has skipTour = true, don't auto-start tour (but can still manually start from instructions modal)
+
+API: PATCH /api/user/profile - Update skipTour preference
+
+📋 PHASE 9 — HOST CONTROLS DURING GAMEPLAY (Future)
+
+Outcome: Host can manage game state and player points during active gameplay.
+
+🔹 Card 9.1 — End Game & Declare Winner
+
+Host can end current game and declare winner (highest points)
+
+Keep game room open with same players
+
+Start new game automatically with same players
+
+Reset points for new game
+
+API: POST /api/game/end
+
+🔹 Card 9.2 — Reset Points Without Ending Game
+
+Host can reset all player points to 0
+
+Useful when players join late and group agrees to reset for fairness
+
+Does not end game or change game state
+
+API: POST /api/game/reset-points
+
+🔹 Card 9.3 — Host Controls UI
+
+Add host control panel to game board
+
+Buttons: "End Game", "Reset Points"
+
+Confirmation modals for destructive actions
+
+💬 PHASE 10 — MESSAGING & REACTIONS (Future)
+
+Outcome: Enhanced social interaction with messaging and animated reactions.
+
+🔹 Card 10.1 — In-Game Chat
+
+Real-time messaging within game rooms
+
+Ably channel for chat messages
+
+Message history
+
+🔹 Card 10.2 — Reaction System
+
+Quick reaction buttons (👍, 👎, 🎉, 😂, etc.)
+
+Animated reactions that appear on screen
+
+Visual feedback for game events
+
+🔹 Card 10.3 — Reaction Animations
+
+Smooth animations for reactions
+
+Card approval/rejection animations
+
+Point award celebrations
+
+Details to be determined during implementation
+
 🚀 FINAL RESULT
 
 You now have:

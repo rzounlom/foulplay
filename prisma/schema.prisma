@@ -89,29 +89,31 @@ model CardInstance {
   cardId    String
   drawnById String
   status    String   @default("drawn") // "drawn" | "submitted" | "resolved"
+  submissionId String? // Optional: links to submission if this card is part of one
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
   drawnBy   Player   @relation(fields: [drawnById], references: [id], onDelete: Cascade)
   gameState GameState? @relation("ActiveCardInstance")
-  submission CardSubmission?
+  submission CardSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  votes     CardVote[] // Votes on this specific card instance
 
   @@index([roomId])
   @@index([drawnById])
+  @@index([submissionId])
 }
 
 model CardSubmission {
   id             String   @id @default(cuid())
   roomId         String
-  cardInstanceId String   @unique
   submittedById  String
   status         String   @default("pending") // "pending" | "approved" | "rejected"
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   room           Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  cardInstance   CardInstance @relation(fields: [cardInstanceId], references: [id], onDelete: Cascade)
   submittedBy    Player   @relation(fields: [submittedById], references: [id], onDelete: Cascade)
+  cardInstances  CardInstance[] // Multiple card instances can belong to one submission
   votes          CardVote[]
 
   @@index([roomId])
@@ -121,12 +123,15 @@ model CardSubmission {
 model CardVote {
   id            String   @id @default(cuid())
   submissionId  String
+  cardInstanceId String  // Vote is for a specific card instance within the submission
   voterPlayerId String
   vote          Boolean  // true = approve, false = reject
   createdAt     DateTime @default(now())
   submission    CardSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  cardInstance  CardInstance @relation(fields: [cardInstanceId], references: [id], onDelete: Cascade)
   voter         Player   @relation(fields: [voterPlayerId], references: [id], onDelete: Cascade)
 
-  @@unique([submissionId, voterPlayerId])
+  @@unique([cardInstanceId, voterPlayerId]) // One vote per card per voter
   @@index([submissionId])
+  @@index([cardInstanceId])
 }

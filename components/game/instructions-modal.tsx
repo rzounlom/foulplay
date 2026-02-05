@@ -109,10 +109,24 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                     Voting
                   </h3>
                   <p>
-                    When other players submit cards, you&apos;ll see them in the &quot;Pending Submissions&quot; section. Vote to approve or reject based on whether you think the event actually happened.
+                    When other players submit cards, you&apos;ll see them in the &quot;Pending Submissions&quot; section. You can vote on individual cards or all cards at once.
                   </p>
+                  <ol className="list-decimal list-inside space-y-2 ml-2 mt-2">
+                    <li>
+                      <strong>Select cards</strong> you want to vote on by clicking them (or use &quot;Select All&quot;)
+                    </li>
+                    <li>
+                      Click <strong>&quot;Approve Selected&quot;</strong> or <strong>&quot;Reject Selected&quot;</strong> to vote on your selected cards
+                    </li>
+                    <li>
+                      Or use <strong>&quot;Approve All&quot;</strong> or <strong>&quot;Reject All&quot;</strong> to vote on all cards in the submission at once
+                    </li>
+                    <li>
+                      Each card is resolved individually based on votes - some cards may be approved while others are rejected
+                    </li>
+                  </ol>
                   <p className="mt-2">
-                    If a submission gets enough approvals, the submitting player earns points! If it gets rejected, no points are awarded.
+                    Approved cards earn points for the submitting player. Rejected cards are returned to the submitter&apos;s hand. You can only vote once per card.
                   </p>
                 </div>
 

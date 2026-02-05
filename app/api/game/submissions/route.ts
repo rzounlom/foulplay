@@ -55,12 +55,21 @@ export async function GET(request: NextRequest) {
         status: "pending",
       },
       include: {
-        cardInstance: {
+        cardInstances: {
           include: {
             card: true,
             drawnBy: {
               include: {
                 user: true,
+              },
+            },
+            votes: {
+              include: {
+                voter: {
+                  include: {
+                    user: true,
+                  },
+                },
               },
             },
           },

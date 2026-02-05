@@ -94,17 +94,7 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     }
   }, [startTour, onTourStart, updateSpotlight]);
 
-  useEffect(() => {
-    // Check if user has seen the tour before
-    const hasSeenTour = localStorage.getItem("foulplay-tour-completed");
-    if (!hasSeenTour) {
-      // Small delay to ensure DOM is ready
-      setTimeout(() => {
-        setIsActive(true);
-        updateSpotlight();
-      }, 500);
-    }
-  }, [updateSpotlight]);
+  // Removed auto-start on mount - tour will now start when game_started event is received
 
   useEffect(() => {
     if (isActive && currentStep < steps.length) {
@@ -129,13 +119,15 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
   };
 
   const handleSkip = () => {
-    localStorage.setItem("foulplay-tour-completed", "true");
+    // Don't save to localStorage anymore - tour will show on each game start
+    // Future: Save "don't show again" preference to user account
     setIsActive(false);
     onSkip?.();
   };
 
   const handleComplete = useCallback(() => {
-    localStorage.setItem("foulplay-tour-completed", "true");
+    // Don't save to localStorage anymore - tour will show on each game start
+    // Future: Save "don't show again" preference to user account
     setIsActive(false);
     onComplete?.();
   }, [onComplete]);
