@@ -217,6 +217,14 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                   </div>
                 )}
               </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
+                  Cards Per Hand
+                </label>
+                <div className="p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+                  {room.handSize || 5} cards
+                </div>
+              </div>
               {isHost && (
                 <div>
                   <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">

@@ -7,6 +7,7 @@ import { z } from "zod";
 const createRoomSchema = z.object({
   mode: z.string().optional(),
   sport: z.string().optional(),
+  handSize: z.number().int().min(4).max(10).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { mode, sport } = createRoomSchema.parse(body);
+    const { mode, sport, handSize } = createRoomSchema.parse(body);
 
     // Generate unique room code
     let code: string;
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
           status: "lobby",
           mode: mode || null,
           sport: sport || null,
+          handSize: handSize || 5,
         },
       });
 

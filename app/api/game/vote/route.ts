@@ -203,8 +203,8 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          // Auto-draw cards if player has less than 5 cards in hand
-          const HAND_SIZE_LIMIT = 5;
+          // Auto-draw cards if player has less than handSize cards in hand
+          const handSizeLimit = room.handSize || 5;
           const cardsInHand = await prisma.cardInstance.count({
             where: {
               roomId: room.id,
@@ -213,8 +213,8 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          if (cardsInHand < HAND_SIZE_LIMIT && room.gameState && room.sport) {
-            const cardsNeeded = HAND_SIZE_LIMIT - cardsInHand;
+          if (cardsInHand < handSizeLimit && room.gameState && room.sport) {
+            const cardsNeeded = handSizeLimit - cardsInHand;
 
             // Get all cards for the sport
             const cards = await prisma.card.findMany({

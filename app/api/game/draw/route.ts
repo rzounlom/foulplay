@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check hand size limit (max 5 cards)
-    const HAND_SIZE_LIMIT = 5;
+    // Check hand size limit based on room handSize
+    const handSizeLimit = room.handSize || 5;
     const cardsInHand = await prisma.cardInstance.count({
       where: {
         roomId: room.id,
@@ -69,10 +69,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (cardsInHand >= HAND_SIZE_LIMIT) {
+    if (cardsInHand >= handSizeLimit) {
       return NextResponse.json(
         {
-          error: `You already have ${cardsInHand} cards in your hand. Maximum hand size is ${HAND_SIZE_LIMIT}. Please submit a card before drawing another.`,
+          error: `You already have ${cardsInHand} cards in your hand. Maximum hand size is ${handSizeLimit}. Please submit a card before drawing another.`,
         },
         { status: 400 }
       );

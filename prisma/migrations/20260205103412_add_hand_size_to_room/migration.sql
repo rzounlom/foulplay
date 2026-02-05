@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Room" ADD COLUMN     "handSize" INTEGER NOT NULL DEFAULT 5;

@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Deal 5 cards to each player
+    // Deal cards to each player based on room handSize
+    const handSize = room.handSize || 5;
     let currentGameState = gameState;
     const cardInstancesToCreate: Array<{
       roomId: string;
@@ -112,8 +113,8 @@ export async function POST(request: NextRequest) {
     }> = [];
 
     for (const player of room.players) {
-      // Draw 5 cards for this player
-      const { cardIndices, newState } = drawMultipleCards(currentGameState, 5);
+      // Draw cards for this player
+      const { cardIndices, newState } = drawMultipleCards(currentGameState, handSize);
       currentGameState = newState;
 
       // Create card instances for each drawn card

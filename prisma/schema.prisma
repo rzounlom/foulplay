@@ -26,6 +26,7 @@ model Room {
   mode      String?
   sport     String?
   showPoints Boolean  @default(false) // Host can toggle to show/hide other players' points
+  handSize  Int      @default(5) // Number of cards dealt to each player
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   players   Player[]

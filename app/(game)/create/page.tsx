@@ -11,6 +11,7 @@ export default function CreateRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<string>("");
   const [sport, setSport] = useState<string>("");
+  const [handSize, setHandSize] = useState<number>(5);
 
   // Redirect to sign-in if not authenticated, preserving the current path
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function CreateRoomPage() {
       const response = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, sport }),
+        body: JSON.stringify({ mode, sport, handSize }),
       });
 
       if (!response.ok) {
@@ -131,11 +132,35 @@ export default function CreateRoomPage() {
               <option value="basketball">Basketball</option>
             </select>
           </div>
+
+          <div>
+            <label htmlFor="handSize" className="block text-sm font-medium mb-2">
+              Cards Per Hand <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="handSize"
+              value={handSize}
+              onChange={(e) => setHandSize(Number(e.target.value))}
+              className="w-full p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800"
+              required
+            >
+              <option value={4}>4 cards</option>
+              <option value={5}>5 cards (default)</option>
+              <option value={6}>6 cards</option>
+              <option value={7}>7 cards</option>
+              <option value={8}>8 cards</option>
+              <option value={9}>9 cards</option>
+              <option value={10}>10 cards</option>
+            </select>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+              Number of cards each player starts with
+            </p>
+          </div>
         </div>
 
         <button
           onClick={handleCreateRoom}
-          disabled={isCreating || !mode || !sport}
+          disabled={isCreating || !mode || !sport || !handSize}
           className="w-full py-3 px-4 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {isCreating ? "Creating..." : "Create Room"}

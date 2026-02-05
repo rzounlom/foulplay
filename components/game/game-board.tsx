@@ -5,6 +5,8 @@ import { useRoomChannel, RoomEvent } from "@/lib/ably/useRoomChannel";
 import { PlayerList } from "./player-list";
 import { Hand } from "./hand";
 import { VotingUI } from "./voting-ui";
+import { InstructionsModal } from "./instructions-modal";
+import { GameTour } from "./game-tour";
 
 interface Player {
   id: string;
@@ -107,6 +109,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [hand, setHand] = useState<HandCard[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+  const [startTour, setStartTour] = useState(false);
 
   const fetchRoom = async () => {
     try {
@@ -227,8 +230,19 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     }
   };
 
+  const handleStartTour = () => {
+    localStorage.removeItem("foulplay-tour-completed");
+    setStartTour(true);
+    setTimeout(() => setStartTour(false), 100);
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-6xl">
+      <GameTour 
+        startTour={startTour}
+        onTourStart={() => setStartTour(false)}
+      />
+      
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Game Room {room.code}</h1>
         <div className="flex items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400">
@@ -240,7 +254,10 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       <div className="grid gap-6 md:grid-cols-3">
         {/* Left Column - Players & Scoreboard */}
         <div className="md:col-span-1">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 sticky top-6">
+          <div 
+            data-tour="player-list"
+            className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 sticky top-6"
+          >
             <PlayerList players={room.players} currentUserId={currentUserId} showPoints={room.showPoints} />
             
             {/* Host Controls */}
@@ -282,9 +299,13 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         {/* Center Column - Game Area */}
         <div className="md:col-span-2 space-y-6">
           {/* Active Card Display */}
-          {activeCard && (
-            <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
-              <h2 className="text-xl font-semibold mb-4">Active Card</h2>
+          <div 
+            data-tour="active-card"
+            className={activeCard ? "bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800" : "hidden"}
+          >
+            {activeCard ? (
+              <>
+                <h2 className="text-xl font-semibold mb-4">Active Card</h2>
               <div className="p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border-2 border-primary/30">
                 <div className="flex items-start justify-between mb-4">
                   <div>
@@ -319,40 +340,70 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                   </button>
                 )}
               </div>
-            </div>
-          )}
+              </>
+            ) : (
+              <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
+                <h2 className="text-xl font-semibold text-neutral-500 dark:text-neutral-400">
+                  Active Card
+                </h2>
+                <p className="text-sm text-neutral-400 dark:text-neutral-500 mt-2">
+                  Active cards will appear here when drawn
+                </p>
+              </div>
+            )}
+          </div>
 
 
           {/* Pending Submissions */}
-          {submissions.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Pending Submissions</h2>
-              {submissions.map((submission) => (
-                <VotingUI
-                  key={submission.id}
-                  submission={submission}
-                  currentUserId={currentUserId}
-                  totalPlayers={room.players.length}
-                  onVote={handleVote}
-                />
-              ))}
-            </div>
-          )}
+          <div data-tour="pending-submissions" className="space-y-4">
+            {submissions.length > 0 ? (
+              <>
+                <h2 className="text-xl font-semibold">Pending Submissions</h2>
+                {submissions.map((submission) => (
+                  <VotingUI
+                    key={submission.id}
+                    submission={submission}
+                    currentUserId={currentUserId}
+                    totalPlayers={room.players.length}
+                    onVote={handleVote}
+                  />
+                ))}
+              </>
+            ) : (
+              <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
+                <h2 className="text-xl font-semibold text-neutral-500 dark:text-neutral-400">
+                  Pending Submissions
+                </h2>
+                <p className="text-sm text-neutral-400 dark:text-neutral-500 mt-2">
+                  Submissions will appear here when players submit cards
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Player Hand */}
           {currentPlayer && (
-            <Hand
-              cards={hand}
-              onCardSelect={(cardId) => {
-                setSelectedCardIds((prev) => 
-                  prev.includes(cardId) 
-                    ? prev.filter(id => id !== cardId)
-                    : [...prev, cardId]
-                );
-              }}
-              onCardSubmit={handleSubmitCard}
-              selectedCardIds={selectedCardIds}
-            />
+            <div data-tour="your-cards" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Your Cards</h2>
+                <div data-tour="instructions">
+                  <InstructionsModal onStartTour={handleStartTour} />
+                </div>
+              </div>
+              <Hand
+                cards={hand}
+                onCardSelect={(cardId) => {
+                  setSelectedCardIds((prev) => 
+                    prev.includes(cardId) 
+                      ? prev.filter(id => id !== cardId)
+                      : [...prev, cardId]
+                  );
+                }}
+                onCardSubmit={handleSubmitCard}
+                selectedCardIds={selectedCardIds}
+                handSize={room.handSize || 5}
+              />
+            </div>
           )}
 
         </div>

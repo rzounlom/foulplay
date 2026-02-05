@@ -21,6 +21,7 @@ interface HandProps {
   onCardSubmit?: (cardInstanceIds: string[]) => void;
   selectedCardId?: string | null;
   selectedCardIds?: string[];
+  handSize?: number;
 }
 
 export function Hand({
@@ -29,6 +30,7 @@ export function Hand({
   onCardSubmit,
   selectedCardId,
   selectedCardIds = [],
+  handSize = 5,
 }: HandProps) {
   const isMultiSelect = !!onCardSubmit;
   const selectedIds = isMultiSelect ? selectedCardIds : (selectedCardId ? [selectedCardId] : []);
@@ -47,7 +49,7 @@ export function Hand({
   return (
     <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
       <h3 className="text-lg font-semibold mb-4">
-        Your Hand ({cards.length}/5)
+        Your Hand ({cards.length}/{handSize})
       </h3>
       {isMultiSelect && selectedIds.length > 0 && (
         <div className="mb-4">
