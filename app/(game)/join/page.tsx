@@ -21,6 +21,28 @@ function JoinRoomForm() {
     }
   }, [searchParams]);
 
+  // Fetch user's default nickname
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch("/api/user/profile");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.profile?.defaultNickname && !nickname) {
+            setNickname(data.profile.defaultNickname);
+          }
+        }
+      } catch (err) {
+        // Silently fail - user can still enter nickname manually
+        console.error("Failed to fetch default nickname:", err);
+      }
+    };
+
+    fetchProfile();
+  }, [isLoaded, isSignedIn, nickname]);
+
   // Redirect to sign-in if not authenticated, preserving the current path and code
   useEffect(() => {
     if (isLoaded && !isSignedIn) {

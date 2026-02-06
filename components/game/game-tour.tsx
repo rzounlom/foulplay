@@ -19,6 +19,7 @@ interface GameTourProps {
 export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isActive, setIsActive] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const spotlightRef = useRef<HTMLDivElement>(null);
 
@@ -118,19 +119,33 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     }
   };
 
-  const handleSkip = () => {
-    // Don't save to localStorage anymore - tour will show on each game start
-    // Future: Save "don't show again" preference to user account
+  const saveTourPreference = useCallback(async (skip: boolean) => {
+    if (skip && dontShowAgain) {
+      try {
+        await fetch("/api/user/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ skipTour: true }),
+        });
+      } catch (error) {
+        console.error("Failed to save tour preference:", error);
+      }
+    }
+  }, [dontShowAgain]);
+
+  const handleSkip = useCallback(async () => {
+    await saveTourPreference(true);
     setIsActive(false);
     onSkip?.();
-  };
+  }, [saveTourPreference, onSkip]);
 
-  const handleComplete = useCallback(() => {
-    // Don't save to localStorage anymore - tour will show on each game start
-    // Future: Save "don't show again" preference to user account
+  const handleComplete = useCallback(async () => {
+    if (dontShowAgain) {
+      await saveTourPreference(true);
+    }
     setIsActive(false);
     onComplete?.();
-  }, [onComplete]);
+  }, [onComplete, dontShowAgain, saveTourPreference]);
 
   // Handle missing elements
   useEffect(() => {
@@ -249,6 +264,20 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
                 />
               ))}
             </div>
+          </div>
+
+          {/* Don't Show Again Checkbox */}
+          <div className="mb-4 flex items-center gap-2">
+            <input
+              id="dontShowAgain"
+              type="checkbox"
+              checked={dontShowAgain}
+              onChange={(e) => setDontShowAgain(e.target.checked)}
+              className="w-4 h-4 text-primary border-neutral-300 dark:border-neutral-700 rounded cursor-pointer"
+            />
+            <label htmlFor="dontShowAgain" className="text-sm text-neutral-600 dark:text-neutral-400 cursor-pointer">
+              Don&apos;t show this tour again
+            </label>
           </div>
 
           {/* Actions */}

@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProviderWrapper } from "@/components/auth/clerk-provider-wrapper";
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import { MainNav } from "@/components/navigation/main-nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
+            <MainNav />
             {children}
           </ThemeProvider>
         </body>

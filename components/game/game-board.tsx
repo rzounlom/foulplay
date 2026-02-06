@@ -176,14 +176,27 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       fetchHand();
       fetchSubmissions();
       
-      // Start tour when a new game starts
+      // Start tour when a new game starts (if user hasn't opted out)
       if (event === "game_started") {
-        setStartTour(true);
-      }
-      
-      // Start tour when a new game starts
-      if (event === "game_started") {
-        setStartTour(true);
+        const checkAndStartTour = async () => {
+          try {
+            const response = await fetch("/api/user/profile");
+            if (response.ok) {
+              const data = await response.json();
+              if (!data.profile?.skipTour) {
+                setStartTour(true);
+              }
+            } else {
+              // If profile fetch fails, start tour anyway (default behavior)
+              setStartTour(true);
+            }
+          } catch (error) {
+            // If profile fetch fails, start tour anyway (default behavior)
+            console.error("Failed to check tour preference:", error);
+            setStartTour(true);
+          }
+        };
+        checkAndStartTour();
       }
     }
   });

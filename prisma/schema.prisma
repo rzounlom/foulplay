@@ -10,12 +10,17 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  players   Player[]
+  id             String   @id @default(cuid())
+  clerkId        String   @unique
+  name           String
+  defaultNickname String? // Permanent nickname that can be used as default when joining rooms
+  gamesPlayed    Int      @default(0) // Total number of games played
+  gamesWon       Int      @default(0) // Total number of games won
+  totalPoints    Int      @default(0) // Total points accumulated across all games
+  skipTour       Boolean  @default(false) // Whether to skip the interactive tour on game start
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  players        Player[]
 }
 
 model Room {
