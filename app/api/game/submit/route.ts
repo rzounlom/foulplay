@@ -152,23 +152,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Fetch the submission with all related data
-    const submissionWithData = await prisma.cardSubmission.findUnique({
-      where: { id: submission.id },
-      include: {
-        submittedBy: {
-          include: {
-            user: true,
-          },
-        },
-        cardInstances: {
-          include: {
-            card: true,
-          },
-        },
-      },
-    });
-
     // Emit card_submitted event via Ably
     try {
       const channel = getRoomChannel(room.code);
