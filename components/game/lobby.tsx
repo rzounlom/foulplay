@@ -22,6 +22,7 @@ interface Room {
   mode: string | null;
   sport: string | null;
   showPoints: boolean;
+  handSize: number;
   players: Player[];
 }
 
