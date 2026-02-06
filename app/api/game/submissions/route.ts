@@ -56,6 +56,10 @@ export async function GET(request: NextRequest) {
       },
       include: {
         cardInstances: {
+          where: {
+            // Only include card instances that are still submitted (not resolved or returned to hand)
+            status: "submitted",
+          },
           include: {
             card: true,
             drawnBy: {
@@ -64,6 +68,8 @@ export async function GET(request: NextRequest) {
               },
             },
             votes: {
+              // Get all votes for these card instances
+              // (votes are already linked to submissionId, so we'll filter in code if needed)
               include: {
                 voter: {
                   include: {
@@ -94,8 +100,30 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Filter votes to only include votes for the current submission
+    // and filter out submissions that have no pending card instances
+    const submissionsWithPendingCards = submissions
+      .filter((submission) => submission.cardInstances.length > 0)
+      .map((submission) => {
+        // Filter votes for each card instance to only include votes for this submission
+        const cardInstances = submission.cardInstances.map((cardInstance) => {
+          const filteredVotes = (cardInstance.votes || []).filter(
+            (vote) => vote.submissionId === submission.id
+          );
+          return {
+            ...cardInstance,
+            votes: filteredVotes,
+          };
+        });
+
+        return {
+          ...submission,
+          cardInstances,
+        };
+      });
+
     return NextResponse.json({
-      submissions,
+      submissions: submissionsWithPendingCards,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -106,8 +134,13 @@ export async function GET(request: NextRequest) {
     }
 
     console.error("Error fetching submissions:", error);
+    // Log the full error details for debugging
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

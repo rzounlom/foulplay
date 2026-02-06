@@ -134,33 +134,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify all selected cards belong to this submission and are still pending
+    // Verify all selected cards belong to this submission
+    // If a card is in the submission's cardInstances array, it's valid to vote on
+    const submissionCardIds = new Set(submission.cardInstances.map(ci => ci.id));
     const invalidCards = cardsToVoteOn.filter(ci => 
-      ci.submissionId !== submissionId || ci.status !== "submitted"
+      !submissionCardIds.has(ci.id)
     );
     if (invalidCards.length > 0) {
       return NextResponse.json(
-        { error: "One or more selected cards are not valid for voting" },
+        { error: "One or more selected cards do not belong to this submission" },
         { status: 400 }
       );
     }
 
-    // Check if user has already voted on any of the selected cards
-    const alreadyVotedCards = cardsToVoteOn.filter(ci =>
-      ci.votes.some(v => v.voterPlayerId === votingPlayer.id)
-    );
-    if (alreadyVotedCards.length > 0) {
-      return NextResponse.json(
-        { error: "You have already voted on one or more of the selected cards" },
-        { status: 400 }
-      );
-    }
-
-    // Create votes for each selected card
+    // Create or update votes for each selected card
+    // Use upsert to handle cases where a card was rejected and resubmitted
+    // (same cardInstanceId but different submissionId - we update the vote)
+    // This also allows users to change their vote on the same card in the same submission
     const createdVotes = await Promise.all(
       cardsToVoteOn.map(cardInstance =>
-        prisma.cardVote.create({
-          data: {
+        prisma.cardVote.upsert({
+          where: {
+            cardInstanceId_voterPlayerId: {
+              cardInstanceId: cardInstance.id,
+              voterPlayerId: votingPlayer.id,
+            },
+          },
+          update: {
+            submissionId: submission.id,
+            vote: vote,
+          },
+          create: {
             submissionId: submission.id,
             cardInstanceId: cardInstance.id,
             voterPlayerId: votingPlayer.id,
@@ -178,6 +182,9 @@ export async function POST(request: NextRequest) {
           include: {
             card: true,
             votes: {
+              where: {
+                submissionId: submissionId, // Only get votes for this submission
+              },
               include: {
                 voter: {
                   include: {
@@ -222,12 +229,15 @@ export async function POST(request: NextRequest) {
     const pendingCards: typeof updatedSubmission.cardInstances = [];
 
     for (const cardInstance of updatedSubmission.cardInstances) {
-      const voteCounts = getVoteCounts(cardInstance.votes);
+      // Votes are already filtered by submissionId in the query above
+      const voteCounts = getVoteCounts(cardInstance.votes || []);
       const resolution = canResolveSubmission(
         totalPlayers,
         voteCounts.approvals,
         voteCounts.rejections
       );
+      
+      console.log(`Card ${cardInstance.id}: ${voteCounts.approvals} approvals, ${voteCounts.rejections} rejections, resolution: ${resolution}, totalPlayers: ${totalPlayers}`);
 
       if (resolution === "approved") {
         approvedCards.push(cardInstance);
@@ -245,8 +255,12 @@ export async function POST(request: NextRequest) {
         where: {
           id: { in: approvedCardIds },
         },
-        data: { status: "resolved" },
+        data: { 
+          status: "resolved",
+          submissionId: null, // Remove link to submission since it's resolved
+        },
       });
+      console.log(`Resolved ${approvedCards.length} approved cards:`, approvedCardIds);
     }
 
     // Resolve rejected cards (return to hand)
@@ -261,6 +275,7 @@ export async function POST(request: NextRequest) {
           submissionId: null, // Remove link to submission
         },
       });
+      console.log(`Returned ${rejectedCards.length} rejected cards to hand:`, rejectedCardIds);
     }
 
     // Check if submission is fully resolved (all cards are approved or rejected)
@@ -514,16 +529,19 @@ export async function POST(request: NextRequest) {
       console.error("Failed to publish Ably event:", ablyError);
     }
 
-    // Get updated vote counts for each card
-    const cardVoteCounts = updatedSubmission.cardInstances.map(ci => ({
-      cardInstanceId: ci.id,
-      voteCounts: getVoteCounts(ci.votes),
-      resolution: canResolveSubmission(
-        totalPlayers,
-        getVoteCounts(ci.votes).approvals,
-        getVoteCounts(ci.votes).rejections
-      ),
-    }));
+    // Get updated vote counts for each card (votes already filtered by submissionId in query)
+    const cardVoteCounts = updatedSubmission.cardInstances.map(ci => {
+      const voteCounts = getVoteCounts(ci.votes || []);
+      return {
+        cardInstanceId: ci.id,
+        voteCounts: voteCounts,
+        resolution: canResolveSubmission(
+          totalPlayers,
+          voteCounts.approvals,
+          voteCounts.rejections
+        ),
+      };
+    });
 
     return NextResponse.json({
       success: true,

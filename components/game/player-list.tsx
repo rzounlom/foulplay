@@ -24,7 +24,9 @@ export function PlayerList({ players, currentUserId, showPoints = false }: Playe
       <div className="space-y-2">
         {players.map((player) => {
           const isCurrentUser = player.user.id === currentUserId;
-          const shouldShowPoints = showPoints || isCurrentUser;
+          // When showPoints is true, show all players' points (including host)
+          // When showPoints is false, only show current user's own points
+          const shouldShowPoints = showPoints ? true : isCurrentUser;
           const displayName = player.nickname || player.user.name;
 
           return (

@@ -169,7 +169,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       event === "card_rejected" ||
       event === "submission_approved" ||
       event === "submission_rejected" ||
-      event === "turn_changed"
+      event === "turn_changed" ||
+      event === "room_settings_updated"
     ) {
       fetchRoom();
       fetchHand();
@@ -234,8 +235,10 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         const error = await response.json();
         alert(error.error || "Failed to vote");
       } else {
+        // Refresh all data after voting
         fetchSubmissions();
         fetchRoom();
+        fetchHand();
       }
     } catch (error) {
       console.error("Failed to vote:", error);

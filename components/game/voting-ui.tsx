@@ -62,8 +62,7 @@ export function VotingUI({
   totalPlayers,
   onVote,
 }: VotingUIProps) {
-  const [isVoting, setIsVoting] = useState(false);
-  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
+  const [isVoting, setIsVoting] = useState<Record<string, boolean>>({});
   
   const requiredApprovals = Math.ceil(totalPlayers / 2);
 
@@ -96,54 +95,39 @@ export function VotingUI({
     submission.status === "pending" &&
     submission.submittedBy.user.id !== currentUserId;
 
-  const toggleCardSelection = (cardInstanceId: string) => {
-    if (!canVote) return;
-    const cardData = cardVoteData.find(d => d.cardInstanceId === cardInstanceId);
-    if (cardData?.hasVoted) return; // Can't select cards already voted on
+  const handleVote = async (cardInstanceId: string, vote: boolean) => {
+    if (isVoting[cardInstanceId]) return;
 
-    setSelectedCards((prev) => {
-      const next = new Set(prev);
-      if (next.has(cardInstanceId)) {
-        next.delete(cardInstanceId);
-      } else {
-        next.add(cardInstanceId);
-      }
-      return next;
-    });
-  };
-
-  const selectAll = () => {
-    if (!canVote) return;
-    const votableCards = cardVoteData
-      .filter(d => !d.hasVoted && d.resolution === "pending")
-      .map(d => d.cardInstanceId);
-    setSelectedCards(new Set(votableCards));
-  };
-
-  const deselectAll = () => {
-    setSelectedCards(new Set());
-  };
-
-  const handleVote = async (vote: boolean, cardInstanceIds: string[]) => {
-    if (isVoting || cardInstanceIds.length === 0) return;
-
-    setIsVoting(true);
+    setIsVoting((prev) => ({ ...prev, [cardInstanceId]: true }));
     try {
-      await onVote(submission.id, cardInstanceIds, vote);
-      // Clear selection after voting
-      setSelectedCards(new Set());
+      await onVote(submission.id, [cardInstanceId], vote);
     } catch (error) {
       console.error("Failed to vote:", error);
     } finally {
-      setIsVoting(false);
+      setIsVoting((prev) => ({ ...prev, [cardInstanceId]: false }));
     }
   };
 
   const handleVoteAll = async (vote: boolean) => {
-    const allPendingCards = cardVoteData
-      .filter(d => !d.hasVoted && d.resolution === "pending")
-      .map(d => d.cardInstanceId);
-    await handleVote(vote, allPendingCards);
+    const allCardIds = submission.cardInstances.map(ci => ci.id);
+    const isAnyVoting = allCardIds.some(id => isVoting[id]);
+    if (isAnyVoting) return;
+
+    // Set all as voting
+    const votingState: Record<string, boolean> = {};
+    allCardIds.forEach(id => { votingState[id] = true; });
+    setIsVoting((prev) => ({ ...prev, ...votingState }));
+
+    try {
+      await onVote(submission.id, allCardIds, vote);
+    } catch (error) {
+      console.error("Failed to vote:", error);
+    } finally {
+      // Clear all voting states
+      const clearedState: Record<string, boolean> = {};
+      allCardIds.forEach(id => { clearedState[id] = false; });
+      setIsVoting((prev) => ({ ...prev, ...clearedState }));
+    }
   };
 
   return (
@@ -153,36 +137,43 @@ export function VotingUI({
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           Submitted by: {submission.submittedBy.nickname || submission.submittedBy.user.name}
         </p>
-        {canVote && (
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-            Select cards to vote on individually, or use &quot;Vote All&quot; buttons
-          </p>
-        )}
       </div>
 
-      {/* Cards Display with Selection */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+      {/* Accept All / Reject All Buttons */}
+      {canVote && (
+        <div className="mb-4 flex gap-3">
+          <button
+            onClick={() => handleVoteAll(true)}
+            disabled={Object.values(isVoting).some(v => v)}
+            className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            Accept All
+          </button>
+          <button
+            onClick={() => handleVoteAll(false)}
+            disabled={Object.values(isVoting).some(v => v)}
+            className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            Reject All
+          </button>
+        </div>
+      )}
+
+      {/* Cards Display with Individual Vote Buttons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {submission.cardInstances.map((cardInstance) => {
           const cardData = cardVoteData.find(d => d.cardInstanceId === cardInstance.id);
-          const isSelected = selectedCards.has(cardInstance.id);
-          const canSelect = canVote && !cardData?.hasVoted && cardData?.resolution === "pending";
+          const cardIsVoting = isVoting[cardInstance.id] || false;
 
           return (
             <div
               key={cardInstance.id}
-              onClick={() => canSelect && toggleCardSelection(cardInstance.id)}
-              className={`p-3 rounded-lg border-2 min-h-0 transition-all cursor-pointer ${
-                isSelected
-                  ? "border-primary bg-primary/20 dark:bg-primary/10"
-                  : canSelect
-                  ? "border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10 hover:border-primary/50"
-                  : "border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 opacity-60"
-              } ${
+              className={`p-3 rounded-lg border-2 min-h-0 transition-all ${
                 cardData?.resolution === "approved"
-                  ? "ring-2 ring-green-500/50"
+                  ? "ring-2 ring-green-500/50 border-green-500/30 bg-green-50/50 dark:bg-green-950/20"
                   : cardData?.resolution === "rejected"
-                  ? "ring-2 ring-red-500/50"
-                  : ""
+                  ? "ring-2 ring-red-500/50 border-red-500/30 bg-red-50/50 dark:bg-red-950/20"
+                  : "border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10"
               }`}
             >
               <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -206,13 +197,13 @@ export function VotingUI({
                   </span>
                 </div>
               </div>
-              <p className="text-[11px] text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight mb-2">
+              <p className="text-[11px] text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight mb-3">
                 {cardInstance.card.description}
               </p>
               
-              {/* Card Vote Status */}
+              {/* Vote Status */}
               {cardData && (
-                <div className="text-[10px] space-y-1">
+                <div className="text-[10px] mb-3">
                   <div className="flex items-center justify-between">
                     <span className="text-neutral-500 dark:text-neutral-400">
                       Approve: {cardData.approvalVotes}/{requiredApprovals}
@@ -221,78 +212,32 @@ export function VotingUI({
                       Reject: {cardData.rejectionVotes}
                     </span>
                   </div>
-                  {cardData.hasVoted && (
-                    <div className="text-center">
-                      <span className={`font-medium ${
-                        cardData.userVote ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                      }`}>
-                        You: {cardData.userVote ? "Approved" : "Rejected"}
-                      </span>
-                    </div>
-                  )}
-                  {cardData.resolution !== "pending" && (
-                    <div className="text-center">
-                      <span className={`font-semibold ${
-                        cardData.resolution === "approved" 
-                          ? "text-green-600 dark:text-green-400" 
-                          : "text-red-600 dark:text-red-400"
-                      }`}>
-                        {cardData.resolution === "approved" ? "✓ Approved" : "✗ Rejected"}
-                      </span>
-                    </div>
-                  )}
+                </div>
+              )}
+
+              {/* Individual Vote Buttons */}
+              {canVote && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleVote(cardInstance.id, true)}
+                    disabled={cardIsVoting}
+                    className="flex-1 px-3 py-1.5 bg-green-500 text-white rounded text-xs font-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {cardIsVoting ? "..." : "Accept"}
+                  </button>
+                  <button
+                    onClick={() => handleVote(cardInstance.id, false)}
+                    disabled={cardIsVoting}
+                    className="flex-1 px-3 py-1.5 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {cardIsVoting ? "..." : "Reject"}
+                  </button>
                 </div>
               )}
             </div>
           );
         })}
       </div>
-
-      {/* Selection Controls */}
-      {canVote && (
-        <div className="mb-4 flex gap-2">
-          <button
-            onClick={selectAll}
-            className="px-3 py-1.5 text-sm bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors cursor-pointer"
-          >
-            Select All
-          </button>
-          <button
-            onClick={deselectAll}
-            disabled={selectedCards.size === 0}
-            className="px-3 py-1.5 text-sm bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            Deselect All
-          </button>
-          {selectedCards.size > 0 && (
-            <span className="px-3 py-1.5 text-sm text-neutral-600 dark:text-neutral-400 self-center">
-              {selectedCards.size} card{selectedCards.size !== 1 ? "s" : ""} selected
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Vote Buttons */}
-      {canVote && (
-        <div className="space-y-2">
-          <div className="flex gap-3">
-            <button
-              onClick={() => selectedCards.size > 0 ? handleVote(true, Array.from(selectedCards)) : handleVoteAll(true)}
-              disabled={isVoting || (selectedCards.size === 0 && cardVoteData.every(d => d.hasVoted || d.resolution !== "pending"))}
-              className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {isVoting ? "Voting..." : selectedCards.size > 0 ? `Approve Selected (${selectedCards.size})` : "Approve All"}
-            </button>
-            <button
-              onClick={() => selectedCards.size > 0 ? handleVote(false, Array.from(selectedCards)) : handleVoteAll(false)}
-              disabled={isVoting || (selectedCards.size === 0 && cardVoteData.every(d => d.hasVoted || d.resolution !== "pending"))}
-              className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {isVoting ? "Voting..." : selectedCards.size > 0 ? `Reject Selected (${selectedCards.size})` : "Reject All"}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Cannot Vote */}
       {submission.submittedBy.user.id === currentUserId && (
