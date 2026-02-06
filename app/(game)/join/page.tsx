@@ -2,9 +2,9 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 
-export default function JoinRoomPage() {
+function JoinRoomForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isSignedIn, isLoaded } = useUser();
@@ -157,5 +157,21 @@ export default function JoinRoomPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function JoinRoomPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <div className="w-full max-w-2xl">
+          <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800">
+            <p className="text-center">Loading...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <JoinRoomForm />
+    </Suspense>
   );
 }
