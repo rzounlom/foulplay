@@ -43,6 +43,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // No new cards during quarter intermission — cards are dealt when intermission ends
+    if (room.quarterIntermissionEndsAt) {
+      const endsAt = new Date(room.quarterIntermissionEndsAt);
+      if (endsAt > new Date()) {
+        return NextResponse.json(
+          {
+            error:
+              "Drawing cards is paused during the quarter-ending intermission. New cards will be dealt when the intermission ends.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     if (!room.gameState) {
       return NextResponse.json(
         { error: "Game state not found" },

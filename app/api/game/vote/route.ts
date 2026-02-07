@@ -51,6 +51,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Pause voting during quarter intermission
+    if (room.quarterIntermissionEndsAt) {
+      const endsAt = new Date(room.quarterIntermissionEndsAt);
+      if (endsAt > new Date()) {
+        return NextResponse.json(
+          {
+            error: "Voting is paused during the quarter-ending intermission.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Find submission
     const submission = await prisma.cardSubmission.findUnique({
       where: { id: submissionId },

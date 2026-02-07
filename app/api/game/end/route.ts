@@ -5,7 +5,7 @@ import { initializeGameState, drawMultipleCards } from "@/lib/game/engine";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 
-const startGameSchema = z.object({
+const endGameSchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
 });
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { roomCode } = startGameSchema.parse(body);
+    const { roomCode } = endGameSchema.parse(body);
 
     // Find room and verify user is host
     const room = await prisma.room.findUnique({
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
             createdAt: "asc",
           },
         },
+        gameState: true,
       },
     });
 
@@ -38,9 +39,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
-    if (room.status !== "lobby") {
+    if (room.status !== "active") {
       return NextResponse.json(
-        { error: "Game has already started" },
+        { error: "Game is not active" },
         { status: 400 }
       );
     }
@@ -49,42 +50,73 @@ export async function POST(request: NextRequest) {
     const hostPlayer = room.players.find((p) => p.userId === user.id && p.isHost);
     if (!hostPlayer) {
       return NextResponse.json(
-        { error: "Only the host can start the game" },
+        { error: "Only the host can end the game" },
         { status: 403 }
       );
     }
 
-    if (room.players.length < 2) {
-      return NextResponse.json(
-        { error: "Need at least 2 players to start" },
-        { status: 400 }
-      );
+    // Determine winner (player with highest points)
+    const winner = room.players.reduce((prev, current) => 
+      (current.points > prev.points) ? current : prev
+    );
+
+    // Update user stats for all players
+    await Promise.all(
+      room.players.map(async (player) => {
+        const userRecord = await prisma.user.findUnique({
+          where: { id: player.userId },
+        });
+
+        if (userRecord) {
+          await prisma.user.update({
+            where: { id: player.userId },
+            data: {
+              gamesPlayed: { increment: 1 },
+              gamesWon: player.id === winner.id ? { increment: 1 } : undefined,
+              totalPoints: { increment: player.points },
+            },
+          });
+        }
+      })
+    );
+
+    // Delete old game state and card instances
+    if (room.gameState) {
+      await prisma.gameState.delete({
+        where: { id: room.gameState.id },
+      });
     }
 
-    if (!room.sport) {
-      return NextResponse.json(
-        { error: "Room must have a sport selected" },
-        { status: 400 }
-      );
-    }
+    // Delete all card instances for this room
+    await prisma.cardInstance.deleteMany({
+      where: { roomId: room.id },
+    });
+
+    // Delete all submissions for this room
+    await prisma.cardSubmission.deleteMany({
+      where: { roomId: room.id },
+    });
+
+    // Reset all player points to 0
+    await prisma.player.updateMany({
+      where: { roomId: room.id },
+      data: { points: 0 },
+    });
 
     // Get all cards for the sport
     const cards = await prisma.card.findMany({
-      where: { sport: room.sport },
+      where: { sport: room.sport! },
+      orderBy: { id: "asc" },
     });
 
     if (cards.length === 0) {
-      console.error(`No cards found for sport: ${room.sport}`);
       return NextResponse.json(
-        { 
-          error: "No cards found for this sport. Please run 'npm run db:seed' to seed the database.",
-          sport: room.sport
-        },
+        { error: "No cards found for this sport" },
         { status: 500 }
       );
     }
 
-    // Initialize game state
+    // Initialize new game state
     const playerIds = room.players.map((p) => p.id);
     const gameState = initializeGameState(
       room.id,
@@ -92,8 +124,8 @@ export async function POST(request: NextRequest) {
       room.sport as "football" | "basketball"
     );
 
-    // Create game state in database
-    const dbGameState = await prisma.gameState.create({
+    // Create new game state in database
+    await prisma.gameState.create({
       data: {
         roomId: room.id,
         currentTurnPlayerId: gameState.currentTurnPlayerId,
@@ -136,24 +168,27 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Update room status to active; if round clearing is enabled (football/basketball), start at Round 1
-    const isFootballOrBasketball =
-      room.sport === "football" || room.sport === "basketball";
-    await prisma.room.update({
-      where: { id: room.id },
-      data: {
-        status: "active",
-        ...(room.allowQuarterClearing &&
-          isFootballOrBasketball && { currentQuarter: "1" }),
-      },
-    });
+    // Room status stays "active" (new game started)
 
-    // Emit game_started event via Ably
+    // Emit game_ended and game_started events via Ably
     try {
       const channel = getRoomChannel(room.code);
+      
+      // Emit game ended event with winner info
+      await channel.publish("game_ended", {
+        roomCode: room.code,
+        winner: {
+          id: winner.id,
+          name: winner.user.name,
+          nickname: winner.nickname,
+          points: winner.points,
+        },
+        timestamp: new Date().toISOString(),
+      });
+
+      // Emit game started event for new game
       await channel.publish("game_started", {
         roomCode: room.code,
-        currentTurnPlayerId: gameState.currentTurnPlayerId,
         timestamp: new Date().toISOString(),
       });
     } catch (ablyError) {
@@ -162,11 +197,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      gameState: {
-        id: dbGameState.id,
-        currentTurnPlayerId: dbGameState.currentTurnPlayerId,
-        roomCode: room.code,
+      winner: {
+        id: winner.id,
+        name: winner.user.name,
+        nickname: winner.nickname,
+        points: winner.points,
       },
+      message: "Game ended and new game started",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -176,15 +213,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error("Error starting game:", error);
+    console.error("Error ending game:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     const errorStack = error instanceof Error ? error.stack : undefined;
     return NextResponse.json(
-      { 
-        error: "Internal server error",
-        message: errorMessage,
-        ...(process.env.NODE_ENV === "development" && { stack: errorStack })
-      },
+      { error: "Failed to end game", message: errorMessage, stack: errorStack },
       { status: 500 }
     );
   }

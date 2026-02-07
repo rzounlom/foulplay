@@ -8,6 +8,8 @@ const updateRoomSchema = z.object({
   mode: z.string().optional(),
   sport: z.string().optional(),
   showPoints: z.boolean().optional(),
+  allowJoinInProgress: z.boolean().optional(),
+  allowQuarterClearing: z.boolean().optional(),
 });
 
 export async function GET(
@@ -81,7 +83,8 @@ export async function PATCH(
 
     const { code } = await params;
     const body = await request.json();
-    const { mode, sport, showPoints } = updateRoomSchema.parse(body);
+    const { mode, sport, showPoints, allowJoinInProgress, allowQuarterClearing } =
+      updateRoomSchema.parse(body);
 
     // Find room and verify user is host
     const room = await prisma.room.findUnique({
@@ -111,6 +114,8 @@ export async function PATCH(
         ...(mode !== undefined && { mode }),
         ...(sport !== undefined && { sport }),
         ...(showPoints !== undefined && { showPoints }),
+        ...(allowJoinInProgress !== undefined && { allowJoinInProgress }),
+        ...(allowQuarterClearing !== undefined && { allowQuarterClearing }),
       },
       include: {
         players: {
@@ -132,6 +137,8 @@ export async function PATCH(
         mode: updatedRoom.mode,
         sport: updatedRoom.sport,
         showPoints: updatedRoom.showPoints,
+        allowJoinInProgress: updatedRoom.allowJoinInProgress,
+        allowQuarterClearing: updatedRoom.allowQuarterClearing,
         timestamp: new Date().toISOString(),
       });
     } catch (ablyError) {

@@ -394,6 +394,80 @@ Point award celebrations
 
 Details to be determined during implementation
 
+🎨 PHASE 11 — COMPREHENSIVE UI POLISH (Future)
+
+Outcome: Professional, modern, consistent UI design throughout the application.
+
+🔹 Card 11.1 — Button Design System
+
+Create consistent button component library
+
+Remove cartoonish appearance from all buttons
+
+Professional, modern styling
+
+Consistent hover states and transitions
+
+Button variants: primary, secondary, danger, success
+
+🔹 Card 11.2 — Component Styling Consistency
+
+Review and update all interactive elements
+
+Accept/Reject buttons in voting UI
+
+Reset Points and End Game buttons in host controls
+
+Submit card buttons
+
+Navigation elements
+
+Ensure all buttons follow design system
+
+🔹 Card 11.3 — Typography & Spacing
+
+Consistent font sizes and weights
+
+Proper spacing between elements
+
+Readable text hierarchy
+
+🔹 Card 11.4 — Color & Contrast
+
+Ensure proper contrast ratios for accessibility
+
+Consistent use of brand colors (Primary: #FF6600, Accent: #00B2FF)
+
+Professional color palette throughout
+
+🔹 Card 11.5 — Interactive States
+
+Hover, active, disabled states for all buttons
+
+Loading states with proper feedback
+
+Focus states for accessibility
+
+Smooth transitions and animations
+
+🃏 PHASE 12 — CARD CONTENT & MODE DISTRIBUTION (Backlog)
+
+Outcome: Football and basketball cards are reviewed and correctly distributed by game mode (Casual, Party, Lit).
+
+🔹 Card 12.1 — Review Cards by Sport & Mode
+
+Audit all football and basketball cards in the system
+
+Ensure cards are tagged or filtered appropriately for modes: Casual, Party, Lit
+
+Define/implement rules for which cards appear in which mode (e.g. severity mix, type mix, or explicit mode flags)
+
+🔹 Card 12.2 — Mode-Based Card Dispersion
+
+Update game engine or card selection logic so that when a room’s mode is Casual, Party, or Lit, the deck (or draw pool) uses the correct subset of cards for that mode
+
+Verify fair distribution and that each mode feels distinct where intended
+
 🚀 FINAL RESULT
 
 You now have:
@@ -406,4 +480,4 @@ Fully testable game engine
 
 Realtime multiplayer
 
-Clean UI
+Clean, professional UI

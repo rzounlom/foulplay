@@ -8,6 +8,7 @@ const createRoomSchema = z.object({
   mode: z.string().optional(),
   sport: z.string().optional(),
   handSize: z.number().int().min(4).max(10).optional(),
+  allowQuarterClearing: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { mode, sport, handSize } = createRoomSchema.parse(body);
+    const { mode, sport, handSize, allowQuarterClearing } = createRoomSchema.parse(body);
 
     // Generate unique room code
     let code: string;
@@ -50,6 +51,8 @@ export async function POST(request: NextRequest) {
           mode: mode || null,
           sport: sport || null,
           handSize: handSize || 5,
+          allowQuarterClearing: allowQuarterClearing || false,
+          canTurnInCards: true,
         },
       });
 

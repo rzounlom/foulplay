@@ -54,6 +54,7 @@ interface VotingUIProps {
   currentUserId: string;
   totalPlayers: number;
   onVote: (submissionId: string, cardInstanceIds: string[], vote: boolean) => Promise<void>;
+  votingPaused?: boolean;
 }
 
 export function VotingUI({
@@ -61,6 +62,7 @@ export function VotingUI({
   currentUserId,
   totalPlayers,
   onVote,
+  votingPaused = false,
 }: VotingUIProps) {
   const [isVoting, setIsVoting] = useState<Record<string, boolean>>({});
   
@@ -92,6 +94,7 @@ export function VotingUI({
   }, [submission.cardInstances, currentUserId, requiredApprovals]);
 
   const canVote =
+    !votingPaused &&
     submission.status === "pending" &&
     submission.submittedBy.user.id !== currentUserId;
 
@@ -138,6 +141,12 @@ export function VotingUI({
           Submitted by: {submission.submittedBy.nickname || submission.submittedBy.user.name}
         </p>
       </div>
+
+      {votingPaused && submission.status === "pending" && submission.submittedBy.user.id !== currentUserId && (
+        <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm">
+          Voting is paused during the quarter-ending intermission.
+        </div>
+      )}
 
       {/* Accept All / Reject All Buttons */}
       {canVote && (

@@ -23,6 +23,9 @@ interface Room {
   sport: string | null;
   showPoints: boolean;
   handSize: number;
+  allowQuarterClearing: boolean;
+  currentQuarter: string | null;
+  canTurnInCards: boolean;
   players: Player[];
 }
 
@@ -227,36 +230,73 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                 </div>
               </div>
               {isHost && (
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
-                    Show Points
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={room.showPoints}
-                      onChange={async (e) => {
-                        try {
-                          const response = await fetch(`/api/rooms/${roomCode}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ showPoints: e.target.checked }),
-                          });
-                          if (response.ok) {
-                            const updatedRoom = await response.json();
-                            setRoom(updatedRoom);
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
+                      Show Points
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={room.showPoints}
+                        onChange={async (e) => {
+                          try {
+                            const response = await fetch(`/api/rooms/${roomCode}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ showPoints: e.target.checked }),
+                            });
+                            if (response.ok) {
+                              const updatedRoom = await response.json();
+                              setRoom(updatedRoom);
+                            }
+                          } catch (error) {
+                            console.error("Failed to update showPoints:", error);
                           }
-                        } catch (error) {
-                          console.error("Failed to update showPoints:", error);
-                        }
-                      }}
-                      className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700"
-                    />
-                    <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                      Show all players&apos; points
-                    </span>
-                  </label>
-                </div>
+                        }}
+                        className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
+                      />
+                      <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                        Show all players&apos; points
+                      </span>
+                    </label>
+                  </div>
+                  {(room.sport === "football" || room.sport === "basketball") && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
+                        Quarter Clearing
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={room.allowQuarterClearing}
+                          onChange={async (e) => {
+                            try {
+                              const response = await fetch(`/api/rooms/${roomCode}`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ allowQuarterClearing: e.target.checked }),
+                              });
+                              if (response.ok) {
+                                const updatedRoom = await response.json();
+                                setRoom(updatedRoom);
+                              }
+                            } catch (error) {
+                              console.error("Failed to update allowQuarterClearing:", error);
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
+                        />
+                        <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                          Enable quarter-based card clearing
+                        </span>
+                      </label>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-6">
+                        Host can end quarters; players get 5 minutes to turn in unwanted cards (drink penalty applies).
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

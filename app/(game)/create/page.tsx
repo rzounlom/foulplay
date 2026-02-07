@@ -12,6 +12,7 @@ export default function CreateRoomPage() {
   const [mode, setMode] = useState<string>("");
   const [sport, setSport] = useState<string>("");
   const [handSize, setHandSize] = useState<number>(5);
+  const [allowQuarterClearing, setAllowQuarterClearing] = useState<boolean>(false);
 
   // Redirect to sign-in if not authenticated, preserving the current path
   useEffect(() => {
@@ -41,7 +42,14 @@ export default function CreateRoomPage() {
       const response = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, sport, handSize }),
+        body: JSON.stringify({
+          mode,
+          sport,
+          handSize,
+          ...(sport === "football" || sport === "basketball"
+            ? { allowQuarterClearing }
+            : {}),
+        }),
       });
 
       if (!response.ok) {
@@ -123,7 +131,13 @@ export default function CreateRoomPage() {
             <select
               id="sport"
               value={sport}
-              onChange={(e) => setSport(e.target.value)}
+              onChange={(e) => {
+                const newSport = e.target.value;
+                setSport(newSport);
+                if (newSport !== "football" && newSport !== "basketball") {
+                  setAllowQuarterClearing(false);
+                }
+              }}
               className="w-full p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800"
               required
             >
@@ -132,6 +146,25 @@ export default function CreateRoomPage() {
               <option value="basketball">Basketball</option>
             </select>
           </div>
+
+          {(sport === "football" || sport === "basketball") && (
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={allowQuarterClearing}
+                  onChange={(e) => setAllowQuarterClearing(e.target.checked)}
+                  className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
+                />
+                <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                  Enable quarter-based card clearing
+                </span>
+              </label>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-6">
+                Host can end quarters; players get 5 minutes to turn in unwanted cards (drink penalty applies).
+              </p>
+            </div>
+          )}
 
           <div>
             <label htmlFor="handSize" className="block text-sm font-medium mb-2">

@@ -141,6 +141,32 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
 
                 <div>
                   <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
+                    End of Round (Football &amp; Basketball)
+                  </h3>
+                  <p className="mb-2">
+                    When the room is set to Football or Basketball and the host has enabled round-based card clearing, the host can end a round during the game. Rounds are numbered (1, 2, 3, …) and the host can reset the round count anytime so the next round starts at 1 again.
+                  </p>
+                  <ol className="list-decimal list-inside space-y-2 ml-2">
+                    <li>
+                      The <strong>host</strong> clicks <strong>&quot;End round&quot;</strong> in Host Controls.
+                    </li>
+                    <li>
+                      A <strong>5-minute intermission</strong> starts. Everyone sees a notification and a countdown timer. <strong>Submissions and voting are paused</strong> during this time.
+                    </li>
+                    <li>
+                      During the 5 minutes, you can <strong>select which cards</strong> (if any) to turn in. You may select up to the number of cards in your hand (e.g. up to 5 if your hand size is 5). Select cards, then click <strong>&quot;Turn in X cards at end of round&quot;</strong> to confirm. You can change your selection until the timer ends. To keep all cards, confirm with no cards selected.
+                    </li>
+                    <li>
+                      <strong>When the intermission ends</strong> (timer reaches zero or host ends early), all confirmed selections are processed: your selected cards are turned in, you receive points for them, and you are dealt new cards to replace them. You must perform the drink penalty for each card you turned in.
+                    </li>
+                    <li>
+                      After processing, the round number advances and normal play resumes. The host can click <strong>&quot;Reset round&quot;</strong> to set the count back so the next &quot;End round&quot; starts Round 1 again.
+                    </li>
+                  </ol>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
                     Winning
                   </h3>
                   <p>

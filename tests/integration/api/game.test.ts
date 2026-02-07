@@ -287,6 +287,8 @@ describe("Game API Routes", () => {
         status: "active",
         gameState,
         handSize: 5,
+        canTurnInCards: true,
+        quarterIntermissionEndsAt: null,
         players: [{ ...mockPlayer, userId: mockUser.id }],
       });
       mockPrisma.player.findFirst = jest.fn().mockResolvedValue(mockPlayer);

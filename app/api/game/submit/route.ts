@@ -43,6 +43,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if players can turn in cards
+    if (!room.canTurnInCards) {
+      return NextResponse.json(
+        { error: "Card turn-in is currently disabled by the host" },
+        { status: 400 }
+      );
+    }
+
+    // Pause normal submissions during quarter intermission
+    if (room.quarterIntermissionEndsAt) {
+      const endsAt = new Date(room.quarterIntermissionEndsAt);
+      if (endsAt > new Date()) {
+        return NextResponse.json(
+          {
+            error:
+              "Submissions are paused during the quarter-ending intermission. Use “Turn in unwanted cards” to discard (drink penalty applies).",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Verify user is a player in the room
     const submittingPlayer = room.players.find(
       (p) => p.userId === user.id

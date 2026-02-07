@@ -8,15 +8,24 @@ export type RoomEvent =
   | "player_joined"
   | "player_left"
   | "game_started"
+  | "game_ended"
   | "card_drawn"
   | "card_submitted"
+  | "card_discarded"
   | "vote_cast"
   | "card_approved"
   | "card_rejected"
   | "submission_approved"
   | "submission_rejected"
   | "turn_changed"
-  | "room_settings_updated";
+  | "room_settings_updated"
+  | "points_reset"
+  | "quarter_advanced"
+  | "turn_in_control_changed"
+  | "quarter_ending"
+  | "quarter_intermission_ended"
+  | "quarter_discard_selection_updated"
+  | "round_reset";
 
 export interface RoomEventData {
   [key: string]: unknown;
