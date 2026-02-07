@@ -60,7 +60,7 @@ interface GameState {
   activeCardInstance: CardInstance | null;
 }
 
-interface Room {
+export interface Room {
   id: string;
   code: string;
   status: string;
@@ -71,7 +71,7 @@ interface Room {
   handSize: number;
   allowQuarterClearing: boolean;
   currentQuarter: string | null;
-  quarterIntermissionEndsAt: string | null;
+  quarterIntermissionEndsAt: string | Date | null;
   pendingQuarterDiscardSelections?: Record<string, string[]> | null;
   canTurnInCards: boolean;
   players: Player[];

@@ -2,7 +2,7 @@ import { getCurrentUser } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { redirect } from "next/navigation";
 import { Lobby } from "@/components/game/lobby";
-import { GameBoard } from "@/components/game/game-board";
+import { GameBoard, type Room } from "@/components/game/game-board";
 
 export default async function GameRoomPage({
   params,
@@ -68,7 +68,8 @@ export default async function GameRoomPage({
   }
 
   if (room.status === "active") {
-    return <GameBoard roomCode={roomCode} currentUserId={user.id} initialRoom={room} />;
+    const roomForClient = JSON.parse(JSON.stringify(room)) as Room;
+    return <GameBoard roomCode={roomCode} currentUserId={user.id} initialRoom={roomForClient} />;
   }
 
   // Ended game state - could add a game over screen later

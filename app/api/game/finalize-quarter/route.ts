@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
@@ -184,7 +185,7 @@ export async function POST(request: NextRequest) {
       where: { id: room.id },
       data: {
         quarterIntermissionEndsAt: null,
-        pendingQuarterDiscardSelections: null,
+        pendingQuarterDiscardSelections: Prisma.DbNull,
         currentQuarter: nextRound,
       },
     });
