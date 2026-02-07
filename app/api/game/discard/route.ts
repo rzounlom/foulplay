@@ -120,38 +120,52 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Draw new cards to replace discarded ones
+    // Draw new cards to replace discarded ones (cap at handSize so we never exceed max)
     if (room.gameState && room.sport) {
-      const cards = await prisma.card.findMany({
-        where: { sport: room.sport },
-        orderBy: { id: "asc" },
+      const handSize = room.handSize ?? 5;
+      const drawnCountAfterDiscard = await prisma.cardInstance.count({
+        where: {
+          roomId: room.id,
+          drawnById: currentPlayer.id,
+          status: "drawn",
+        },
       });
+      const cardsToDeal = Math.min(
+        cardInstances.length,
+        Math.max(0, handSize - drawnCountAfterDiscard)
+      );
 
-      if (cards.length > 0) {
-        // Get all drawn card instances to determine which cards have been used
-        const drawnInstances = await prisma.cardInstance.findMany({
-          where: { roomId: room.id },
-          include: { card: true },
+      if (cardsToDeal > 0) {
+        const cards = await prisma.card.findMany({
+          where: { sport: room.sport },
+          orderBy: { id: "asc" },
         });
 
-        // Map card IDs to their indices in the sorted cards array
-        const cardIdToIndex = new Map(cards.map((card, index) => [card.id, index]));
-        const drawnCardIndices = drawnInstances
-          .map((instance) => cardIdToIndex.get(instance.cardId))
-          .filter((index): index is number => index !== undefined);
+        if (cards.length > 0) {
+          // Get all drawn card instances to determine which cards have been used
+          const drawnInstances = await prisma.cardInstance.findMany({
+            where: { roomId: room.id },
+            include: { card: true },
+          });
 
-        // Reconstruct game state for engine
-        const gameState = {
-          roomId: room.id,
-          currentTurnPlayerId: room.gameState.currentTurnPlayerId,
-          activeCardInstanceId: room.gameState.activeCardInstanceId || null,
-          deckSeed: room.gameState.deckSeed,
-          deck: Array.from({ length: cards.length }, (_, i) => i),
-          drawnCards: drawnCardIndices,
-        };
+          // Map card IDs to their indices in the sorted cards array
+          const cardIdToIndex = new Map(cards.map((card, index) => [card.id, index]));
+          const drawnCardIndices = drawnInstances
+            .map((instance) => cardIdToIndex.get(instance.cardId))
+            .filter((index): index is number => index !== undefined);
 
-        // Draw new cards
-        const { cardIndices, newState } = drawMultipleCards(gameState, cardInstances.length);
+          // Reconstruct game state for engine
+          const gameState = {
+            roomId: room.id,
+            currentTurnPlayerId: room.gameState.currentTurnPlayerId,
+            activeCardInstanceId: room.gameState.activeCardInstanceId || null,
+            deckSeed: room.gameState.deckSeed,
+            deck: Array.from({ length: cards.length }, (_, i) => i),
+            drawnCards: drawnCardIndices,
+          };
+
+          // Draw new cards (only up to handSize)
+          const { cardIndices, newState } = drawMultipleCards(gameState, cardsToDeal);
 
         // Create new card instances
         const newCardInstances = cardIndices.map((cardIndex) => ({
@@ -174,6 +188,7 @@ export async function POST(request: NextRequest) {
             deckSeed: newState.deckSeed,
           },
         });
+        }
       }
     }
 

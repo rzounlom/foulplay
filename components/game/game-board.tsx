@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { RoomEvent, useRoomChannel } from "@/lib/ably/useRoomChannel";
 import { useCallback, useEffect, useState } from "react";
 
 import { GameTour } from "./game-tour";
 import { Hand } from "./hand";
 import { InstructionsModal } from "./instructions-modal";
+import { PendingDiscard } from "./pending-discard";
 import { PlayerList } from "./player-list";
 import { SubmissionPending } from "./submission-pending";
 import { VotingUI } from "./voting-ui";
@@ -126,6 +128,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [isResettingPoints, setIsResettingPoints] = useState(false);
   const [intermissionSecondsLeft, setIntermissionSecondsLeft] = useState<number | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showMoreHostControls, setShowMoreHostControls] = useState(false);
+
+  const router = useRouter();
 
   const fetchRoom = async () => {
     try {
@@ -204,8 +209,13 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   }, [endsAt, roomCode]);
 
   // Subscribe to game events
-  useRoomChannel(roomCode, (event: RoomEvent, data) => {
-    console.log("Received game event:", event, data);
+  useRoomChannel(roomCode, (event: RoomEvent) => {
+    console.log("Received game event:", event);
+    // When game ends, redirect all players to end-game page (no alert, no tour)
+    if (event === "game_ended") {
+      router.push(`/game/${roomCode}/end-game`);
+      return;
+    }
     if (
       event === "game_started" ||
       event === "card_drawn" ||
@@ -333,10 +343,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         throw new Error(data.error || "Failed to end game");
       }
 
-      const data = await response.json();
       setShowEndGameModal(false);
-      // Data will be refreshed via Ably events
-      alert(`Game ended! Winner: ${data.winner.name} with ${data.winner.points} points. A new game has started.`);
+      router.push(`/game/${roomCode}/end-game`);
     } catch (error) {
       console.error("Failed to end game:", error);
       alert(error instanceof Error ? error.message : "Failed to end game");
@@ -428,58 +436,6 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         onTourStart={() => setStartTour(false)}
       />
 
-      {/* Round intermission banner with timer */}
-      {showQuarterControls && isQuarterIntermission && (
-        <div className="mb-4 p-4 rounded-lg border-2 border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/30">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-semibold text-amber-800 dark:text-amber-200">
-                Round ending — select cards to turn in
-              </h3>
-              <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                You have <strong>{intermissionSecondsLeft != null ? `${Math.floor((intermissionSecondsLeft ?? 0) / 60)}:${String((intermissionSecondsLeft ?? 0) % 60).padStart(2, "0")}` : "5:00"}</strong> to select which cards (if any) to turn in. Select cards in your hand and confirm; they will be turned in and replaced when the intermission ends (drink penalty applies). You can change your selection until the timer ends. Submissions and voting are paused.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div
-                className="text-2xl font-mono font-bold tabular-nums text-amber-800 dark:text-amber-200 min-w-[5rem] text-center"
-                aria-label="Time remaining"
-              >
-                {intermissionSecondsLeft != null
-                  ? `${Math.floor((intermissionSecondsLeft ?? 0) / 60)}:${String((intermissionSecondsLeft ?? 0) % 60).padStart(2, "0")}`
-                  : "5:00"}
-              </div>
-              {isHost && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch("/api/game/finalize-quarter", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ roomCode }),
-                      });
-                      if (response.ok) {
-                        fetchRoom();
-                      } else {
-                        const data = await response.json();
-                        alert(data.error || "Failed to end intermission");
-                      }
-                    } catch (error) {
-                      console.error("Failed to finalize quarter:", error);
-                      alert("Failed to end intermission");
-                    }
-                  }}
-                  className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded font-medium transition-colors cursor-pointer"
-                >
-                  End round early
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
           <h1 className="text-3xl font-bold">Game Room {room.code}</h1>
@@ -529,191 +485,243 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Left Column - Players & Scoreboard */}
-        <div className="md:col-span-1">
-          <div 
+        {/* Left Column - Host Controls (top) & Players */}
+        <div className="md:col-span-1 space-y-6">
+          {/* Host Controls - at top so always visible with many players */}
+          {isHost && (
+            <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
+              <h4 className="text-sm font-semibold mb-3 text-neutral-700 dark:text-neutral-300">
+                Host Controls
+              </h4>
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={room.showPoints}
+                    onChange={async (e) => {
+                      try {
+                        const response = await fetch(`/api/rooms/${roomCode}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ showPoints: e.target.checked }),
+                        });
+                        if (response.ok) {
+                          const updatedRoom = await response.json();
+                          setRoom(updatedRoom);
+                        }
+                      } catch (error) {
+                        console.error("Failed to update showPoints:", error);
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
+                  />
+                  <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                    Show all players&apos; points
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={room.allowJoinInProgress ?? false}
+                    onChange={async (e) => {
+                      try {
+                        const response = await fetch(`/api/rooms/${roomCode}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            allowJoinInProgress: e.target.checked,
+                          }),
+                        });
+                        if (response.ok) {
+                          const updatedRoom = await response.json();
+                          setRoom(updatedRoom);
+                        }
+                      } catch (error) {
+                        console.error(
+                          "Failed to update allowJoinInProgress:",
+                          error
+                        );
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
+                  />
+                  <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                    Allow new users to join
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowMoreHostControls((prev) => !prev)}
+                  className="text-sm font-medium text-primary hover:text-primary/80 underline cursor-pointer"
+                >
+                  {showMoreHostControls ? "Hide controls" : "Show more controls"}
+                </button>
+                {showMoreHostControls && (
+                  <>
+                    {showQuarterControls && (
+                      <>
+                        <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                          <label className="block text-xs font-medium mb-2 text-neutral-600 dark:text-neutral-400">
+                            Current Round
+                          </label>
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                              {roundLabel ?? "Not started"}
+                            </span>
+                            {!isQuarterIntermission && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const response = await fetch("/api/game/end-quarter", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ roomCode }),
+                                      });
+                                      if (!response.ok) {
+                                        const data = await response.json();
+                                        alert(data.error || "Failed to end round");
+                                      }
+                                    } catch (error) {
+                                      console.error("Failed to end round:", error);
+                                      alert("Failed to end round");
+                                    }
+                                  }}
+                                  className="px-3 py-1 text-xs bg-primary hover:bg-primary/90 text-white rounded font-medium transition-colors cursor-pointer"
+                                >
+                                  End Round
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const response = await fetch("/api/game/reset-round", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ roomCode }),
+                                      });
+                                      if (!response.ok) {
+                                        const data = await response.json();
+                                        alert(data.error || "Failed to reset round");
+                                      }
+                                    } catch (error) {
+                                      console.error("Failed to reset round:", error);
+                                      alert("Failed to reset round");
+                                    }
+                                  }}
+                                  className="px-3 py-1 text-xs bg-neutral-600 hover:bg-neutral-700 text-white rounded font-medium transition-colors cursor-pointer"
+                                  title="Reset round count. Next &quot;End round&quot; will start Round 1."
+                                >
+                                  Reset round
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={room.canTurnInCards}
+                            onChange={async (e) => {
+                              try {
+                                const response = await fetch("/api/game/turn-in-control", {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ roomCode, canTurnInCards: e.target.checked }),
+                                });
+                                if (!response.ok) {
+                                  const data = await response.json();
+                                  alert(data.error || "Failed to update turn-in control");
+                                }
+                              } catch (error) {
+                                console.error("Failed to update turn-in control:", error);
+                                alert("Failed to update turn-in control");
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
+                          />
+                          <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                            Allow card turn-in
+                          </span>
+                        </label>
+                      </>
+                    )}
+                    <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                      <button
+                        onClick={() => setShowResetPointsModal(true)}
+                        className="w-full py-2 px-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-colors cursor-pointer"
+                      >
+                        Reset Points
+                      </button>
+                      <button
+                        onClick={() => setShowEndGameModal(true)}
+                        className="w-full py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors cursor-pointer mt-2"
+                      >
+                        End Game
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div
             data-tour="player-list"
             className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 sticky top-6"
           >
             <PlayerList players={room.players} currentUserId={currentUserId} showPoints={room.showPoints} />
-            
-            {/* Host Controls */}
-            {isHost && (
-              <div className="mt-6 p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                <h4 className="text-sm font-semibold mb-3 text-neutral-700 dark:text-neutral-300">
-                  Host Controls
-                </h4>
-                <div className="space-y-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={room.showPoints}
-                      onChange={async (e) => {
-                        try {
-                          const response = await fetch(`/api/rooms/${roomCode}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ showPoints: e.target.checked }),
-                          });
-                          if (response.ok) {
-                            const updatedRoom = await response.json();
-                            setRoom(updatedRoom);
-                          }
-                        } catch (error) {
-                          console.error("Failed to update showPoints:", error);
-                        }
-                      }}
-                      className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
-                    />
-                    <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                      Show all players&apos; points
-                    </span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={room.allowJoinInProgress ?? false}
-                      onChange={async (e) => {
-                        try {
-                          const response = await fetch(`/api/rooms/${roomCode}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              allowJoinInProgress: e.target.checked,
-                            }),
-                          });
-                          if (response.ok) {
-                            const updatedRoom = await response.json();
-                            setRoom(updatedRoom);
-                          }
-                        } catch (error) {
-                          console.error(
-                            "Failed to update allowJoinInProgress:",
-                            error
-                          );
-                        }
-                      }}
-                      className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
-                    />
-                    <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                      Allow new users to join
-                    </span>
-                  </label>
-                  
-                  {showQuarterControls && (
-                    <>
-                      <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700">
-                        <label className="block text-xs font-medium mb-2 text-neutral-600 dark:text-neutral-400">
-                          Current Round
-                        </label>
-                        <div className="flex flex-wrap items-center gap-2 mb-3">
-                          <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                            {roundLabel ?? "Not started"}
-                          </span>
-                          {!isQuarterIntermission && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    const response = await fetch("/api/game/end-quarter", {
-                                      method: "POST",
-                                      headers: { "Content-Type": "application/json" },
-                                      body: JSON.stringify({ roomCode }),
-                                    });
-                                    if (!response.ok) {
-                                      const data = await response.json();
-                                      alert(data.error || "Failed to end round");
-                                    }
-                                  } catch (error) {
-                                    console.error("Failed to end round:", error);
-                                    alert("Failed to end round");
-                                  }
-                                }}
-                                className="px-3 py-1 text-xs bg-primary hover:bg-primary/90 text-white rounded font-medium transition-colors cursor-pointer"
-                              >
-                                End Round
-                              </button>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    const response = await fetch("/api/game/reset-round", {
-                                      method: "POST",
-                                      headers: { "Content-Type": "application/json" },
-                                      body: JSON.stringify({ roomCode }),
-                                    });
-                                    if (!response.ok) {
-                                      const data = await response.json();
-                                      alert(data.error || "Failed to reset round");
-                                    }
-                                  } catch (error) {
-                                    console.error("Failed to reset round:", error);
-                                    alert("Failed to reset round");
-                                  }
-                                }}
-                                className="px-3 py-1 text-xs bg-neutral-600 hover:bg-neutral-700 text-white rounded font-medium transition-colors cursor-pointer"
-                                title="Reset round count. Next &quot;End round&quot; will start Round 1."
-                              >
-                                Reset round
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={room.canTurnInCards}
-                          onChange={async (e) => {
-                            try {
-                              const response = await fetch("/api/game/turn-in-control", {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ roomCode, canTurnInCards: e.target.checked }),
-                              });
-                              if (!response.ok) {
-                                const data = await response.json();
-                                alert(data.error || "Failed to update turn-in control");
-                              }
-                              // Data will be refreshed via Ably events
-                            } catch (error) {
-                              console.error("Failed to update turn-in control:", error);
-                              alert("Failed to update turn-in control");
-                            }
-                          }}
-                          className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
-                        />
-                        <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                          Allow card turn-in
-                        </span>
-                      </label>
-                    </>
-                  )}
-                  
-                  <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700">
-                    <button
-                      onClick={() => setShowResetPointsModal(true)}
-                      className="w-full py-2 px-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-colors cursor-pointer"
-                    >
-                      Reset Points
-                    </button>
-                    
-                    <button
-                      onClick={() => setShowEndGameModal(true)}
-                      className="w-full py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors cursor-pointer mt-2"
-                    >
-                      End Game
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Center Column - Game Area */}
         <div className="md:col-span-2 space-y-6">
+          {/* Round intermission callout — above Pending Submissions/Discard, compact like heading row */}
+          {showQuarterControls && isQuarterIntermission && (
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border-2 border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/30">
+              <span className="font-semibold text-amber-800 dark:text-amber-200">
+                Round ending — select cards to turn in
+              </span>
+              <div className="flex items-center gap-3">
+                <span
+                  className="text-xl font-mono font-bold tabular-nums text-amber-800 dark:text-amber-200 min-w-20 text-center"
+                  aria-label="Time remaining"
+                >
+                  {intermissionSecondsLeft != null
+                    ? `${Math.floor((intermissionSecondsLeft ?? 0) / 60)}:${String((intermissionSecondsLeft ?? 0) % 60).padStart(2, "0")}`
+                    : "5:00"}
+                </span>
+                {isHost && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch("/api/game/finalize-quarter", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ roomCode }),
+                        });
+                        if (response.ok) {
+                          fetchRoom();
+                        } else {
+                          const data = await response.json();
+                          alert(data.error || "Failed to end intermission");
+                        }
+                      } catch (error) {
+                        console.error("Failed to finalize quarter:", error);
+                        alert("Failed to end intermission");
+                      }
+                    }}
+                    className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded font-medium transition-colors cursor-pointer"
+                  >
+                    End round early
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Active Card Display */}
           <div 
             data-tour="active-card"
@@ -774,7 +782,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           </div>
 
 
-          {/* Pending Submissions */}
+          {/* Pending Submissions (hidden during round intermission to reduce clutter) */}
+          {!isQuarterIntermission && (
           <div data-tour="pending-submissions" className="space-y-4">
             {submissions.length > 0 ? (
               <>
@@ -828,6 +837,23 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
               </div>
             )}
           </div>
+          )}
+
+          {/* Pending Discard (round intermission only) - same pattern as Pending Submissions */}
+          {currentPlayer && isQuarterIntermission && showQuarterControls && (
+            <div className="space-y-4">
+              <PendingDiscard
+                cardInstances={hand.filter((c) =>
+                  ((room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? []).includes(c.id)
+                )}
+                onRemove={(cardInstanceId) => {
+                  const current = (room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? [];
+                  handleQuarterDiscardSelection(current.filter((id) => id !== cardInstanceId));
+                }}
+                intermissionSecondsLeft={intermissionSecondsLeft}
+              />
+            </div>
+          )}
 
           {/* Player Hand */}
           {currentPlayer && (

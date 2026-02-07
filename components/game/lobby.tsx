@@ -39,7 +39,27 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   const router = useRouter();
   const [room, setRoom] = useState<Room>(initialRoom);
   const [isStarting, setIsStarting] = useState(false);
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const updateRoomSettings = async (payload: Record<string, unknown>) => {
+    setIsUpdatingSettings(true);
+    try {
+      const response = await fetch(`/api/rooms/${roomCode}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (response.ok) {
+        const updatedRoom = await response.json();
+        setRoom(updatedRoom);
+      }
+    } catch (error) {
+      console.error("Failed to update room settings:", error);
+    } finally {
+      setIsUpdatingSettings(false);
+    }
+  };
 
   // Define fetchRoom before using it in the callback
   const fetchRoom = async () => {
@@ -157,24 +177,10 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                 </label>
                 {isHost ? (
                   <select
-                    className="w-full p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-800"
+                    className="w-full p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-800 disabled:opacity-60 disabled:cursor-not-allowed"
                     value={room.mode || ""}
-                    onChange={async (e) => {
-                      // Update room mode
-                      try {
-                        const response = await fetch(`/api/rooms/${roomCode}`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ mode: e.target.value }),
-                        });
-                        if (response.ok) {
-                          const updatedRoom = await response.json();
-                          setRoom(updatedRoom);
-                        }
-                      } catch (error) {
-                        console.error("Failed to update mode:", error);
-                      }
-                    }}
+                    disabled={isUpdatingSettings}
+                    onChange={(e) => updateRoomSettings({ mode: e.target.value })}
                   >
                     <option value="casual">Casual</option>
                     <option value="party">Party</option>
@@ -193,24 +199,10 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                 </label>
                 {isHost ? (
                   <select
-                    className="w-full p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-800"
+                    className="w-full p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-800 disabled:opacity-60 disabled:cursor-not-allowed"
                     value={room.sport || ""}
-                    onChange={async (e) => {
-                      // Update room sport
-                      try {
-                        const response = await fetch(`/api/rooms/${roomCode}`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ sport: e.target.value }),
-                        });
-                        if (response.ok) {
-                          const updatedRoom = await response.json();
-                          setRoom(updatedRoom);
-                        }
-                      } catch (error) {
-                        console.error("Failed to update sport:", error);
-                      }
-                    }}
+                    disabled={isUpdatingSettings}
+                    onChange={(e) => updateRoomSettings({ sport: e.target.value })}
                   >
                     <option value="football">Football</option>
                     <option value="basketball">Basketball</option>
@@ -225,9 +217,26 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                 <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
                   Cards Per Hand
                 </label>
-                <div className="p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
-                  {room.handSize || 5} cards
-                </div>
+                {isHost ? (
+                  <select
+                    value={room.handSize ?? 5}
+                    disabled={isUpdatingSettings}
+                    onChange={(e) =>
+                      updateRoomSettings({ handSize: Number(e.target.value) })
+                    }
+                    className="w-full p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {[4, 5, 6, 7, 8, 9, 10].map((n) => (
+                      <option key={n} value={n}>
+                        {n} cards
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+                    {room.handSize || 5} cards
+                  </div>
+                )}
               </div>
               {isHost && (
                 <>
@@ -235,26 +244,15 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                     <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
                       Show Points
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className={`flex items-center gap-2 ${isUpdatingSettings ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
                       <input
                         type="checkbox"
                         checked={room.showPoints}
-                        onChange={async (e) => {
-                          try {
-                            const response = await fetch(`/api/rooms/${roomCode}`, {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ showPoints: e.target.checked }),
-                            });
-                            if (response.ok) {
-                              const updatedRoom = await response.json();
-                              setRoom(updatedRoom);
-                            }
-                          } catch (error) {
-                            console.error("Failed to update showPoints:", error);
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
+                        disabled={isUpdatingSettings}
+                        onChange={(e) =>
+                          updateRoomSettings({ showPoints: e.target.checked })
+                        }
+                        className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer disabled:cursor-not-allowed"
                       />
                       <span className="text-sm text-neutral-700 dark:text-neutral-300">
                         Show all players&apos; points
@@ -266,26 +264,17 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                       <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
                         Quarter Clearing
                       </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className={`flex items-center gap-2 ${isUpdatingSettings ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
                         <input
                           type="checkbox"
                           checked={room.allowQuarterClearing}
-                          onChange={async (e) => {
-                            try {
-                              const response = await fetch(`/api/rooms/${roomCode}`, {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ allowQuarterClearing: e.target.checked }),
-                              });
-                              if (response.ok) {
-                                const updatedRoom = await response.json();
-                                setRoom(updatedRoom);
-                              }
-                            } catch (error) {
-                              console.error("Failed to update allowQuarterClearing:", error);
-                            }
-                          }}
-                          className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
+                          disabled={isUpdatingSettings}
+                          onChange={(e) =>
+                            updateRoomSettings({
+                              allowQuarterClearing: e.target.checked,
+                            })
+                          }
+                          className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer disabled:cursor-not-allowed"
                         />
                         <span className="text-sm text-neutral-700 dark:text-neutral-300">
                           Enable quarter-based card clearing

@@ -1,0 +1,157 @@
+"use client";
+
+import Link from "next/link";
+
+interface LeaderboardEntry {
+  playerId: string;
+  name: string;
+  nickname: string | null;
+  points: number;
+}
+
+interface LastGameEndResult {
+  winnerId: string;
+  winnerName: string;
+  winnerNickname: string | null;
+  winnerPoints: number;
+  leaderboard: LeaderboardEntry[];
+}
+
+interface EndGameScreenProps {
+  roomCode: string;
+  lastGameEndResult: LastGameEndResult;
+  isHost: boolean;
+}
+
+function displayName(entry: LeaderboardEntry) {
+  return entry.nickname?.trim() || entry.name;
+}
+
+export function EndGameScreen({
+  roomCode,
+  lastGameEndResult,
+  isHost,
+}: EndGameScreenProps) {
+  const { winnerName, winnerNickname, winnerPoints, leaderboard } =
+    lastGameEndResult;
+  const winnerDisplayName = winnerNickname?.trim() || winnerName;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-neutral-100 to-neutral-200 dark:from-neutral-900 dark:to-neutral-800 flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-lg">
+        {/* Header */}
+        <h1 className="text-3xl md:text-4xl font-bold text-center text-neutral-900 dark:text-white mb-2">
+          Game Over
+        </h1>
+        <p className="text-center text-neutral-600 dark:text-neutral-400 mb-8">
+          Room {roomCode}
+        </p>
+
+        {/* Winner highlight */}
+        <div className="rounded-2xl bg-primary/15 dark:bg-primary/25 border-2 border-primary/40 p-6 mb-8 text-center">
+          <p className="text-sm font-medium text-primary dark:text-primary/90 uppercase tracking-wide mb-1">
+            Winner
+          </p>
+          <p className="text-2xl font-bold text-neutral-900 dark:text-white">
+            {winnerDisplayName}
+          </p>
+          <p className="text-lg font-semibold text-primary dark:text-primary/90 mt-1">
+            {winnerPoints} pts
+          </p>
+        </div>
+
+        {/* Leaderboard */}
+        <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-lg overflow-hidden mb-8">
+          <h2 className="text-lg font-semibold px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 text-neutral-900 dark:text-white">
+            Final scores
+          </h2>
+          <ul className="divide-y divide-neutral-200 dark:divide-neutral-700">
+            {leaderboard.map((entry, index) => {
+              const isWinner = entry.playerId === lastGameEndResult.winnerId;
+              return (
+                <li
+                  key={entry.playerId}
+                  className={`flex items-center justify-between px-4 py-3 ${
+                    isWinner
+                      ? "bg-primary/10 dark:bg-primary/20 font-semibold"
+                      : "bg-white dark:bg-neutral-900"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`text-lg font-bold w-8 ${
+                        index === 0
+                          ? "text-amber-500 dark:text-amber-400"
+                          : index === 1
+                          ? "text-neutral-400 dark:text-neutral-500"
+                          : index === 2
+                          ? "text-amber-700 dark:text-amber-600"
+                          : "text-neutral-400 dark:text-neutral-500"
+                      }`}
+                    >
+                      #{index + 1}
+                    </span>
+                    <span
+                      className={
+                        isWinner
+                          ? "text-neutral-900 dark:text-white"
+                          : "text-neutral-700 dark:text-neutral-300"
+                      }
+                    >
+                      {displayName(entry)}
+                    </span>
+                    {isWinner && (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary/90">
+                        Winner
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className={`font-mono font-semibold ${
+                      isWinner
+                        ? "text-primary dark:text-primary/90"
+                        : "text-neutral-600 dark:text-neutral-400"
+                    }`}
+                  >
+                    {entry.points} pts
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        {/* Actions */}
+        <div className="space-y-3">
+          <Link
+            href={`/game/${roomCode}`}
+            className="block w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white text-center font-medium rounded-xl transition-colors"
+          >
+            Play again
+          </Link>
+
+          {isHost && (
+            <>
+              <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
+                Same room, same players — a new game has already started.
+              </p>
+              <Link
+                href="/create"
+                className="block w-full py-3 px-4 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 text-center font-medium rounded-xl transition-colors"
+              >
+                Start new game room
+              </Link>
+            </>
+          )}
+
+          <Link
+            href="/"
+            className="block w-full py-2 text-center text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+          >
+            Back to home
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

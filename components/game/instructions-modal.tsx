@@ -154,10 +154,10 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                       A <strong>5-minute intermission</strong> starts. Everyone sees a notification and a countdown timer. <strong>Submissions and voting are paused</strong> during this time.
                     </li>
                     <li>
-                      During the 5 minutes, you can <strong>select which cards</strong> (if any) to turn in. You may select up to the number of cards in your hand (e.g. up to 5 if your hand size is 5). Select cards, then click <strong>&quot;Turn in X cards at end of round&quot;</strong> to confirm. You can change your selection until the timer ends. To keep all cards, confirm with no cards selected.
+                      During the 5 minutes, <strong>select cards from your hand</strong> and click <strong>&quot;Submit X card(s) for discard&quot;</strong> — just like submitting for vote. They move to the <strong>Pending Discard</strong> section (above Your Cards), same pattern as Pending Submissions. Remove any card from Pending Discard to keep it. Add and remove as often as you like until the timer ends.
                     </li>
                     <li>
-                      <strong>When the intermission ends</strong> (timer reaches zero or host ends early), all confirmed selections are processed: your selected cards are turned in, you receive points for them, and you are dealt new cards to replace them. You must perform the drink penalty for each card you turned in.
+                      <strong>When the intermission ends</strong> (timer reaches zero or host ends early), all cards still in Pending Discard are discarded: you receive points for them, get new cards to replace them, and must perform the drink penalty per card.
                     </li>
                     <li>
                       After processing, the round number advances and normal play resumes. The host can click <strong>&quot;Reset round&quot;</strong> to set the count back so the next &quot;End round&quot; starts Round 1 again.

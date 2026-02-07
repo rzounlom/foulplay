@@ -56,9 +56,33 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine winner (player with highest points)
-    const winner = room.players.reduce((prev, current) => 
+    const winner = room.players.reduce((prev, current) =>
       (current.points > prev.points) ? current : prev
     );
+
+    // Build leaderboard (descending by points) for end-game page
+    const leaderboard = [...room.players]
+      .sort((a, b) => b.points - a.points)
+      .map((p) => ({
+        playerId: p.id,
+        name: p.user.name,
+        nickname: p.nickname,
+        points: p.points,
+      }));
+
+    const lastGameEndResult = {
+      winnerId: winner.id,
+      winnerName: winner.user.name,
+      winnerNickname: winner.nickname,
+      winnerPoints: winner.points,
+      leaderboard,
+    };
+
+    // Store result so end-game page can display it (before we reset points)
+    await prisma.room.update({
+      where: { id: room.id },
+      data: { lastGameEndResult: lastGameEndResult as object },
+    });
 
     // Update user stats for all players
     await Promise.all(

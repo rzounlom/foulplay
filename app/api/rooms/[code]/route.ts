@@ -7,6 +7,7 @@ import { getRoomChannel } from "@/lib/ably/client";
 const updateRoomSchema = z.object({
   mode: z.string().optional(),
   sport: z.string().optional(),
+  handSize: z.number().int().min(4).max(10).optional(),
   showPoints: z.boolean().optional(),
   allowJoinInProgress: z.boolean().optional(),
   allowQuarterClearing: z.boolean().optional(),
@@ -83,7 +84,7 @@ export async function PATCH(
 
     const { code } = await params;
     const body = await request.json();
-    const { mode, sport, showPoints, allowJoinInProgress, allowQuarterClearing } =
+    const { mode, sport, handSize, showPoints, allowJoinInProgress, allowQuarterClearing } =
       updateRoomSchema.parse(body);
 
     // Find room and verify user is host
@@ -113,6 +114,7 @@ export async function PATCH(
       data: {
         ...(mode !== undefined && { mode }),
         ...(sport !== undefined && { sport }),
+        ...(handSize !== undefined && { handSize }),
         ...(showPoints !== undefined && { showPoints }),
         ...(allowJoinInProgress !== undefined && { allowJoinInProgress }),
         ...(allowQuarterClearing !== undefined && { allowQuarterClearing }),
@@ -136,6 +138,7 @@ export async function PATCH(
         roomCode: room.code,
         mode: updatedRoom.mode,
         sport: updatedRoom.sport,
+        handSize: updatedRoom.handSize,
         showPoints: updatedRoom.showPoints,
         allowJoinInProgress: updatedRoom.allowJoinInProgress,
         allowQuarterClearing: updatedRoom.allowQuarterClearing,

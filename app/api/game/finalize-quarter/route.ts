@@ -115,10 +115,24 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Only deal enough new cards to fill hand up to handSize (never exceed max)
+        const handSize = room.handSize ?? 5;
+        const drawnCountAfterDiscard = await prisma.cardInstance.count({
+          where: {
+            roomId: room!.id,
+            drawnById: playerId,
+            status: "drawn",
+          },
+        });
+        const cardsToDeal = Math.min(
+          cardInstances.length,
+          Math.max(0, handSize - drawnCountAfterDiscard)
+        );
+
         const gs = await prisma.gameState.findUnique({
           where: { roomId: room!.id },
         });
-        if (!gs || cards.length === 0) continue;
+        if (!gs || cards.length === 0 || cardsToDeal <= 0) continue;
 
         const drawnInstances = await prisma.cardInstance.findMany({
           where: { roomId: room!.id },
@@ -142,7 +156,7 @@ export async function POST(request: NextRequest) {
 
         const { cardIndices, newState } = drawMultipleCards(
           engineState,
-          cardInstances.length
+          cardsToDeal
         );
         const newCardInstances = cardIndices.map((cardIndex) => ({
           roomId: room!.id,
