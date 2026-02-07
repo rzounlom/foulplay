@@ -3,20 +3,21 @@
 import { ClerkProvider } from "@clerk/nextjs";
 
 /**
- * Wrapper for ClerkProvider that handles missing keys gracefully
- * This prevents build failures when keys are not set (e.g., in CI)
+ * Wrapper for ClerkProvider. Always renders ClerkProvider so that useUser() and
+ * other Clerk hooks work during static prerender (e.g. in CI with dummy keys).
+ * With dummy/missing keys, Clerk treats the user as unauthenticated.
  */
 export function ClerkProviderWrapper({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const publishableKey =
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_test_dummy";
 
-  // If no valid key, render children without Clerk (for build/CI)
-  if (!publishableKey || publishableKey === "pk_test_dummy") {
-    return <>{children}</>;
-  }
-
-  return <ClerkProvider>{children}</ClerkProvider>;
+  return (
+    <ClerkProvider publishableKey={publishableKey}>
+      {children}
+    </ClerkProvider>
+  );
 }
