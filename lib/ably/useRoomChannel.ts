@@ -25,7 +25,9 @@ export type RoomEvent =
   | "quarter_ending"
   | "quarter_intermission_ended"
   | "quarter_discard_selection_updated"
-  | "round_reset";
+  | "round_reset"
+  | "message_sent"
+  | "reaction_sent";
 
 export interface RoomEventData {
   [key: string]: unknown;

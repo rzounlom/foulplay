@@ -377,7 +377,9 @@ Reactions can be:
 - General reactions (thumbs up, fire, etc.)
 - Event-specific reactions (celebrate approval, react to rejection)
 
-Reaction Animations
+Reaction Animations (Backlog — Phase 10.3)
+
+To be added later on top of the current reaction system:
 
 Smooth animations for reactions appearing and disappearing
 

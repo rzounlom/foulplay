@@ -45,6 +45,7 @@ model Room {
   gameState           GameState?
   cardInstances       CardInstance[]
   submissions         CardSubmission[]
+  messages            Message[]
 }
 
 model Player {
@@ -62,6 +63,7 @@ model Player {
   cardInstances CardInstance[]
   submissions CardSubmission[]
   votes      CardVote[]
+  messages   Message[]
 
   @@unique([userId, roomId])
   @@index([roomId])
@@ -146,4 +148,17 @@ model CardVote {
   @@unique([cardInstanceId, voterPlayerId]) // One vote per card per voter
   @@index([submissionId])
   @@index([cardInstanceId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  roomId    String
+  senderId  String   // Player id
+  message   String
+  createdAt DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender    Player   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([senderId])
 }

@@ -384,13 +384,15 @@ Animated reactions that appear on screen
 
 Visual feedback for game events
 
-🔹 Card 10.3 — Reaction Animations
+🔹 Card 10.3 — Reaction Animations (Backlog)
 
-Smooth animations for reactions
+Fancier animations to be added later on top of current reaction display:
 
-Card approval/rejection animations
+Smooth animations for reactions appearing/disappearing
 
-Point award celebrations
+Card approval/rejection animations with visual feedback
+
+Point award celebrations (e.g. confetti)
 
 Details to be determined during implementation
 

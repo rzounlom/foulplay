@@ -4,11 +4,14 @@ import { useRouter } from "next/navigation";
 import { RoomEvent, useRoomChannel } from "@/lib/ably/useRoomChannel";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ChatPanel, type ChatMessage } from "./chat-panel";
 import { GameTour } from "./game-tour";
 import { Hand } from "./hand";
 import { InstructionsModal } from "./instructions-modal";
 import { PendingDiscard } from "./pending-discard";
 import { PlayerList } from "./player-list";
+import { ReactionBar } from "./reaction-bar";
+import { ReactionDisplay, type ReactionEvent } from "./reaction-display";
 import { SubmissionPending } from "./submission-pending";
 import { VotingUI } from "./voting-ui";
 
@@ -129,6 +132,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [intermissionSecondsLeft, setIntermissionSecondsLeft] = useState<number | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showMoreHostControls, setShowMoreHostControls] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [recentReactions, setRecentReactions] = useState<ReactionEvent[]>([]);
 
   const router = useRouter();
   const isRedirectingToEndGame = useRef(false);
@@ -144,6 +150,18 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       console.error("Failed to fetch room:", error);
     }
   };
+
+  const fetchMessages = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/chat/messages?roomCode=${roomCode}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(data.messages ?? []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+    }
+  }, [roomCode]);
 
   const fetchHand = useCallback(async () => {
     try {
@@ -210,7 +228,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   }, [endsAt, roomCode]);
 
   // Subscribe to game events
-  useRoomChannel(roomCode, (event: RoomEvent) => {
+  useRoomChannel(roomCode, (event: RoomEvent, data: Record<string, unknown>) => {
     console.log("Received game event:", event);
     // If we're redirecting to end-game, ignore all further events (don't start tour, don't fetch)
     if (isRedirectingToEndGame.current) return;
@@ -218,6 +236,25 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     if (event === "game_ended") {
       isRedirectingToEndGame.current = true;
       router.push(`/game/${roomCode}/end-game`);
+      return;
+    }
+    if (event === "message_sent" && data) {
+      const msg = data as {
+        id: string;
+        message: string;
+        createdAt: string;
+        sender: { id: string; nickname?: string | null; user: { id: string; name: string } };
+      };
+      setMessages((prev) => [...prev, { id: msg.id, message: msg.message, createdAt: msg.createdAt, sender: msg.sender }]);
+      return;
+    }
+    if (event === "reaction_sent" && data) {
+      const reaction = data as ReactionEvent;
+      const id = `${reaction.timestamp}-${Math.random()}`;
+      setRecentReactions((prev) => [...prev.slice(-4), { ...reaction, id }]);
+      setTimeout(() => {
+        setRecentReactions((prev) => prev.filter((r) => (r as ReactionEvent & { id?: string }).id !== id));
+      }, 2500);
       return;
     }
     if (
@@ -425,6 +462,34 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     }
   };
 
+  const handleSendMessage = async (text: string) => {
+    const response = await fetch("/api/chat/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomCode, message: text }),
+    });
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || "Failed to send message");
+    }
+    const data = await response.json();
+    if (data.message) {
+      setMessages((prev) => [...prev, data.message]);
+    }
+  };
+
+  const handleSendReaction = async (reactionType: string) => {
+    const response = await fetch("/api/chat/reaction", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomCode, reactionType }),
+    });
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || "Failed to send reaction");
+    }
+  };
+
   const isFootballOrBasketball =
     room.sport === "football" || room.sport === "basketball";
   const showQuarterControls =
@@ -476,7 +541,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             )}
           </button>
         </div>
-        <div className="flex items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400">
+        <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400">
           <span>Mode: {room.mode || "N/A"}</span>
           <span>Sport: {room.sport || "N/A"}</span>
           {showQuarterControls && (
@@ -485,8 +550,37 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           {submissions.length > 0 && (
             <span>Pending Submissions: {submissions.length}</span>
           )}
+          <ReactionBar
+            roomCode={roomCode}
+            onSendReaction={handleSendReaction}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setChatOpen(true);
+              fetchMessages();
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-sm font-medium transition-colors"
+            aria-label="Open chat"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            Chat
+          </button>
         </div>
       </div>
+
+      <ReactionDisplay reactions={recentReactions} />
+
+      <ChatPanel
+        roomCode={roomCode}
+        messages={messages}
+        currentPlayerId={currentPlayer?.id}
+        onSendMessage={handleSendMessage}
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* Left Column - Host Controls (top) & Players */}
