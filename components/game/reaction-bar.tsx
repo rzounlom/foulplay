@@ -9,7 +9,7 @@ interface ReactionBarProps {
   onSendReaction: (reactionType: string) => Promise<void>;
 }
 
-export function ReactionBar({ roomCode, onSendReaction }: ReactionBarProps) {
+export function ReactionBar({ onSendReaction }: ReactionBarProps) {
   const [sending, setSending] = useState<string | null>(null);
 
   const handleClick = async (emoji: string) => {

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 dark:bg-black">
+    <div className="flex min-h-screen items-center justify-center bg-background">
       <main className="flex min-h-screen w-full max-w-4xl flex-col items-center justify-center gap-8 px-6 py-16">
         <div className="text-center space-y-4">
           <h1 className="text-page-title text-black dark:text-white">

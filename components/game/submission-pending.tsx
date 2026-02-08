@@ -43,7 +43,7 @@ export function SubmissionPending({ submission, totalPlayers, roomMode = null }:
   const requiredApprovals = Math.ceil(totalPlayers / 2);
 
   return (
-    <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
+    <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
       <div className="mb-4">
         <h3 className="text-section-title mb-2">
           Submission{submission.cardInstances.length > 1 ? "s" : ""} Pending

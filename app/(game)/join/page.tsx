@@ -122,9 +122,9 @@ function JoinRoomForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <div className="flex min-h-screen items-center justify-center p-6 bg-background">
       <div className="w-full max-w-2xl">
-        <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800">
+        <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
         <h1 className="text-page-title text-foreground mb-4">Join a Room</h1>
         <p className="text-body-muted mb-6">
           Enter the 6-character room code to join a game.

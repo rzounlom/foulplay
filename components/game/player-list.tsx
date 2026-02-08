@@ -37,7 +37,7 @@ export function PlayerList({ players, currentUserId, showPoints = false }: Playe
                   ? "bg-accent/10 border-accent"
                   : isCurrentUser
                     ? "bg-primary/10 border-primary"
-                    : "bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800"
+                    : "bg-surface-muted border-border"
               }`}
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">

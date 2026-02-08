@@ -144,7 +144,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-4xl min-h-screen bg-background">
       <div className="mb-8">
         <h1 className="text-page-title text-foreground mb-4">Room {room.code}</h1>
         <div className="flex items-center gap-2 p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
@@ -179,12 +179,12 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
+        <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
           <PlayerList players={room.players} currentUserId={currentUserId} showPoints={room.showPoints} />
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
+          <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
             <h3 className="text-section-title text-foreground mb-4">Game Settings</h3>
             <div className="space-y-4">
               <div>

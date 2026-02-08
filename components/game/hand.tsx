@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
 
@@ -41,21 +41,20 @@ export function Hand({
   cards,
   onCardSelect,
   onCardSubmit,
-  onCardDiscard,
   onQuarterDiscardSelection,
   selectedCardId,
   selectedCardIds = [],
   handSize = 5,
-  allowQuarterClearing = false,
-  currentQuarter = null,
   canTurnInCards = true,
   isQuarterIntermission = false,
-  intermissionSecondsLeft = null,
   myQuarterSelectionIds = [],
   roomMode = null,
 }: HandProps) {
   const isMultiSelect = !!(onCardSubmit || onQuarterDiscardSelection);
-  const selectedIds = isMultiSelect ? selectedCardIds : (selectedCardId ? [selectedCardId] : []);
+  const selectedIds = useMemo(
+    () => (isMultiSelect ? selectedCardIds : selectedCardId ? [selectedCardId] : []),
+    [isMultiSelect, selectedCardIds, selectedCardId]
+  );
   // During normal play, only submit-for-vote is allowed. Discard with penalty is only during round intermission.
   const canSubmitCards = canTurnInCards && !isQuarterIntermission;
   const cardsInHand = cards.filter((c) => c.status === "drawn");
@@ -98,7 +97,7 @@ export function Hand({
 
   if (cardsInHand.length === 0) {
     return (
-      <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 text-center">
+      <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none text-center">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 mb-3" aria-hidden>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
@@ -113,7 +112,7 @@ export function Hand({
   }
 
   return (
-    <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
+    <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
       <h3 className="text-lg font-semibold mb-4">
         Your Hand ({cardsStaying.length}/{handSize})
       </h3>

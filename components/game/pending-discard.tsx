@@ -37,7 +37,7 @@ export function PendingDiscard({
       : "5:00";
 
   return (
-    <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
+    <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
       <div className="mb-4">
         <h3 className="text-lg font-semibold mb-2">
           Pending Discard

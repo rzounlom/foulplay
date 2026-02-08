@@ -16,7 +16,7 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
         variant="secondary"
         size="md"
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-2 border-2 border-primary text-primary bg-primary/5 shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] [text-shadow:0_0_8px_rgba(255,102,0,0.6)]"
+        className="inline-flex items-center gap-2 border-2 border-primary text-primary bg-primary/5 dark:shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 dark:hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] dark:[text-shadow:0_0_8px_rgba(255,102,0,0.6)] shadow-sm hover:shadow-md"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -41,7 +41,7 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
           onClick={() => setIsOpen(false)}
         >
           <div
-            className="bg-white dark:bg-neutral-900 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-neutral-200 dark:border-neutral-800 shadow-xl"
+            className="bg-surface rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-border shadow-xl dark:shadow-none"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">

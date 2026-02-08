@@ -74,7 +74,7 @@ function Toaster() {
   );
 }
 
-function ToastItem({ item, onDismiss }: { item: ToastItem; onDismiss: () => void }) {
+function ToastItem({ item }: { item: ToastItem; onDismiss: () => void }) {
   const styleByType = {
     success:
       "bg-emerald-600 text-white border-emerald-700 dark:bg-emerald-700 dark:border-emerald-600",
@@ -97,9 +97,9 @@ export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) {
     return {
-      addToast: (_message: string, _type?: ToastType) => {},
+      addToast: () => {},
       toasts: [] as ToastItem[],
-      removeToast: (_id: string) => {},
+      removeToast: () => {},
     };
   }
   return ctx;

@@ -138,7 +138,7 @@ export function VotingUI({
   };
 
   return (
-    <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
+    <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
       <div className="mb-4">
         <h3 className="text-section-title mb-2">Vote on Submission</h3>
         <p className="text-body-muted">

@@ -25,7 +25,6 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({
-  roomCode,
   messages,
   currentPlayerId,
   onSendMessage,
@@ -55,12 +54,12 @@ export function ChatPanel({
 
   return (
     <div
-      className={`fixed right-0 top-0 bottom-0 w-full max-w-md bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-xl z-40 flex flex-col transition-transform duration-300 ease-out ${
+      className={`fixed right-0 top-0 bottom-0 w-full max-w-md bg-surface border-l border-border shadow-xl dark:shadow-none z-40 flex flex-col transition-transform duration-300 ease-out ${
         isOpen ? "translate-x-0" : "translate-x-full"
       } ${!isOpen ? "pointer-events-none" : ""}`}
       aria-hidden={!isOpen}
     >
-      <div className="flex items-center justify-between p-3 border-b border-neutral-200 dark:border-neutral-800">
+      <div className="flex items-center justify-between p-3 border-b border-border">
         <h3 className="font-semibold text-neutral-800 dark:text-neutral-200">Chat</h3>
         <Button
           type="button"
@@ -111,7 +110,7 @@ export function ChatPanel({
         )}
         <div ref={listEndRef} />
       </div>
-      <form onSubmit={handleSubmit} className="p-3 border-t border-neutral-200 dark:border-neutral-800">
+      <form onSubmit={handleSubmit} className="p-3 border-t border-border">
         <div className="flex gap-2">
           <Input
             type="text"

@@ -5,7 +5,6 @@ import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -80,13 +79,13 @@ export default function CreateRoomPage() {
 
   if (!isLoaded) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-6">
-        <div className="w-full max-w-2xl">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800">
-            <p className="text-center">Loading...</p>
+<div className="flex min-h-screen items-center justify-center p-6 bg-background">
+          <div className="w-full max-w-2xl">
+            <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
+              <p className="text-center">Loading...</p>
+            </div>
           </div>
         </div>
-      </div>
     );
   }
 
@@ -95,9 +94,9 @@ export default function CreateRoomPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <div className="flex min-h-screen items-center justify-center p-6 bg-background">
       <div className="w-full max-w-2xl">
-        <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800">
+        <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
         <h1 className="text-page-title text-foreground mb-4">Create a Room</h1>
         <p className="text-body-muted mb-6">
           Start a new game room and invite your friends to join.

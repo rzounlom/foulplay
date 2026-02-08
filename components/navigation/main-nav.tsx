@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function MainNav() {
   const { isSignedIn, isLoaded } = useUser();
@@ -25,11 +26,11 @@ export function MainNav() {
     `text-sm font-medium transition-colors duration-200 cursor-pointer px-3 py-2 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
       isActive(path, options)
         ? "text-primary bg-primary/10 dark:bg-primary/20"
-        : "text-neutral-600 dark:text-neutral-400 hover:text-primary hover:bg-neutral-100 dark:hover:bg-neutral-800"
+        : "text-neutral-600 dark:text-neutral-400 hover:text-primary hover:bg-surface-muted"
     }`;
 
   return (
-    <nav className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+    <nav className="border-b border-border bg-surface shadow-sm dark:shadow-none">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo/Brand */}
@@ -56,7 +57,7 @@ export function MainNav() {
                 Profile
               </Link>
 
-              {/* Clerk UserButton */}
+              <ThemeToggle />
               <UserButton afterSignOutUrl="/" />
             </div>
           )}

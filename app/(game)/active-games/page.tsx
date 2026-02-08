@@ -54,8 +54,8 @@ export default function ActiveGamesPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800">
+    <div className="container mx-auto px-4 py-8 max-w-2xl min-h-screen bg-background">
+      <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
         <h1 className="text-page-title text-foreground mb-6">Active Games</h1>
 
         {isLoading ? (
@@ -67,7 +67,7 @@ export default function ActiveGamesPage() {
             <p>Loading games...</p>
           </div>
         ) : activeGames.length === 0 ? (
-          <div className="text-center py-10 px-4 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700">
+          <div className="text-center py-10 px-4 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 shadow-sm dark:shadow-none">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 dark:bg-primary/20 text-primary mb-4" aria-hidden>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741.479 3 3 0 003-3v.479a9.094 9.094 0 01-3.741.479m-10.5-6.75h.008v.008h-.008V12zm0 0h.008V12h-.008z" />
