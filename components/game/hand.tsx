@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { getCardDescriptionForDisplay } from "@/lib/game/display";
 
 interface Card {
   id: string;
@@ -32,6 +33,7 @@ interface HandProps {
   isQuarterIntermission?: boolean;
   intermissionSecondsLeft?: number | null;
   myQuarterSelectionIds?: string[];
+  roomMode?: string | null;
 }
 
 export function Hand({
@@ -49,6 +51,7 @@ export function Hand({
   isQuarterIntermission = false,
   intermissionSecondsLeft = null,
   myQuarterSelectionIds = [],
+  roomMode = null,
 }: HandProps) {
   const isMultiSelect = !!(onCardSubmit || onQuarterDiscardSelection);
   const selectedIds = isMultiSelect ? selectedCardIds : (selectedCardId ? [selectedCardId] : []);
@@ -84,7 +87,7 @@ export function Hand({
       )}
       {isQuarterIntermission && (
         <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm">
-          Select cards from your hand and click Submit for discard. They will move to Pending Discard above. Remove from Pending Discard to keep them. When the timer ends, cards in Pending Discard are discarded and replaced. Drink penalty applies.
+          Select cards from your hand and click Submit for discard. They will move to Pending Discard above. Remove from Pending Discard to keep them. When the timer ends, cards in Pending Discard are discarded and replaced.{roomMode !== "non-drinking" && " Drink penalty applies."}
         </div>
       )}
 
@@ -152,7 +155,7 @@ export function Hand({
                 </div>
               </div>
               <p className="text-[11px] text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight">
-                {cardInstance.card.description}
+                {getCardDescriptionForDisplay(cardInstance.card.description, roomMode)}
               </p>
             </div>
           );

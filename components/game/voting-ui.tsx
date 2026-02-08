@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { getCardDescriptionForDisplay } from "@/lib/game/display";
 
 interface Card {
   id: string;
@@ -56,6 +57,7 @@ interface VotingUIProps {
   totalPlayers: number;
   onVote: (submissionId: string, cardInstanceIds: string[], vote: boolean) => Promise<void>;
   votingPaused?: boolean;
+  roomMode?: string | null;
 }
 
 export function VotingUI({
@@ -64,6 +66,7 @@ export function VotingUI({
   totalPlayers,
   onVote,
   votingPaused = false,
+  roomMode = null,
 }: VotingUIProps) {
   const [isVoting, setIsVoting] = useState<Record<string, boolean>>({});
   
@@ -212,7 +215,7 @@ export function VotingUI({
                 </div>
               </div>
               <p className="text-[11px] text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight mb-3">
-                {cardInstance.card.description}
+                {getCardDescriptionForDisplay(cardInstance.card.description, roomMode)}
               </p>
               
               {/* Vote Status */}

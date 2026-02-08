@@ -524,6 +524,11 @@ Phase 7 — Testing + CI
 - Implementation: When starting a game or drawing, filter/weight the card pool by `room.mode` so the deck reflects the intended mix. Non-drinking mode can use the same logic with a separate mix if desired.
 - See FOUL_PLAY_PLAN.md Phase 12 (Card Content & Mode Distribution) and CARD_RARITY_RESEARCH / BASKETBALL_CARD_RARITY_RESEARCH for severity definitions.
 
+**Backlog — Comprehensive UAT testing plan (Phase 13 in plan)**
+
+- Define and document a full User Acceptance Testing plan so stakeholders and QA can validate the product end-to-end before release (auth, rooms, gameplay, voting, host controls, profile, non-drinking mode, chat/reactions, accessibility, edge cases, sign-off).
+- See FOUL_PLAY_PLAN.md Phase 13 (Comprehensive UAT Testing Plan).
+
 12. 🔥 Success Criteria
 
 MVP success when:

@@ -1,5 +1,7 @@
 "use client";
 
+import { getCardDescriptionForDisplay } from "@/lib/game/display";
+
 interface Card {
   id: string;
   title: string;
@@ -32,9 +34,10 @@ interface Submission {
 interface SubmissionPendingProps {
   submission: Submission;
   totalPlayers: number;
+  roomMode?: string | null;
 }
 
-export function SubmissionPending({ submission, totalPlayers }: SubmissionPendingProps) {
+export function SubmissionPending({ submission, totalPlayers, roomMode = null }: SubmissionPendingProps) {
   const approvalVotes = submission.votes.filter((v) => v.vote === true).length;
   const rejectionVotes = submission.votes.filter((v) => v.vote === false).length;
   const requiredApprovals = Math.ceil(totalPlayers / 2);
@@ -79,7 +82,7 @@ export function SubmissionPending({ submission, totalPlayers }: SubmissionPendin
               </div>
             </div>
             <p className="text-[11px] text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight">
-              {cardInstance.card.description}
+              {getCardDescriptionForDisplay(cardInstance.card.description, roomMode)}
             </p>
           </div>
         ))}

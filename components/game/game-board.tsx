@@ -17,6 +17,7 @@ import { ReactionBar } from "./reaction-bar";
 import { ReactionDisplay, type ReactionEvent } from "./reaction-display";
 import { SubmissionPending } from "./submission-pending";
 import { VotingUI } from "./voting-ui";
+import { getCardDescriptionForDisplay } from "@/lib/game/display";
 
 interface Player {
   id: string;
@@ -857,7 +858,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                     </span>
                   </div>
                 </div>
-                <p className="text-lg mb-4">{activeCard.card.description}</p>
+                <p className="text-lg mb-4">{getCardDescriptionForDisplay(activeCard.card.description, room.mode)}</p>
                 {activeCard.drawnBy.id === currentPlayer?.id && (
                   <Button
                     variant="outline-primary"
@@ -912,6 +913,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                           key={submission.id}
                           submission={submission}
                           totalPlayers={room.players.length}
+                          roomMode={room.mode}
                         />
                       ));
                     } else {
@@ -924,6 +926,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                           totalPlayers={room.players.length}
                           onVote={handleVote}
                           votingPaused={isQuarterIntermission}
+                          roomMode={room.mode}
                         />
                       ));
                     }
@@ -955,6 +958,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                   handleQuarterDiscardSelection(current.filter((id) => id !== cardInstanceId));
                 }}
                 intermissionSecondsLeft={intermissionSecondsLeft}
+                roomMode={room.mode}
               />
             </div>
           )}
@@ -990,6 +994,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 myQuarterSelectionIds={
                   (room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer?.id] ?? []
                 }
+                roomMode={room.mode}
               />
             </div>
           )}

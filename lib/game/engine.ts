@@ -55,17 +55,48 @@ export function generateDeck(seed: string, cardCount: number): number[] {
 }
 
 /**
- * Generate a deck ordered by mode so severity distribution matches intensity:
- * - Casual: mild cards appear first (more often drawn early), then moderate, then severe.
- * - Lit: severe first, then moderate, then mild (higher intensity draws).
- * - Party: fully shuffled (balanced).
- * severities[i] is the severity of card at index i (same order as API card list, e.g. by id).
+ * Mode-based severity distribution (PRD / Phase 12).
+ * Percentages: mild / moderate / severe.
+ */
+const MODE_SEVERITY_PCT: Record<
+  string,
+  { mild: number; moderate: number; severe: number }
+> = {
+  casual: { mild: 0.7, moderate: 0.25, severe: 0.05 },
+  party: { mild: 0.5, moderate: 0.35, severe: 0.15 },
+  lit: { mild: 0.4, moderate: 0.35, severe: 0.25 },
+  "non-drinking": { mild: 0.7, moderate: 0.25, severe: 0.05 },
+};
+
+/** Pick n indices from pool with replacement using seeded RNG */
+function sampleWithReplacement(
+  pool: number[],
+  n: number,
+  seed: string
+): number[] {
+  if (pool.length === 0 || n <= 0) return [];
+  const rng = createSeededRng(seed);
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    out.push(pool[Math.floor(rng() * pool.length)]);
+  }
+  return out;
+}
+
+/**
+ * Generate a deck with mode-based severity mix (Phase 12).
+ * - Casual: ~70% mild, ~25% moderate, ~5% severe
+ * - Party: ~50% mild, ~35% moderate, ~15% severe
+ * - Lit: ~40% mild, ~35% moderate, ~25% severe
+ * - Non-drinking: same as casual
+ * severities[i] is the severity of card at index i (same order as API card list).
  */
 export function generateDeckForMode(
   seed: string,
   severities: Severity[],
   mode: GameMode | string
 ): number[] {
+  const cardCount = severities.length;
   const indicesBySeverity: Record<Severity, number[]> = {
     mild: [],
     moderate: [],
@@ -75,25 +106,44 @@ export function generateDeckForMode(
     if (indicesBySeverity[sev]) indicesBySeverity[sev].push(i);
   });
 
-  const shuffle = (arr: number[], s: string) => seededShuffle([...arr], s);
+  const mildPool = indicesBySeverity.mild;
+  const modPool = indicesBySeverity.moderate;
+  const sevPool = indicesBySeverity.severe;
 
-  switch (mode) {
-    case "casual":
-      return [
-        ...shuffle(indicesBySeverity.mild, `${seed}-mild`),
-        ...shuffle(indicesBySeverity.moderate, `${seed}-moderate`),
-        ...shuffle(indicesBySeverity.severe, `${seed}-severe`),
-      ];
-    case "lit":
-      return [
-        ...shuffle(indicesBySeverity.severe, `${seed}-severe`),
-        ...shuffle(indicesBySeverity.moderate, `${seed}-moderate`),
-        ...shuffle(indicesBySeverity.mild, `${seed}-mild`),
-      ];
-    case "party":
-    default:
-      return generateDeck(seed, severities.length);
+  const pct = MODE_SEVERITY_PCT[mode] ?? MODE_SEVERITY_PCT.party;
+  let mildCount = Math.floor(cardCount * pct.mild);
+  let modCount = Math.floor(cardCount * pct.moderate);
+  let sevCount = cardCount - mildCount - modCount;
+  if (sevCount < 0) {
+    sevCount = 0;
+    modCount = cardCount - mildCount;
   }
+
+  // Cap to available cards per severity; redistribute remainder to mild then moderate
+  mildCount = Math.min(mildCount, mildPool.length);
+  modCount = Math.min(modCount, modPool.length);
+  sevCount = Math.min(sevCount, sevPool.length);
+  let total = mildCount + modCount + sevCount;
+  while (total < cardCount && (mildCount < mildPool.length || modCount < modPool.length || sevCount < sevPool.length)) {
+    if (mildCount < mildPool.length) {
+      mildCount++;
+      total++;
+    } else if (modCount < modPool.length) {
+      modCount++;
+      total++;
+    } else if (sevCount < sevPool.length) {
+      sevCount++;
+      total++;
+    }
+  }
+
+  const deck: number[] = [
+    ...sampleWithReplacement(mildPool, mildCount, `${seed}-m`),
+    ...sampleWithReplacement(modPool, modCount, `${seed}-mod`),
+    ...sampleWithReplacement(sevPool, sevCount, `${seed}-s`),
+  ];
+
+  return seededShuffle(deck, seed);
 }
 
 /**
@@ -110,8 +160,9 @@ export function drawNextCard(state: GameState): {
   );
 
   if (availableCard === undefined) {
-    // Deck is empty, reshuffle
-    const newDeck = generateDeck(state.deckSeed, state.deck.length);
+    // Deck exhausted: reshuffle the same deck to preserve mode-based severity mix (Phase 12)
+    const reshuffleSeed = `${state.deckSeed}-reshuffle-${state.drawnCards.length}`;
+    const newDeck = seededShuffle([...state.deck], reshuffleSeed);
     const newState: GameState = {
       ...state,
       deck: newDeck,

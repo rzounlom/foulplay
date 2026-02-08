@@ -43,12 +43,19 @@ describe("Game Engine", () => {
   });
 
   describe("generateDeckForMode", () => {
+    // Indices 0,1 = mild, 2 = moderate, 3 = severe
     const severities = [
       "mild",
       "mild",
       "moderate",
       "severe",
     ] as const;
+
+    const countBySeverity = (deck: number[]) => ({
+      mild: deck.filter((i) => i <= 1).length,
+      moderate: deck.filter((i) => i === 2).length,
+      severe: deck.filter((i) => i === 3).length,
+    });
 
     it("should return same length as card count", () => {
       const deck = generateDeckForMode("seed", severities, "casual");
@@ -61,28 +68,40 @@ describe("Game Engine", () => {
       expect(deck1).toEqual(deck2);
     });
 
-    it("casual mode should place mild indices before severe", () => {
+    it("casual mode should have ~70% mild, ~25% moderate, ~5% severe", () => {
       const deck = generateDeckForMode("seed", severities, "casual");
-      const mildIndices = [0, 1];
-      const severeIndex = 3;
-      const firstMildPos = deck.findIndex((i) => mildIndices.includes(i));
-      const severePos = deck.indexOf(severeIndex);
-      expect(severePos).toBeGreaterThan(firstMildPos);
+      const counts = countBySeverity(deck);
+      // 4 cards: 70% = 2.8 → 2 mild, 25% = 1 mod, 5% = 0.2 → 0 severe, remainder → 1 severe
+      expect(counts.mild).toBeGreaterThanOrEqual(2);
+      expect(counts.moderate).toBe(1);
+      expect(counts.severe).toBeLessThanOrEqual(1);
     });
 
-    it("lit mode should place severe indices before mild", () => {
+    it("lit mode should have more severe than casual (or cap when pool is small)", () => {
       const deck = generateDeckForMode("seed", severities, "lit");
-      const mildIndices = [0, 1];
-      const severeIndex = 3;
-      const severePos = deck.indexOf(severeIndex);
-      const firstMildPos = deck.findIndex((i) => mildIndices.includes(i));
-      expect(severePos).toBeLessThan(firstMildPos);
+      const counts = countBySeverity(deck);
+      // 4 cards: target 1 mild, 1 mod, 2 severe but severe pool has only 1 card → remainder goes to mild
+      expect(deck).toHaveLength(severities.length);
+      expect(counts.moderate).toBe(1);
+      expect(counts.severe).toBe(1); // only one severe index in pool
+      expect(counts.mild + counts.moderate + counts.severe).toBe(4);
     });
 
-    it("party mode should produce a full shuffle", () => {
+    it("party mode should have ~50% mild, ~35% moderate, ~15% severe", () => {
       const deck = generateDeckForMode("seed", severities, "party");
       expect(deck).toHaveLength(severities.length);
-      expect([...deck].sort((a, b) => a - b)).toEqual([0, 1, 2, 3]);
+      const counts = countBySeverity(deck);
+      // 4 cards: 2 mild, 1 mod, 1 severe
+      expect(counts.mild).toBe(2);
+      expect(counts.moderate).toBe(1);
+      expect(counts.severe).toBe(1);
+    });
+
+    it("non-drinking mode should use casual mix", () => {
+      const deck = generateDeckForMode("seed", severities, "non-drinking");
+      const counts = countBySeverity(deck);
+      expect(counts.mild).toBeGreaterThanOrEqual(2);
+      expect(counts.moderate).toBe(1);
     });
   });
 

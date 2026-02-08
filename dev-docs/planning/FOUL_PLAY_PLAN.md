@@ -470,6 +470,98 @@ Update game engine or card selection logic so that when a room’s mode is Casua
 
 Verify fair distribution and that each mode feels distinct where intended
 
+---
+
+🧪 PHASE 13 — COMPREHENSIVE UAT TESTING PLAN (Backlog)
+
+Outcome: A documented User Acceptance Testing plan so stakeholders and QA can validate the product end-to-end before release.
+
+🔹 Card 13.1 — UAT Document Setup
+
+Create a dedicated UAT document (e.g. `dev-docs/testing/UAT_TESTING_PLAN.md`)
+
+Define scope: in-scope flows, out-of-scope, environment (staging/production-like), roles (tester, observer)
+
+Define pass/fail criteria and how to report issues (e.g. template, severity)
+
+🔹 Card 13.2 — Auth & Onboarding UAT
+
+Sign up / sign in (Clerk) — new user, existing user, sign out
+
+Redirect after auth (e.g. redirect_url) — join with code, create, profile
+
+Navigation — all nav links work; active page highlighted; Sign In when logged out
+
+🔹 Card 13.3 — Room Lifecycle UAT
+
+Create room — select mode (Casual, Party, Lit, Non-drinking), sport, hand size, quarter clearing (football/basketball); room created and redirect to game URL
+
+Join room — valid code, invalid code, optional nickname; default nickname from profile when set
+
+Lobby — player list, host sees settings and Start Game; non-host sees read-only settings; Start Game disabled with &lt;2 players; Copy Link works
+
+🔹 Card 13.4 — Gameplay Core UAT
+
+Start game — host starts; all players see game board; first active card and turn; each player has hand of correct size
+
+Active card — correct title, description (or non-drinking substitute), severity, points; Submit Card for current player only; “Submissions paused” during intermission when applicable
+
+Hand — select/deselect cards; Submit X Card(s) sends submission; hand refills after approval/rejection (auto-draw)
+
+🔹 Card 13.5 — Voting & Submissions UAT
+
+Pending submissions — submitter sees “Submission(s) Pending” with vote counts; others see voting UI with Accept/Reject per card and Accept All / Reject All
+
+Vote counts — required approvals = ceil(players/2); resolution when threshold met; approved cards award points; rejected cards return to hand
+
+Real-time — new submission or vote visible to other players without refresh (Ably)
+
+🔹 Card 13.6 — Host Controls & End Game UAT
+
+Host controls — End Game, Reset Points (with confirmations where applicable); Show Points, Allow Join In Progress, Can Turn In Cards toggles
+
+Quarter/round (football/basketball) — End round starts intermission; countdown; Pending Discard; Submit for discard; intermission end discards and advances round
+
+End game — winner and leaderboard on end-game page; room can start new game or leave
+
+🔹 Card 13.7 — Profile, Tour & Non-Drinking UAT
+
+Profile — view stats (games played, won, total points); edit default nickname and save; “Don’t show interactive tour” and save; changes persist
+
+Tour — when skipTour is false, tour starts on game start; when true, no auto-start; “How to Play” opens modal; “Take Interactive Tour” and “Got it!” work; “Don’t show again” saves preference
+
+Non-drinking mode — room created with Non-drinking; card descriptions show “Earn points when this event occurs.”; no “drink penalty applies” in hand or pending discard copy
+
+🔹 Card 13.8 — Mode Distribution & Card Content UAT
+
+Casual / Party / Lit — create rooms per mode; play several draws; verify deck feels different (e.g. more mild in Casual, more severe in Lit) where applicable
+
+Card content — football and basketball cards show correct title, severity, points; no broken or placeholder text
+
+🔹 Card 13.9 — Chat, Reactions & Polish UAT
+
+Chat — open panel; send message; messages appear for all; history loads
+
+Reactions — send reaction; reaction appears on screen briefly for others
+
+UI polish — outline buttons (Submit, Accept/Reject, etc.); Chat and How to Play orange glow; navigation active state; no layout breaks on small viewport (responsive)
+
+🔹 Card 13.10 — Accessibility & Edge Cases UAT
+
+Keyboard — tab through nav and key actions; focus visible; Submit/Accept/Reject reachable
+
+Edge cases — 2 players only (min); many players (e.g. 8); long session (deck reshuffle); leave and rejoin (if allowed); host leaves (behavior documented)
+
+🔹 Card 13.11 — UAT Execution & Sign-Off
+
+Run UAT per plan; log results (pass/fail, notes, bugs)
+
+Triage and fix blocking issues; re-run failed cases
+
+Obtain sign-off from product/stakeholder before release
+
+---
+
 🚀 FINAL RESULT
 
 You now have:
