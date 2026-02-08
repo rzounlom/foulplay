@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/components/ui/toast";
 import { ChatPanel, type ChatMessage } from "./chat-panel";
 import { GameTour } from "./game-tour";
 import { Hand } from "./hand";
@@ -138,10 +139,13 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [linkCopied, setLinkCopied] = useState(false);
   const [showMoreHostControls, setShowMoreHostControls] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [lastSeenMessageCount, setLastSeenMessageCount] = useState<number | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [recentReactions, setRecentReactions] = useState<ReactionEvent[]>([]);
+  const [exitingReactionIds, setExitingReactionIds] = useState<Set<string>>(new Set());
 
   const router = useRouter();
+  const toast = useToast();
   const isRedirectingToEndGame = useRef(false);
 
   const fetchRoom = async () => {
@@ -260,8 +264,16 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       const id = `${reaction.timestamp}-${Math.random()}`;
       setRecentReactions((prev) => [...prev.slice(-4), { ...reaction, id }]);
       setTimeout(() => {
-        setRecentReactions((prev) => prev.filter((r) => (r as ReactionEvent & { id?: string }).id !== id));
+        setExitingReactionIds((prev) => new Set(prev).add(id));
       }, 2500);
+      setTimeout(() => {
+        setRecentReactions((prev) => prev.filter((r) => (r as ReactionEvent & { id?: string }).id !== id));
+        setExitingReactionIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }, 2850);
       return;
     }
     if (
@@ -318,6 +330,11 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     (p) => p.user.id === currentUserId && p.isHost
   );
   const activeCard = room.gameState?.activeCardInstance;
+  const chatUnreadCount = chatOpen
+    ? 0
+    : lastSeenMessageCount == null
+      ? messages.length
+      : Math.max(0, messages.length - lastSeenMessageCount);
 
   const handleSubmitCard = async (cardInstanceIds: string | string[]) => {
     setIsSubmitting(true);
@@ -333,7 +350,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
 
       if (!response.ok) {
         const error = await response.json();
-        alert(error.error || "Failed to submit card");
+        toast.addToast(error.error || "Failed to submit card", "error");
       } else {
         // Clear selection and refresh
         setSelectedCardIds([]);
@@ -342,7 +359,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       }
     } catch (error) {
       console.error("Failed to submit card:", error);
-      alert("Failed to submit card");
+      toast.addToast("Failed to submit card", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -358,7 +375,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
 
       if (!response.ok) {
         const error = await response.json();
-        alert(error.error || "Failed to vote");
+        toast.addToast(error.error || "Failed to vote", "error");
       } else {
         // Refresh all data after voting
         fetchSubmissions();
@@ -367,7 +384,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       }
     } catch (error) {
       console.error("Failed to vote:", error);
-      alert("Failed to vote");
+      toast.addToast("Failed to vote", "error");
     }
   };
 
@@ -395,7 +412,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       router.push(`/game/${roomCode}/end-game`);
     } catch (error) {
       console.error("Failed to end game:", error);
-      alert(error instanceof Error ? error.message : "Failed to end game");
+      toast.addToast(error instanceof Error ? error.message : "Failed to end game", "error");
     } finally {
       setIsEndingGame(false);
     }
@@ -419,7 +436,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       // Data will be refreshed via Ably events
     } catch (error) {
       console.error("Failed to reset points:", error);
-      alert(error instanceof Error ? error.message : "Failed to reset points");
+      toast.addToast(error instanceof Error ? error.message : "Failed to reset points", "error");
     } finally {
       setIsResettingPoints(false);
     }
@@ -567,20 +584,26 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             size="sm"
             onClick={() => {
               setChatOpen(true);
+              setLastSeenMessageCount(messages.length);
               fetchMessages();
             }}
-            aria-label="Open chat"
-            className="inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] [text-shadow:0_0_8px_rgba(255,102,0,0.6)]"
+            aria-label={chatUnreadCount > 0 ? `Open chat (${chatUnreadCount} new)` : "Open chat"}
+            className="relative inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] [text-shadow:0_0_8px_rgba(255,102,0,0.6)]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             Chat
+            {chatUnreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white px-1.5">
+                {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+              </span>
+            )}
           </Button>
         </div>
       </div>
 
-      <ReactionDisplay reactions={recentReactions} />
+      <ReactionDisplay reactions={recentReactions} exitingIds={exitingReactionIds} />
 
       <ChatPanel
         roomCode={roomCode}
@@ -588,7 +611,10 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         currentPlayerId={currentPlayer?.id}
         onSendMessage={handleSendMessage}
         isOpen={chatOpen}
-        onClose={() => setChatOpen(false)}
+        onClose={() => {
+          setChatOpen(false);
+          setLastSeenMessageCount(messages.length);
+        }}
       />
 
       <div className="grid gap-6 md:grid-cols-3">

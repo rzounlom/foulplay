@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
 
@@ -64,6 +65,37 @@ export function Hand({
       ? cardsInHand.filter((c) => !myQuarterSelectionIds.includes(c.id))
       : cardsInHand;
 
+  const canSubmitWithEnter =
+    (canSubmitCards && selectedIds.length > 0) ||
+    (isQuarterIntermission && !!onQuarterDiscardSelection && selectedIds.length > 0);
+
+  useEffect(() => {
+    if (!canSubmitWithEnter) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" || e.repeat) return;
+      const el = document.activeElement;
+      const tag = el?.tagName?.toUpperCase();
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      e.preventDefault();
+      if (canSubmitCards && selectedIds.length > 0) {
+        onCardSubmit?.(selectedIds);
+      } else if (isQuarterIntermission && onQuarterDiscardSelection && selectedIds.length > 0) {
+        const toAdd = selectedIds.filter((id) => !myQuarterSelectionIds.includes(id));
+        if (toAdd.length > 0) onQuarterDiscardSelection([...myQuarterSelectionIds, ...toAdd]);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    canSubmitWithEnter,
+    canSubmitCards,
+    isQuarterIntermission,
+    selectedIds,
+    myQuarterSelectionIds,
+    onCardSubmit,
+    onQuarterDiscardSelection,
+  ]);
+
   if (cardsInHand.length === 0) {
     return (
       <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 text-center">
@@ -124,7 +156,7 @@ export function Hand({
         </div>
       ) : null}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {cardsStaying.map((cardInstance) => {
+        {cardsStaying.map((cardInstance, index) => {
           const isSelected = isMultiSelect 
             ? selectedIds.includes(cardInstance.id)
             : selectedCardId === cardInstance.id;
@@ -132,11 +164,12 @@ export function Hand({
             <div
               key={cardInstance.id}
               onClick={() => onCardSelect?.(cardInstance.id)}
-              className={`p-3 rounded-lg border-2 transition-all cursor-pointer min-h-0 ${
+              className={`p-3 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-0 hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up ${
                 isSelected
-                  ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                  ? "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.02] shadow-md"
                   : "border-neutral-200 dark:border-neutral-800 hover:border-primary/50"
               }`}
+              style={{ animationDelay: `${index * 40}ms` }}
             >
               <div className="flex items-start justify-between gap-2 mb-1.5">
                 <h4 className="font-semibold text-xs leading-tight flex-1 min-w-0">

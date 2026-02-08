@@ -55,10 +55,11 @@ export function SubmissionPending({ submission, totalPlayers, roomMode = null }:
 
       {/* Cards Display */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-        {submission.cardInstances.map((cardInstance) => (
+        {submission.cardInstances.map((cardInstance, index) => (
           <div
             key={cardInstance.id}
-            className="p-3 rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10 min-h-0"
+            className="p-3 rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10 min-h-0 animate-fade-in-up transition-shadow duration-200 hover:shadow-md"
+            style={{ animationDelay: `${index * 60}ms` }}
           >
             <div className="flex items-start justify-between gap-2 mb-1.5">
               <h4 className="font-semibold text-xs leading-tight flex-1 min-w-0">
@@ -98,9 +99,9 @@ export function SubmissionPending({ submission, totalPlayers, roomMode = null }:
             Rejections: {rejectionVotes}
           </span>
         </div>
-        <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
+        <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2 overflow-hidden">
           <div
-            className="bg-primary h-2 rounded-full transition-all"
+            className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
             style={{
               width: `${Math.min((approvalVotes / requiredApprovals) * 100, 100)}%`,
             }}

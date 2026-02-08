@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProviderWrapper } from "@/components/auth/clerk-provider-wrapper";
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import { ToastProvider } from "@/components/ui/toast";
 import { MainNav } from "@/components/navigation/main-nav";
 
 const geistSans = Geist({
@@ -39,8 +40,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <MainNav />
-            {children}
+            <ToastProvider>
+              <MainNav />
+              {children}
+            </ToastProvider>
           </ThemeProvider>
         </body>
       </html>

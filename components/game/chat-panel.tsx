@@ -53,10 +53,13 @@ export function ChatPanel({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-xl z-40 flex flex-col">
+    <div
+      className={`fixed right-0 top-0 bottom-0 w-full max-w-md bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-xl z-40 flex flex-col transition-transform duration-300 ease-out ${
+        isOpen ? "translate-x-0" : "translate-x-full"
+      } ${!isOpen ? "pointer-events-none" : ""}`}
+      aria-hidden={!isOpen}
+    >
       <div className="flex items-center justify-between p-3 border-b border-neutral-200 dark:border-neutral-800">
         <h3 className="font-semibold text-neutral-800 dark:text-neutral-200">Chat</h3>
         <Button

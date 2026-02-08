@@ -1,0 +1,122 @@
+/* Reaction pill: bouncy enter from below */
+@keyframes reactionEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.4) translateY(32px);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.12) translateY(-8px);
+  }
+  70% {
+    transform: scale(0.96) translateY(2px);
+  }
+  85% {
+    transform: scale(1.02) translateY(-1px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Float upward and slight fade over lifetime */
+@keyframes reactionFloat {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-40px);
+    opacity: 0.7;
+  }
+}
+
+/* Emoji pop */
+@keyframes reactionEmojiPulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Exit: fade and shrink up */
+@keyframes reactionExit {
+  to {
+    opacity: 0;
+    transform: scale(0.8) translateY(-24px);
+  }
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 1rem;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  font-size: 1rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.pillEnter {
+  animation: reactionEnter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.pillFloat {
+  animation: reactionEnter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+             reactionFloat 2.4s ease-out 0.5s forwards;
+}
+
+.pillExiting {
+  animation: reactionExit 0.35s ease-out forwards;
+}
+
+.emoji {
+  display: inline-block;
+  font-size: 1.5rem;
+  line-height: 1;
+  animation: reactionEmojiPulse 0.5s ease-out 0.15s both;
+}
+
+.name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  opacity: 0.95;
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.list {
+  position: fixed;
+  bottom: 7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}

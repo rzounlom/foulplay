@@ -178,20 +178,21 @@ export function VotingUI({
 
       {/* Cards Display with Individual Vote Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {submission.cardInstances.map((cardInstance) => {
+        {submission.cardInstances.map((cardInstance, index) => {
           const cardData = cardVoteData.find(d => d.cardInstanceId === cardInstance.id);
           const cardIsVoting = isVoting[cardInstance.id] || false;
 
           return (
             <div
               key={cardInstance.id}
-              className={`p-3 rounded-lg border-2 min-h-0 transition-all ${
+              className={`p-3 rounded-lg border-2 min-h-0 transition-all duration-300 ease-out hover:shadow-md animate-fade-in-up ${
                 cardData?.resolution === "approved"
                   ? "ring-2 ring-green-500/50 border-green-500/30 bg-green-50/50 dark:bg-green-950/20"
                   : cardData?.resolution === "rejected"
                   ? "ring-2 ring-red-500/50 border-red-500/30 bg-red-50/50 dark:bg-red-950/20"
-                  : "border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10"
+                  : "border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10 hover:border-primary/50"
               }`}
+              style={{ animationDelay: `${index * 50}ms` }}
             >
               <div className="flex items-start justify-between gap-2 mb-1.5">
                 <h4 className="font-semibold text-xs leading-tight flex-1 min-w-0">
