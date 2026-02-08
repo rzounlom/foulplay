@@ -20,7 +20,7 @@ interface LastGameEndResult {
 interface EndGameScreenProps {
   roomCode: string;
   lastGameEndResult: LastGameEndResult;
-  isHost: boolean;
+  isHost?: boolean;
 }
 
 function displayName(entry: LeaderboardEntry) {
@@ -30,7 +30,6 @@ function displayName(entry: LeaderboardEntry) {
 export function EndGameScreen({
   roomCode,
   lastGameEndResult,
-  isHost,
 }: EndGameScreenProps) {
   const { winnerName, winnerNickname, winnerPoints, leaderboard } =
     lastGameEndResult;
@@ -121,34 +120,19 @@ export function EndGameScreen({
           </ul>
         </div>
 
-        {/* Actions */}
+        {/* Actions — same for everyone: create a room or go home */}
         <div className="space-y-3">
           <Link
-            href={`/game/${roomCode}`}
+            href="/create"
             className="block w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white text-center font-medium rounded-xl transition-colors"
           >
-            Play again
+            Create a room
           </Link>
-
-          {isHost && (
-            <>
-              <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
-                Same room, same players — a new game has already started.
-              </p>
-              <Link
-                href="/create"
-                className="block w-full py-3 px-4 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 text-center font-medium rounded-xl transition-colors"
-              >
-                Start new game room
-              </Link>
-            </>
-          )}
-
           <Link
             href="/"
-            className="block w-full py-2 text-center text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+            className="block w-full py-3 px-4 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 text-center font-medium rounded-xl transition-colors"
           >
-            Back to home
+            Go home
           </Link>
         </div>
       </div>

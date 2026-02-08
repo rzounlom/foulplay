@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { RoomEvent, useRoomChannel } from "@/lib/ably/useRoomChannel";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { GameTour } from "./game-tour";
 import { Hand } from "./hand";
@@ -131,6 +131,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [showMoreHostControls, setShowMoreHostControls] = useState(false);
 
   const router = useRouter();
+  const isRedirectingToEndGame = useRef(false);
 
   const fetchRoom = async () => {
     try {
@@ -211,8 +212,11 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   // Subscribe to game events
   useRoomChannel(roomCode, (event: RoomEvent) => {
     console.log("Received game event:", event);
+    // If we're redirecting to end-game, ignore all further events (don't start tour, don't fetch)
+    if (isRedirectingToEndGame.current) return;
     // When game ends, redirect all players to end-game page (no alert, no tour)
     if (event === "game_ended") {
+      isRedirectingToEndGame.current = true;
       router.push(`/game/${roomCode}/end-game`);
       return;
     }

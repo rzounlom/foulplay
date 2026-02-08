@@ -53,13 +53,10 @@ export default async function EndGamePage({
     redirect(`/game/${roomCode}`);
   }
 
-  const isHost = room.players.some((p) => p.userId === user.id && p.isHost);
-
   return (
     <EndGameScreen
       roomCode={roomCode}
       lastGameEndResult={lastGameEndResult}
-      isHost={isHost}
     />
   );
 }
