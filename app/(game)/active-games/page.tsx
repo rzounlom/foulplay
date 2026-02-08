@@ -56,7 +56,7 @@ export default function ActiveGamesPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800">
-        <h1 className="text-3xl font-bold mb-6">Active Games</h1>
+        <h1 className="text-page-title text-foreground mb-6">Active Games</h1>
 
         {isLoading ? (
           <p className="text-neutral-600 dark:text-neutral-400">
@@ -131,13 +131,13 @@ export default function ActiveGamesPage() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/create"
-            className="text-sm font-medium text-primary hover:underline"
+            className="text-sm font-medium text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded"
           >
             Create a room
           </Link>
           <Link
             href="/join"
-            className="text-sm font-medium text-primary hover:underline"
+            className="link-accent text-sm font-medium hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded"
           >
             Join a room
           </Link>

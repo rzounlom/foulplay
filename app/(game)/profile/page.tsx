@@ -109,7 +109,7 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800">
-        <h1 className="text-3xl font-bold mb-6">Profile</h1>
+        <h1 className="text-page-title text-foreground mb-6">Profile</h1>
 
         {error && (
           <div className="mb-6 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded">
@@ -120,7 +120,7 @@ export default function ProfilePage() {
         {/* User Stats */}
         {profile && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Statistics</h2>
+            <h2 className="text-section-title text-foreground mb-4">Statistics</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
                 <div className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
@@ -146,7 +146,7 @@ export default function ProfilePage() {
 
         {/* Profile Settings */}
         <div className="space-y-6">
-          <h2 className="text-xl font-semibold">Settings</h2>
+          <h2 className="text-section-title text-foreground">Settings</h2>
 
           {/* Default Nickname */}
           <div>

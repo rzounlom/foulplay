@@ -146,7 +146,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">Room {room.code}</h1>
+        <h1 className="text-page-title text-foreground mb-4">Room {room.code}</h1>
         <div className="flex items-center gap-2 p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
           <Input
             type="text"
@@ -176,7 +176,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
 
         <div className="space-y-6">
           <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
-            <h3 className="text-lg font-semibold mb-4">Game Settings</h3>
+            <h3 className="text-section-title text-foreground mb-4">Game Settings</h3>
             <div className="space-y-4">
               <div>
                 <Label className="mb-2 text-neutral-600 dark:text-neutral-400">Mode</Label>

@@ -98,8 +98,8 @@ export default function CreateRoomPage() {
     <div className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-2xl">
         <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800">
-        <h1 className="text-3xl font-bold mb-4">Create a Room</h1>
-        <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+        <h1 className="text-page-title text-foreground mb-4">Create a Room</h1>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
           Start a new game room and invite your friends to join.
         </p>
 
@@ -109,7 +109,7 @@ export default function CreateRoomPage() {
           </div>
         )}
 
-        <div className="space-y-4 mb-6">
+        <div className="space-y-5 mb-6">
           <div>
             <Label htmlFor="mode" className="mb-2" required>Game Mode</Label>
             <Select

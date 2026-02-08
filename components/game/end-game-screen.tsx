@@ -61,7 +61,7 @@ export function EndGameScreen({
 
         {/* Leaderboard */}
         <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-lg overflow-hidden mb-8">
-          <h2 className="text-lg font-semibold px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 text-neutral-900 dark:text-white">
+          <h2 className="text-section-title px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 text-neutral-900 dark:text-white">
             Final scores
           </h2>
           <ul className="divide-y divide-neutral-200 dark:divide-neutral-700">

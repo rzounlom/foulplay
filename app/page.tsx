@@ -19,13 +19,13 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
           <Link
             href="/create"
-            className="flex-1 py-4 px-6 bg-primary text-white rounded-lg font-semibold text-center hover:bg-primary/90 transition-colors cursor-pointer"
+            className="flex-1 py-4 px-6 bg-primary text-white rounded-lg font-semibold text-center hover:bg-primary/90 transition-colors duration-200 ease-out cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Create Room
           </Link>
           <Link
             href="/join"
-            className="flex-1 py-4 px-6 border-2 border-primary text-primary rounded-lg font-semibold text-center hover:bg-primary/10 transition-colors cursor-pointer"
+            className="flex-1 py-4 px-6 border-2 border-primary text-primary rounded-lg font-semibold text-center hover:bg-primary/10 transition-colors duration-200 ease-out cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Join Room
           </Link>
