@@ -330,6 +330,7 @@ describe("Game API Routes", () => {
         updatedAt: new Date(),
       };
 
+      const mockCards = Array(100).fill(null).map((_, i) => ({ ...mockCard, id: `card_${i}`, sport: "football" }));
       mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
         ...mockRoom,
         status: "active",
@@ -338,6 +339,7 @@ describe("Game API Routes", () => {
         players: [{ ...mockPlayer, userId: mockUser.id }],
       });
       mockPrisma.player.findFirst = jest.fn().mockResolvedValue(mockPlayer);
+      mockPrisma.card.findMany = jest.fn().mockResolvedValue(mockCards);
       mockPrisma.cardInstance.findMany = jest.fn().mockResolvedValue([]);
       mockPrisma.cardInstance.count = jest.fn().mockResolvedValue(0);
       mockPrisma.cardInstance.create = jest.fn().mockResolvedValue(mockCardInstance);
@@ -385,6 +387,46 @@ describe("Game API Routes", () => {
 
       const response = await drawCard(request);
       expect(response.status).toBe(400);
+    });
+
+    it("should use room mode when rebuilding deck for draw (mode-based distribution)", async () => {
+      const gameState = {
+        id: "gamestate_123",
+        roomId: "room_123",
+        currentTurnPlayerId: "player_123",
+        activeCardInstanceId: null,
+        deckSeed: "test-seed",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const mockCards = Array(100).fill(null).map((_, i) => ({ ...mockCard, id: `card_${i}`, sport: "football" }));
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        status: "active",
+        mode: "casual",
+        sport: "football",
+        gameState,
+        handSize: 5,
+        players: [{ ...mockPlayer, userId: mockUser.id }],
+      });
+      mockPrisma.player.findFirst = jest.fn().mockResolvedValue(mockPlayer);
+      mockPrisma.card.findMany = jest.fn().mockResolvedValue(mockCards);
+      mockPrisma.cardInstance.findMany = jest.fn().mockResolvedValue([]);
+      mockPrisma.cardInstance.count = jest.fn().mockResolvedValue(0);
+      mockPrisma.cardInstance.create = jest.fn().mockResolvedValue(mockCardInstance);
+      mockPrisma.gameState.update = jest.fn().mockResolvedValue(gameState);
+
+      const request = new NextRequest("http://localhost:3000/api/game/draw", {
+        method: "POST",
+        body: JSON.stringify({ roomCode: "ABC123" }),
+      });
+
+      const response = await drawCard(request);
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data).toHaveProperty("cardInstance");
+      expect(data.cardInstance.card).toHaveProperty("severity");
     });
   });
 

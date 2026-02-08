@@ -79,8 +79,32 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                     Objective
                   </h3>
                   <p>
-                    Watch the game and submit cards when events happen! Earn points by getting your submissions approved by other players.
+                    Watch the game and submit cards when events happen! Earn points by getting your submissions approved by other players. The player with the most points wins.
                   </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
+                    Basics
+                  </h3>
+                  <p>
+                    You need at least 2 players to start. The host creates the room and chooses the game <strong>mode</strong>, <strong>sport</strong>, and <strong>hand size</strong>. Share the room code or invite link so others can join.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
+                    Game Mode &amp; Card Mix
+                  </h3>
+                  <p>
+                    The host selects a mode when creating the room. Mode affects the <strong>mix of card severities</strong> (mild, moderate, severe) in the deck:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2 mt-2">
+                    <li><strong>Casual</strong> — Milder cards (~70% mild)</li>
+                    <li><strong>Party</strong> — Balanced mix (~50% mild)</li>
+                    <li><strong>Lit</strong> — More intense (~40% mild, more severe)</li>
+                    <li><strong>Non-drinking</strong> — Same mix as Casual</li>
+                  </ul>
                 </div>
 
                 <div>
@@ -88,7 +112,7 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                     Your Hand
                   </h3>
                   <p>
-                    You start with a set number of cards in your hand (configured by the host). Each card represents a game event (like a touchdown, foul, etc.) with a point value and penalty.
+                    You start with a set number of cards (configured by the host). Each card represents a game event (e.g. touchdown, foul) with a point value and penalty. You can only hold up to that many cards at a time; submit cards to free space for new ones.
                   </p>
                 </div>
 
@@ -116,6 +140,12 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                   <p>
                     When other players submit cards, you&apos;ll see them in the &quot;Pending Submissions&quot; section. You can vote on individual cards or all cards at once.
                   </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2 mt-2">
+                    <li>You <strong>cannot vote on your own</strong> submission.</li>
+                    <li>You can only vote <strong>once per card</strong> (you can change your vote before the card is resolved).</li>
+                    <li>A card is <strong>approved</strong> when at least half of the other players (majority) approve it.</li>
+                    <li>A card is <strong>rejected</strong> when at least half of the other players reject it, or when the majority of votes are reject.</li>
+                  </ul>
                   <ol className="list-decimal list-inside space-y-2 ml-2 mt-2">
                     <li>
                       <strong>Select cards</strong> you want to vote on by clicking them (or use &quot;Select All&quot;)
@@ -127,26 +157,52 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                       Or use <strong>&quot;Approve All&quot;</strong> or <strong>&quot;Reject All&quot;</strong> to vote on all cards in the submission at once
                     </li>
                     <li>
-                      Each card is resolved individually based on votes - some cards may be approved while others are rejected
+                      Each card is resolved individually — some cards in a submission may be approved while others are rejected.
                     </li>
                   </ol>
                   <p className="mt-2">
-                    Approved cards earn points for the submitting player. Rejected cards are returned to the submitter&apos;s hand. You can only vote once per card.
+                    Approved cards earn points for the submitter. Rejected cards are returned to the submitter&apos;s hand.
                   </p>
                 </div>
 
                 <div>
                   <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
-                    Auto-Draw
+                    Drawing &amp; Auto-Draw
                   </h3>
                   <p>
-                    After your cards are approved or rejected, new cards will automatically be drawn to keep your hand at the configured size. You don&apos;t need to manually draw cards!
+                    You can draw a new card when it&apos;s your turn (or when the game allows). Your hand cannot exceed the room&apos;s hand size. After your submitted cards are approved or rejected, new cards are <strong>automatically drawn</strong> to replace approved ones so your hand stays full — no need to manually draw for those.
                   </p>
                 </div>
 
                 <div>
                   <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
-                    End of Round (Football &amp; Basketball)
+                    Host Controls
+                  </h3>
+                  <p>
+                    Only the <strong>host</strong> sees the Host Controls panel. They can:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2 mt-2">
+                    <li><strong>Show/hide points</strong> — Toggle whether everyone can see each other&apos;s scores.</li>
+                    <li><strong>Reset Points</strong> — Set all players&apos; points to 0 without ending the game (e.g. if players join late).</li>
+                    <li><strong>End Game</strong> — End the current game, declare the winner (highest points), and start a new game with the same players; points reset for the new game.</li>
+                  </ul>
+                  <p className="mt-2">
+                    When the room is set to Football or Basketball, the host can also enable <strong>round-based card clearing</strong> and use End Round, intermission, and turn-in controls (see below).
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
+                    Chat &amp; Reactions
+                  </h3>
+                  <p>
+                    Use the <strong>Chat</strong> button to send messages to everyone in the room. Use the <strong>React</strong> bar to send quick emoji reactions (e.g. 👍 🎉 🔥) that appear on screen for everyone — great for celebrating approvals or reacting to the game.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
+                    End of Round (Football &amp; Basketball, optional)
                   </h3>
                   <p className="mb-2">
                     When the room is set to Football or Basketball and the host has enabled round-based card clearing, the host can end a round during the game. Rounds are numbered (1, 2, 3, …) and the host can reset the round count anytime so the next round starts at 1 again.
@@ -172,10 +228,10 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
 
                 <div>
                   <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
-                    Winning
+                    Winning &amp; Scores
                   </h3>
                   <p>
-                    The player with the most points at the end of the game wins! Check the player list to see current scores (if the host has enabled point visibility).
+                    The player with the most points at the end of the game wins. The host can end the game at any time (see Host Controls). Current scores are shown in the player list when the host has enabled &quot;Show points&quot;.
                   </p>
                 </div>
               </div>

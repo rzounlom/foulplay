@@ -103,6 +103,13 @@ describe("Game Engine", () => {
       expect(counts.mild).toBeGreaterThanOrEqual(2);
       expect(counts.moderate).toBe(1);
     });
+
+    it("unknown mode should fall back to party mix", () => {
+      const deck = generateDeckForMode("seed", severities, "custom-mode");
+      expect(deck).toHaveLength(severities.length);
+      const counts = countBySeverity(deck);
+      expect(counts.mild + counts.moderate + counts.severe).toBe(severities.length);
+    });
   });
 
   describe("drawNextCard", () => {

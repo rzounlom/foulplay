@@ -585,8 +585,11 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             )}
           </button>
         </div>
-        <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400">
-          <span>Mode: {room.mode || "N/A"}</span>
+        <div
+          data-tour="game-info"
+          className="flex flex-wrap items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400"
+        >
+          <span title="Game mode affects the mix of card severities (mild / moderate / severe) in the deck.">Mode: {room.mode || "N/A"}</span>
           <span>Sport: {room.sport || "N/A"}</span>
           {showQuarterControls && (
             <span>Round: {roundLabel ?? "Not started"}</span>
@@ -594,15 +597,18 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           {submissions.length > 0 && (
             <span>Pending Submissions: {submissions.length}</span>
           )}
-          <ReactionBar
-            roomCode={roomCode}
-            onSendReaction={handleSendReaction}
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => {
+          <span data-tour="reactions">
+            <ReactionBar
+              roomCode={roomCode}
+              onSendReaction={handleSendReaction}
+            />
+          </span>
+          <span data-tour="chat-button">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
               setChatOpen(true);
               setLastSeenMessageCount(messages.length);
               fetchMessages();
@@ -620,6 +626,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
               </span>
             )}
           </Button>
+          </span>
         </div>
       </div>
 
@@ -653,7 +660,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         <div className="md:col-span-1 space-y-6">
           {/* Host Controls - at top so always visible with many players */}
           {isHost && (
-            <div className="p-4 bg-surface-muted rounded-lg border border-border shadow-sm dark:shadow-none">
+            <div data-tour="host-controls" className="p-4 bg-surface-muted rounded-lg border border-border shadow-sm dark:shadow-none">
               <h4 className="text-section-title mb-3 text-neutral-700 dark:text-neutral-300">
                 Host Controls
               </h4>

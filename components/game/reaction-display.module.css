@@ -65,12 +65,10 @@
   gap: 0.625rem;
   padding: 0.625rem 1rem;
   border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.78);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  color: white;
   font-size: 1rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
 .pillEnter {

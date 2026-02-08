@@ -118,11 +118,14 @@ export default function CreateRoomPage() {
               required
             >
               <option value="">Select mode</option>
-              <option value="casual">Casual</option>
-              <option value="party">Party</option>
-              <option value="lit">Lit</option>
-              <option value="non-drinking">Non-drinking</option>
+              <option value="casual">Casual — milder cards (~70% mild)</option>
+              <option value="party">Party — balanced mix (~50% mild)</option>
+              <option value="lit">Lit — more intense (~40% mild, more severe)</option>
+              <option value="non-drinking">Non-drinking — same mix as Casual</option>
             </Select>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+              Mode affects the mix of card severities (mild / moderate / severe) in the deck.
+            </p>
           </div>
 
           <div>

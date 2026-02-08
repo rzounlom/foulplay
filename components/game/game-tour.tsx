@@ -28,33 +28,51 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
 
   const steps: TourStep[] = useMemo(() => [
     {
+      target: '[data-tour="game-info"]',
+      title: "Game Room Info",
+      content: "Here you see the room's Mode and Sport. Mode affects the mix of card severities (mild / moderate / severe). You'll also find the React bar and Chat button here — use them to send quick emoji reactions or open the room chat.",
+      position: "bottom",
+    },
+    {
       target: '[data-tour="player-list"]',
       title: "Player List",
-      content: "See all players in the game and their current points. The host can toggle whether everyone can see each other's scores.",
+      content: "See all players in the game. The host can toggle whether everyone sees each other's scores. You need at least 2 players to start.",
       position: "right",
     },
     {
       target: '[data-tour="your-cards"]',
       title: "Your Cards",
-      content: "These are your cards! Click on cards to select them (you can select multiple cards), then click 'Submit Selected Cards' when you see matching events in the game.",
+      content: "Your hand! Click cards to select them (you can select multiple), then click 'Submit Selected Cards' when you see matching events in the game. Your hand size is set by the host.",
       position: "top",
-    },
-    {
-      target: '[data-tour="active-card"]',
-      title: "Active Card",
-      content: "If someone draws a card, it appears here. You can submit it if it's your card, or wait for others to submit their cards.",
-      position: "bottom",
     },
     {
       target: '[data-tour="pending-submissions"]',
       title: "Pending Submissions",
-      content: "When players submit cards, they appear here. Vote to approve or reject based on whether the event actually happened in the game.",
+      content: "Cards waiting for votes appear here. You can't vote on your own submission. Vote Approve or Reject per card; a card is approved or rejected when a majority of other players have voted. Approved cards earn points; rejected cards return to the submitter's hand.",
       position: "bottom",
     },
     {
+      target: '[data-tour="reactions"]',
+      title: "Reactions",
+      content: "Send quick emoji reactions (thumbs up, celebrate, fire, etc.) that appear on screen for everyone. Great for reacting to approvals or the game!",
+      position: "bottom",
+    },
+    {
+      target: '[data-tour="chat-button"]',
+      title: "Chat",
+      content: "Open the room chat to send messages to all players. The badge shows unread message count when you have new messages.",
+      position: "bottom",
+    },
+    {
+      target: '[data-tour="host-controls"]',
+      title: "Host Controls (host only)",
+      content: "If you're the host, you can show/hide points, reset everyone's points, or end the game and start a new one. For Football/Basketball rooms you may also see round and turn-in controls here.",
+      position: "right",
+    },
+    {
       target: '[data-tour="instructions"]',
-      title: "Need Help?",
-      content: "Click the 'How to Play' button anytime to see detailed instructions about the game rules and mechanics.",
+      title: "How to Play",
+      content: "Click 'How to Play' anytime for full rules: game mode, voting, host controls, chat, reactions, and round-based clearing (if enabled).",
       position: "left",
     },
   ], []);
