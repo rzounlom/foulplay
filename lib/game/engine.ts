@@ -4,6 +4,9 @@
  */
 
 import { getCardsForSport, type Sport } from "./cards";
+import type { Severity } from "./cards";
+
+export type GameMode = "casual" | "party" | "lit";
 
 export interface GameState {
   roomId: string;
@@ -14,31 +17,83 @@ export interface GameState {
   drawnCards: number[]; // Cards that have been drawn
 }
 
-/**
- * Generate a shuffled deck of card indices based on a seed
- * Uses a simple seeded random number generator for reproducibility
- */
-export function generateDeck(seed: string, cardCount: number): number[] {
-  // Simple seeded RNG
+/** Seeded RNG state for reproducible shuffles */
+function createSeededRng(seed: string) {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
     const char = seed.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
   }
+  let state = Math.abs(hash);
+  return () => {
+    state = (state * 9301 + 49297) % 233280;
+    return state / 233280;
+  };
+}
 
-  // Fisher-Yates shuffle with seeded random
+/**
+ * Shuffle an array in place using a seeded RNG (Fisher-Yates).
+ * Returns the same array for chaining.
+ */
+function seededShuffle<T>(arr: T[], seed: string): T[] {
+  const rng = createSeededRng(seed);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Generate a shuffled deck of card indices based on a seed.
+ * Uses a simple seeded random number generator for reproducibility.
+ */
+export function generateDeck(seed: string, cardCount: number): number[] {
   const deck = Array.from({ length: cardCount }, (_, i) => i);
-  let seedValue = Math.abs(hash);
+  return seededShuffle(deck, seed);
+}
 
-  for (let i = deck.length - 1; i > 0; i--) {
-    // Generate pseudo-random number from seed
-    seedValue = (seedValue * 9301 + 49297) % 233280;
-    const j = Math.floor((seedValue / 233280) * (i + 1));
-    [deck[i], deck[j]] = [deck[j], deck[i]];
+/**
+ * Generate a deck ordered by mode so severity distribution matches intensity:
+ * - Casual: mild cards appear first (more often drawn early), then moderate, then severe.
+ * - Lit: severe first, then moderate, then mild (higher intensity draws).
+ * - Party: fully shuffled (balanced).
+ * severities[i] is the severity of card at index i (same order as API card list, e.g. by id).
+ */
+export function generateDeckForMode(
+  seed: string,
+  severities: Severity[],
+  mode: GameMode | string
+): number[] {
+  const indicesBySeverity: Record<Severity, number[]> = {
+    mild: [],
+    moderate: [],
+    severe: [],
+  };
+  severities.forEach((sev, i) => {
+    if (indicesBySeverity[sev]) indicesBySeverity[sev].push(i);
+  });
+
+  const shuffle = (arr: number[], s: string) => seededShuffle([...arr], s);
+
+  switch (mode) {
+    case "casual":
+      return [
+        ...shuffle(indicesBySeverity.mild, `${seed}-mild`),
+        ...shuffle(indicesBySeverity.moderate, `${seed}-moderate`),
+        ...shuffle(indicesBySeverity.severe, `${seed}-severe`),
+      ];
+    case "lit":
+      return [
+        ...shuffle(indicesBySeverity.severe, `${seed}-severe`),
+        ...shuffle(indicesBySeverity.moderate, `${seed}-moderate`),
+        ...shuffle(indicesBySeverity.mild, `${seed}-mild`),
+      ];
+    case "party":
+    default:
+      return generateDeck(seed, severities.length);
   }
-
-  return deck;
 }
 
 /**
@@ -99,29 +154,25 @@ export function advanceTurn(
 }
 
 /**
- * Initialize game state for a new game
+ * Initialize game state for a new game.
+ * If deck is provided (e.g. mode-weighted), it is used; otherwise a shuffled deck is generated.
  */
 export function initializeGameState(
   roomId: string,
   playerIds: string[],
   sport: Sport,
-  seed?: string
+  seed?: string,
+  deck?: number[]
 ): GameState {
   if (playerIds.length === 0) {
     throw new Error("Cannot initialize game with no players");
   }
 
-  // Generate seed if not provided
   const deckSeed = seed || `${roomId}-${Date.now()}`;
-
-  // Get card count for the sport
   const cards = getCardsForSport(sport);
   const cardCount = cards.length;
-
-  // Generate deck
-  const deck = generateDeck(deckSeed, cardCount);
-
-  // First player starts (still needed for backwards compatibility, but turns are no longer enforced)
+  const finalDeck =
+    deck && deck.length === cardCount ? deck : generateDeck(deckSeed, cardCount);
   const currentTurnPlayerId = playerIds[0];
 
   return {
@@ -129,7 +180,7 @@ export function initializeGameState(
     currentTurnPlayerId,
     activeCardInstanceId: null,
     deckSeed,
-    deck,
+    deck: finalDeck,
     drawnCards: [],
   };
 }

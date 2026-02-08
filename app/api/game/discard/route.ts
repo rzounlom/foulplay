@@ -3,7 +3,11 @@ import { getCurrentUser } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
-import { drawMultipleCards } from "@/lib/game/engine";
+import {
+  drawMultipleCards,
+  generateDeckForMode,
+  type GameMode,
+} from "@/lib/game/engine";
 
 const discardCardSchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
@@ -154,13 +158,22 @@ export async function POST(request: NextRequest) {
             .map((instance) => cardIdToIndex.get(instance.cardId))
             .filter((index): index is number => index !== undefined);
 
-          // Reconstruct game state for engine
+          const mode = (room.mode || "party") as GameMode;
+          const severities = cards.map(
+            (c) => c.severity as "mild" | "moderate" | "severe"
+          );
+          const deck = generateDeckForMode(
+            room.gameState.deckSeed,
+            severities,
+            mode
+          );
+
           const gameState = {
             roomId: room.id,
             currentTurnPlayerId: room.gameState.currentTurnPlayerId,
             activeCardInstanceId: room.gameState.activeCardInstanceId || null,
             deckSeed: room.gameState.deckSeed,
-            deck: Array.from({ length: cards.length }, (_, i) => i),
+            deck,
             drawnCards: drawnCardIndices,
           };
 

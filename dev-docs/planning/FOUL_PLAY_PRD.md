@@ -512,6 +512,16 @@ Animations
 Card modal
 
 Phase 7 — Testing + CI
+
+**Backlog — Mode-based card distribution (Phase 12 in plan)**
+
+- Room mode (Casual, Party, Lit) should affect **severity distribution** when building the deck / drawing cards.
+- **Casual**: Higher percentage of mild cards (e.g. ~70% mild, ~25% moderate, ~5% severe).
+- **Party**: Balanced mix (e.g. ~50% mild, ~35% moderate, ~15% severe).
+- **Lit**: More intense — higher percentage of moderate and severe cards (e.g. ~40% mild, ~35% moderate, ~25% severe).
+- Implementation: When starting a game or drawing, filter/weight the card pool by `room.mode` so the deck reflects the intended mix. Non-drinking mode can use the same logic with a separate mix if desired.
+- See FOUL_PLAY_PLAN.md Phase 12 (Card Content & Mode Distribution) and CARD_RARITY_RESEARCH / BASKETBALL_CARD_RARITY_RESEARCH for severity definitions.
+
 12. 🔥 Success Criteria
 
 MVP success when:

@@ -1,5 +1,6 @@
 import {
   generateDeck,
+  generateDeckForMode,
   drawNextCard,
   drawMultipleCards,
   initializeGameState,
@@ -38,6 +39,50 @@ describe("Game Engine", () => {
         expect(index).toBeGreaterThanOrEqual(0);
         expect(index).toBeLessThan(50);
       });
+    });
+  });
+
+  describe("generateDeckForMode", () => {
+    const severities = [
+      "mild",
+      "mild",
+      "moderate",
+      "severe",
+    ] as const;
+
+    it("should return same length as card count", () => {
+      const deck = generateDeckForMode("seed", severities, "casual");
+      expect(deck).toHaveLength(severities.length);
+    });
+
+    it("should be deterministic for same seed and mode", () => {
+      const deck1 = generateDeckForMode("seed", severities, "casual");
+      const deck2 = generateDeckForMode("seed", severities, "casual");
+      expect(deck1).toEqual(deck2);
+    });
+
+    it("casual mode should place mild indices before severe", () => {
+      const deck = generateDeckForMode("seed", severities, "casual");
+      const mildIndices = [0, 1];
+      const severeIndex = 3;
+      const firstMildPos = deck.findIndex((i) => mildIndices.includes(i));
+      const severePos = deck.indexOf(severeIndex);
+      expect(severePos).toBeGreaterThan(firstMildPos);
+    });
+
+    it("lit mode should place severe indices before mild", () => {
+      const deck = generateDeckForMode("seed", severities, "lit");
+      const mildIndices = [0, 1];
+      const severeIndex = 3;
+      const severePos = deck.indexOf(severeIndex);
+      const firstMildPos = deck.findIndex((i) => mildIndices.includes(i));
+      expect(severePos).toBeLessThan(firstMildPos);
+    });
+
+    it("party mode should produce a full shuffle", () => {
+      const deck = generateDeckForMode("seed", severities, "party");
+      expect(deck).toHaveLength(severities.length);
+      expect([...deck].sort((a, b) => a - b)).toEqual([0, 1, 2, 3]);
     });
   });
 

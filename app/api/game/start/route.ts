@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
-import { initializeGameState, drawMultipleCards } from "@/lib/game/engine";
+import {
+  initializeGameState,
+  drawMultipleCards,
+  generateDeckForMode,
+  type GameMode,
+} from "@/lib/game/engine";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 
@@ -68,9 +73,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get all cards for the sport
+    // Get all cards for the sport (ordered by id so deck indices match draw API)
     const cards = await prisma.card.findMany({
       where: { sport: room.sport },
+      orderBy: { id: "asc" },
     });
 
     if (cards.length === 0) {
@@ -84,12 +90,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize game state
+    const deckSeed = `${room.id}-${Date.now()}`;
+    const mode = (room.mode || "party") as GameMode;
+    const severities = cards.map((c) => c.severity as "mild" | "moderate" | "severe");
+    const deck = generateDeckForMode(deckSeed, severities, mode);
+
     const playerIds = room.players.map((p) => p.id);
     const gameState = initializeGameState(
       room.id,
       playerIds,
-      room.sport as "football" | "basketball"
+      room.sport as "football" | "basketball",
+      deckSeed,
+      deck
     );
 
     // Create game state in database
