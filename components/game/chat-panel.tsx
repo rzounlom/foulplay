@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export interface ChatMessage {
   id: string;
@@ -57,16 +59,18 @@ export function ChatPanel({
     <div className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-xl z-40 flex flex-col">
       <div className="flex items-center justify-between p-3 border-b border-neutral-200 dark:border-neutral-800">
         <h3 className="font-semibold text-neutral-800 dark:text-neutral-200">Chat</h3>
-        <button
+        <Button
           type="button"
+          variant="tertiary"
+          size="sm"
           onClick={onClose}
-          className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
+          className="p-2 min-w-0"
           aria-label="Close chat"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
-        </button>
+        </Button>
       </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
         {messages.length === 0 ? (
@@ -106,21 +110,23 @@ export function ChatPanel({
       </div>
       <form onSubmit={handleSubmit} className="p-3 border-t border-neutral-200 dark:border-neutral-800">
         <div className="flex gap-2">
-          <input
+          <Input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message..."
             maxLength={500}
-            className="flex-1 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="flex-1"
           />
-          <button
+          <Button
             type="submit"
-            disabled={sending || !input.trim()}
-            className="px-4 py-2 bg-primary text-white rounded-lg font-medium text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="primary"
+            size="md"
+            disabled={!input.trim()}
+            isLoading={sending}
           >
-            {sending ? "…" : "Send"}
-          </button>
+            Send
+          </Button>
         </div>
       </form>
     </div>

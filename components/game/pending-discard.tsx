@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 interface Card {
   id: string;
   title: string;
@@ -52,13 +54,15 @@ export function PendingDiscard({
             key={cardInstance.id}
             className="p-3 rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10 min-h-0 relative"
           >
-            <button
+            <Button
               type="button"
+              variant="tertiary"
+              size="sm"
               onClick={() => onRemove(cardInstance.id)}
-              className="absolute top-2 right-2 text-xs font-medium text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 underline cursor-pointer"
+              className="absolute top-2 right-2 !p-1.5 min-w-0 text-xs"
             >
               Remove
-            </button>
+            </Button>
             <div className="flex items-start justify-between gap-2 mb-1.5 pr-14">
               <h4 className="font-semibold text-xs leading-tight flex-1 min-w-0">
                 {cardInstance.card.title}

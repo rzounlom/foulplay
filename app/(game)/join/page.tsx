@@ -3,6 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useState, useEffect, Suspense } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 function JoinRoomForm() {
   const router = useRouter();
@@ -129,33 +132,30 @@ function JoinRoomForm() {
 
         <form onSubmit={handleJoinRoom} className="space-y-4">
           <div>
-            <label htmlFor="code" className="block text-sm font-medium mb-2">
-              Room Code
-            </label>
-            <input
+            <Label htmlFor="code" className="mb-2">Room Code</Label>
+            <Input
               id="code"
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 6))}
               placeholder="ABCD12"
               maxLength={6}
-              className="w-full p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-center text-2xl font-mono tracking-widest uppercase"
+              className="text-center text-2xl font-mono tracking-widest uppercase"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="nickname" className="block text-sm font-medium mb-2">
-              Nickname <span className="text-neutral-500 dark:text-neutral-400 text-xs">(optional)</span>
-            </label>
-            <input
+            <Label htmlFor="nickname" className="mb-2">
+              Nickname <span className="text-neutral-500 dark:text-neutral-400 text-xs font-normal">(optional)</span>
+            </Label>
+            <Input
               id="nickname"
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value.slice(0, 30))}
               placeholder="Enter a nickname for this game"
               maxLength={30}
-              className="w-full p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800"
             />
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
               Leave blank to use your account name
@@ -168,13 +168,16 @@ function JoinRoomForm() {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
-            disabled={isJoining || code.length !== 6}
-            className="w-full py-3 px-4 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            variant="primary"
+            size="lg"
+            fullWidth
+            disabled={code.length !== 6}
+            isLoading={isJoining}
           >
-            {isJoining ? "Joining..." : "Join Room"}
-          </button>
+            Join Room
+          </Button>
         </form>
         </div>
       </div>

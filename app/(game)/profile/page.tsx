@@ -3,6 +3,10 @@
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface UserProfile {
   id: string;
@@ -146,17 +150,14 @@ export default function ProfilePage() {
 
           {/* Default Nickname */}
           <div>
-            <label htmlFor="defaultNickname" className="block text-sm font-medium mb-2">
-              Default Nickname
-            </label>
-            <input
+            <Label htmlFor="defaultNickname" className="mb-2">Default Nickname</Label>
+            <Input
               id="defaultNickname"
               type="text"
               value={defaultNickname}
               onChange={(e) => setDefaultNickname(e.target.value.slice(0, 50))}
               placeholder="Enter a default nickname"
               maxLength={50}
-              className="w-full p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800"
             />
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
               This nickname will be used as the default when joining rooms. You can still override it per room.
@@ -165,26 +166,26 @@ export default function ProfilePage() {
 
           {/* Skip Tour */}
           <div className="flex items-center gap-3">
-            <input
+            <Checkbox
               id="skipTour"
-              type="checkbox"
               checked={skipTour}
               onChange={(e) => setSkipTour(e.target.checked)}
-              className="w-4 h-4 text-primary border-neutral-300 dark:border-neutral-700 rounded cursor-pointer"
             />
-            <label htmlFor="skipTour" className="text-sm font-medium cursor-pointer">
+            <Label htmlFor="skipTour" className="cursor-pointer !mb-0">
               Don&apos;t show interactive tour when games start
-            </label>
+            </Label>
           </div>
 
           {/* Save Button */}
-          <button
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
             onClick={handleSave}
-            disabled={isSaving}
-            className="w-full py-3 px-4 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            isLoading={isSaving}
           >
-            {isSaving ? "Saving..." : "Save Changes"}
-          </button>
+            Save Changes
+          </Button>
         </div>
       </div>
     </div>

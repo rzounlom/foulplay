@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface TourStep {
   target: string; // CSS selector or data attribute
@@ -221,9 +224,12 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
                 </h3>
               </div>
             </div>
-            <button
+            <Button
+              type="button"
+              variant="tertiary"
+              size="sm"
               onClick={handleSkip}
-              className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer ml-2"
+              className="ml-2 !p-2 min-w-0 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
               aria-label="Skip tour"
             >
               <svg
@@ -240,7 +246,7 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </button>
+            </Button>
           </div>
 
           {/* Content */}
@@ -268,41 +274,30 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
 
           {/* Don't Show Again Checkbox */}
           <div className="mb-4 flex items-center gap-2">
-            <input
+            <Checkbox
               id="dontShowAgain"
-              type="checkbox"
               checked={dontShowAgain}
               onChange={(e) => setDontShowAgain(e.target.checked)}
-              className="w-4 h-4 text-primary border-neutral-300 dark:border-neutral-700 rounded cursor-pointer"
             />
-            <label htmlFor="dontShowAgain" className="text-sm text-neutral-600 dark:text-neutral-400 cursor-pointer">
+            <Label htmlFor="dontShowAgain" className="!mb-0 cursor-pointer text-neutral-600 dark:text-neutral-400">
               Don&apos;t show this tour again
-            </label>
+            </Label>
           </div>
 
           {/* Actions */}
           <div className="flex items-center justify-between gap-3">
-            <button
-              onClick={handleSkip}
-              className="px-4 py-2 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors font-medium cursor-pointer"
-            >
+            <Button variant="tertiary" size="md" onClick={handleSkip}>
               Skip Tour
-            </button>
+            </Button>
             <div className="flex gap-2">
               {currentStep > 0 && (
-                <button
-                  onClick={handlePrevious}
-                  className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
-                >
+                <Button variant="secondary" size="md" onClick={handlePrevious}>
                   Previous
-                </button>
+                </Button>
               )}
-              <button
-                onClick={handleNext}
-                className="px-6 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors cursor-pointer"
-              >
+              <Button variant="primary" size="md" onClick={handleNext}>
                 {currentStep === steps.length - 1 ? "Get Started" : "Next"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

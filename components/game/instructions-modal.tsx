@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface InstructionsModalProps {
   onStartTour?: () => void;
@@ -11,13 +12,15 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
 
   return (
     <>
-      <button
+      <Button
+        variant="secondary"
+        size="md"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer text-sm font-medium"
+        className="inline-flex items-center gap-2 border-2 border-primary text-primary bg-primary/5 shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] [text-shadow:0_0_8px_rgba(255,102,0,0.6)]"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5"
+          className="h-5 w-5 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -30,7 +33,7 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
           />
         </svg>
         How to Play
-      </button>
+      </Button>
 
       {isOpen && (
         <div
@@ -46,9 +49,11 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                 <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
                   How to Play FoulPlay
                 </h2>
-                <button
+                <Button
+                  variant="tertiary"
+                  size="sm"
                   onClick={() => setIsOpen(false)}
-                  className="text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors cursor-pointer"
+                  className="!p-2 min-w-0 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
                   aria-label="Close"
                 >
                   <svg
@@ -65,7 +70,7 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                       d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
-                </button>
+                </Button>
               </div>
 
               <div className="space-y-6 text-neutral-700 dark:text-neutral-300">
@@ -177,22 +182,24 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
 
               <div className="mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-700 space-y-3">
                 {onStartTour && (
-                  <button
+                  <Button
+                    variant="outline-info"
+                    fullWidth
                     onClick={() => {
                       setIsOpen(false);
                       onStartTour();
                     }}
-                    className="w-full px-4 py-2 bg-accent text-white rounded-lg font-medium hover:bg-accent/90 transition-colors cursor-pointer"
                   >
                     Take Interactive Tour
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
+                  variant="outline-primary"
+                  fullWidth
                   onClick={() => setIsOpen(false)}
-                  className="w-full px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors cursor-pointer"
                 >
                   Got it!
-                </button>
+                </Button>
               </div>
             </div>
           </div>

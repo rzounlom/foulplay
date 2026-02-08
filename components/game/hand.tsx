@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 interface Card {
   id: string;
   title: string;
@@ -89,23 +91,27 @@ export function Hand({
       {(canSubmitCards && selectedIds.length > 0) || (isQuarterIntermission && onQuarterDiscardSelection && selectedIds.length > 0) ? (
         <div className="mb-4 flex gap-2">
           {canSubmitCards && selectedIds.length > 0 && (
-            <button
+            <Button
+              variant="outline-primary"
+              size="md"
+              className="flex-1"
               onClick={() => onCardSubmit?.(selectedIds)}
-              className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors cursor-pointer"
             >
               Submit {selectedIds.length} Card{selectedIds.length !== 1 ? "s" : ""}
-            </button>
+            </Button>
           )}
           {isQuarterIntermission && onQuarterDiscardSelection && selectedIds.length > 0 && (
-            <button
+            <Button
+              variant="outline-primary"
+              size="md"
+              className="flex-1"
               onClick={() => {
                 const toAdd = selectedIds.filter((id) => !myQuarterSelectionIds.includes(id));
                 if (toAdd.length > 0) onQuarterDiscardSelection([...myQuarterSelectionIds, ...toAdd]);
               }}
-              className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors cursor-pointer"
             >
               Submit {selectedIds.length} Card{selectedIds.length !== 1 ? "s" : ""} for discard
-            </button>
+            </Button>
           )}
         </div>
       ) : null}

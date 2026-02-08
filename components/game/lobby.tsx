@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRoomChannel, RoomEvent } from "@/lib/ably/useRoomChannel";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PlayerList } from "./player-list";
 
 interface Player {
@@ -143,19 +148,21 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-4">Room {room.code}</h1>
         <div className="flex items-center gap-2 p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
-          <input
+          <Input
             type="text"
             value={roomUrl}
             readOnly
-            className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-700 dark:text-neutral-300 font-mono"
+            className="flex-1 border-0 bg-transparent p-0 focus:ring-0 focus:ring-offset-0"
             onClick={(e) => (e.target as HTMLInputElement).select()}
           />
-          <button
+          <Button
+            variant="primary"
+            size="md"
             onClick={handleCopyUrl}
-            className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors whitespace-nowrap cursor-pointer"
+            className="whitespace-nowrap"
           >
             {copied ? "Copied!" : "Copy Link"}
-          </button>
+          </Button>
         </div>
         <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
           Share this link with friends to join the room
@@ -172,12 +179,9 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
             <h3 className="text-lg font-semibold mb-4">Game Settings</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
-                  Mode
-                </label>
+                <Label className="mb-2 text-neutral-600 dark:text-neutral-400">Mode</Label>
                 {isHost ? (
-                  <select
-                    className="w-full p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                  <Select
                     value={room.mode || ""}
                     disabled={isUpdatingSettings}
                     onChange={(e) => updateRoomSettings({ mode: e.target.value })}
@@ -186,54 +190,48 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                     <option value="party">Party</option>
                     <option value="lit">Lit</option>
                     <option value="non-drinking">Non-drinking</option>
-                  </select>
+                  </Select>
                 ) : (
-                  <div className="p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 capitalize">
+                  <div className="w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 capitalize">
                     {room.mode || "Not set"}
                   </div>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
-                  Sport
-                </label>
+                <Label className="mb-2 text-neutral-600 dark:text-neutral-400">Sport</Label>
                 {isHost ? (
-                  <select
-                    className="w-full p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                  <Select
                     value={room.sport || ""}
                     disabled={isUpdatingSettings}
                     onChange={(e) => updateRoomSettings({ sport: e.target.value })}
                   >
                     <option value="football">Football</option>
                     <option value="basketball">Basketball</option>
-                  </select>
+                  </Select>
                 ) : (
-                  <div className="p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 capitalize">
+                  <div className="w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 capitalize">
                     {room.sport || "Not set"}
                   </div>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
-                  Cards Per Hand
-                </label>
+                <Label className="mb-2 text-neutral-600 dark:text-neutral-400">Cards Per Hand</Label>
                 {isHost ? (
-                  <select
+                  <Select
                     value={room.handSize ?? 5}
                     disabled={isUpdatingSettings}
                     onChange={(e) =>
                       updateRoomSettings({ handSize: Number(e.target.value) })
                     }
-                    className="w-full p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {[4, 5, 6, 7, 8, 9, 10].map((n) => (
                       <option key={n} value={n}>
                         {n} cards
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 ) : (
-                  <div className="p-2 border border-neutral-300 dark:border-neutral-700 rounded bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+                  <div className="w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300">
                     {room.handSize || 5} cards
                   </div>
                 )}
@@ -241,18 +239,14 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
               {isHost && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
-                      Show Points
-                    </label>
+                    <Label className="mb-2 text-neutral-600 dark:text-neutral-400">Show Points</Label>
                     <label className={`flex items-center gap-2 ${isUpdatingSettings ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={room.showPoints}
                         disabled={isUpdatingSettings}
                         onChange={(e) =>
                           updateRoomSettings({ showPoints: e.target.checked })
                         }
-                        className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer disabled:cursor-not-allowed"
                       />
                       <span className="text-sm text-neutral-700 dark:text-neutral-300">
                         Show all players&apos; points
@@ -261,12 +255,9 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                   </div>
                   {(room.sport === "football" || room.sport === "basketball") && (
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-neutral-600 dark:text-neutral-400">
-                        Quarter Clearing
-                      </label>
+                      <Label className="mb-2 text-neutral-600 dark:text-neutral-400">Quarter Clearing</Label>
                       <label className={`flex items-center gap-2 ${isUpdatingSettings ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={room.allowQuarterClearing}
                           disabled={isUpdatingSettings}
                           onChange={(e) =>
@@ -274,7 +265,6 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                               allowQuarterClearing: e.target.checked,
                             })
                           }
-                          className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer disabled:cursor-not-allowed"
                         />
                         <span className="text-sm text-neutral-700 dark:text-neutral-300">
                           Enable quarter-based card clearing
@@ -291,21 +281,18 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
           </div>
 
           {isHost && (
-            <button
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
               onClick={handleStartGame}
-              disabled={!canStart || isStarting}
-              className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${
-                canStart
-                  ? "bg-primary text-white hover:bg-primary/90 cursor-pointer"
-                  : "bg-neutral-300 dark:bg-neutral-700 text-neutral-500 cursor-not-allowed"
-              }`}
+              disabled={!canStart}
+              isLoading={isStarting}
             >
-              {isStarting
-                ? "Starting..."
-                : room.players.length < 2
-                  ? "Need at least 2 players"
-                  : "Start Game"}
-            </button>
+              {room.players.length < 2
+                ? "Need at least 2 players"
+                : "Start Game"}
+            </Button>
           )}
         </div>
       </div>

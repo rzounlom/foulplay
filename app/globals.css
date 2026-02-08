@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* Design system: Untitled UI–inspired, clean and modern */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -29,16 +30,24 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Ensure all enabled buttons have pointer cursor by default */
-/* This can be overridden with cursor-not-allowed for disabled states */
 button:not(:disabled):not([disabled]) {
   cursor: pointer;
 }
 
-/* Links styled as buttons should also have pointer cursor */
 a {
   cursor: pointer;
+}
+
+/* Focus visible for accessibility (keyboard nav) */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }

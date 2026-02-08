@@ -4,6 +4,9 @@ import { useRouter } from "next/navigation";
 import { RoomEvent, useRoomChannel } from "@/lib/ably/useRoomChannel";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChatPanel, type ChatMessage } from "./chat-panel";
 import { GameTour } from "./game-tour";
 import { Hand } from "./hand";
@@ -554,20 +557,22 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             roomCode={roomCode}
             onSendReaction={handleSendReaction}
           />
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={() => {
               setChatOpen(true);
               fetchMessages();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-sm font-medium transition-colors"
             aria-label="Open chat"
+            className="inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] [text-shadow:0_0_8px_rgba(255,102,0,0.6)]"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             Chat
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -593,8 +598,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
               </h4>
               <div className="space-y-3">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={room.showPoints}
                     onChange={async (e) => {
                       try {
@@ -611,15 +615,13 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                         console.error("Failed to update showPoints:", error);
                       }
                     }}
-                    className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
                   />
                   <span className="text-sm text-neutral-700 dark:text-neutral-300">
                     Show all players&apos; points
                   </span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={room.allowJoinInProgress ?? false}
                     onChange={async (e) => {
                       try {
@@ -641,35 +643,38 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                         );
                       }
                     }}
-                    className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
                   />
                   <span className="text-sm text-neutral-700 dark:text-neutral-300">
                     Allow new users to join
                   </span>
                 </label>
-                <button
+                <Button
                   type="button"
+                  variant="tertiary"
+                  size="sm"
                   onClick={() => setShowMoreHostControls((prev) => !prev)}
-                  className="text-sm font-medium text-primary hover:text-primary/80 underline cursor-pointer"
+                  className="text-primary hover:text-primary/90"
                 >
                   {showMoreHostControls ? "Hide controls" : "Show more controls"}
-                </button>
+                </Button>
                 {showMoreHostControls && (
                   <>
                     {showQuarterControls && (
                       <>
                         <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700">
-                          <label className="block text-xs font-medium mb-2 text-neutral-600 dark:text-neutral-400">
+                          <Label className="block text-xs font-medium mb-2 text-neutral-600 dark:text-neutral-400">
                             Current Round
-                          </label>
+                          </Label>
                           <div className="flex flex-wrap items-center gap-2 mb-3">
                             <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                               {roundLabel ?? "Not started"}
                             </span>
                             {!isQuarterIntermission && (
                               <>
-                                <button
+                                <Button
                                   type="button"
+                                  variant="primary"
+                                  size="sm"
                                   onClick={async () => {
                                     try {
                                       const response = await fetch("/api/game/end-quarter", {
@@ -686,12 +691,13 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                       alert("Failed to end round");
                                     }
                                   }}
-                                  className="px-3 py-1 text-xs bg-primary hover:bg-primary/90 text-white rounded font-medium transition-colors cursor-pointer"
                                 >
                                   End Round
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   type="button"
+                                  variant="secondary"
+                                  size="sm"
                                   onClick={async () => {
                                     try {
                                       const response = await fetch("/api/game/reset-round", {
@@ -708,18 +714,16 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                       alert("Failed to reset round");
                                     }
                                   }}
-                                  className="px-3 py-1 text-xs bg-neutral-600 hover:bg-neutral-700 text-white rounded font-medium transition-colors cursor-pointer"
                                   title="Reset round count. Next &quot;End round&quot; will start Round 1."
                                 >
                                   Reset round
-                                </button>
+                                </Button>
                               </>
                             )}
                           </div>
                         </div>
                         <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={room.canTurnInCards}
                             onChange={async (e) => {
                               try {
@@ -737,7 +741,6 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                 alert("Failed to update turn-in control");
                               }
                             }}
-                            className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
                           />
                           <span className="text-sm text-neutral-700 dark:text-neutral-300">
                             Allow card turn-in
@@ -745,19 +748,21 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                         </label>
                       </>
                     )}
-                    <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700">
-                      <button
+                    <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700 space-y-2">
+                      <Button
+                        variant="secondary"
+                        fullWidth
                         onClick={() => setShowResetPointsModal(true)}
-                        className="w-full py-2 px-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-colors cursor-pointer"
                       >
                         Reset Points
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="primary-destructive"
+                        fullWidth
                         onClick={() => setShowEndGameModal(true)}
-                        className="w-full py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors cursor-pointer mt-2"
                       >
                         End Game
-                      </button>
+                      </Button>
                     </div>
                   </>
                 )}
@@ -791,8 +796,10 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                     : "5:00"}
                 </span>
                 {isHost && (
-                  <button
+                  <Button
                     type="button"
+                    variant="primary"
+                    size="sm"
                     onClick={async () => {
                       try {
                         const response = await fetch("/api/game/finalize-quarter", {
@@ -811,10 +818,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                         alert("Failed to end intermission");
                       }
                     }}
-                    className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded font-medium transition-colors cursor-pointer"
                   >
                     End round early
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -853,17 +859,17 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 </div>
                 <p className="text-lg mb-4">{activeCard.card.description}</p>
                 {activeCard.drawnBy.id === currentPlayer?.id && (
-                  <button
+                  <Button
+                    variant="outline-primary"
+                    fullWidth
                     onClick={() => handleSubmitCard(activeCard.id)}
-                    disabled={isSubmitting || isQuarterIntermission}
-                    className="w-full px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    disabled={isQuarterIntermission}
+                    isLoading={isSubmitting}
                   >
                     {isQuarterIntermission
                       ? "Submissions paused (round intermission)"
-                      : isSubmitting
-                        ? "Submitting..."
-                        : "Submit Card"}
-                  </button>
+                      : "Submit Card"}
+                  </Button>
                 )}
               </div>
               </>
@@ -1000,19 +1006,21 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
               This will end the current game, declare a winner (highest points), and start a new game with the same players. All points will be reset.
             </p>
             <div className="flex gap-3">
-              <button
+              <Button
+                variant="secondary"
+                fullWidth
                 onClick={() => setShowEndGameModal(false)}
-                className="flex-1 py-2 px-4 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg font-medium hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary-destructive"
+                fullWidth
                 onClick={handleEndGame}
-                disabled={isEndingGame}
-                className="flex-1 py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                isLoading={isEndingGame}
               >
-                {isEndingGame ? "Ending..." : "End Game"}
-              </button>
+                End Game
+              </Button>
             </div>
           </div>
         </div>
@@ -1027,19 +1035,21 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
               This will reset all player points to 0. The game will continue with the same state. This is useful if players join late and you want to reset for fairness.
             </p>
             <div className="flex gap-3">
-              <button
+              <Button
+                variant="secondary"
+                fullWidth
                 onClick={() => setShowResetPointsModal(false)}
-                className="flex-1 py-2 px-4 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg font-medium hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
+                fullWidth
                 onClick={handleResetPoints}
-                disabled={isResettingPoints}
-                className="flex-1 py-2 px-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                isLoading={isResettingPoints}
               >
-                {isResettingPoints ? "Resetting..." : "Reset Points"}
-              </button>
+                Reset Points
+              </Button>
             </div>
           </div>
         </div>

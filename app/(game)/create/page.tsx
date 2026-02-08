@@ -3,6 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function CreateRoomPage() {
   const router = useRouter();
@@ -106,14 +111,11 @@ export default function CreateRoomPage() {
 
         <div className="space-y-4 mb-6">
           <div>
-            <label htmlFor="mode" className="block text-sm font-medium mb-2">
-              Game Mode <span className="text-red-500">*</span>
-            </label>
-            <select
+            <Label htmlFor="mode" className="mb-2" required>Game Mode</Label>
+            <Select
               id="mode"
               value={mode}
               onChange={(e) => setMode(e.target.value)}
-              className="w-full p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800"
               required
             >
               <option value="">Select mode</option>
@@ -121,14 +123,12 @@ export default function CreateRoomPage() {
               <option value="party">Party</option>
               <option value="lit">Lit</option>
               <option value="non-drinking">Non-drinking</option>
-            </select>
+            </Select>
           </div>
 
           <div>
-            <label htmlFor="sport" className="block text-sm font-medium mb-2">
-              Sport <span className="text-red-500">*</span>
-            </label>
-            <select
+            <Label htmlFor="sport" className="mb-2" required>Sport</Label>
+            <Select
               id="sport"
               value={sport}
               onChange={(e) => {
@@ -138,23 +138,20 @@ export default function CreateRoomPage() {
                   setAllowQuarterClearing(false);
                 }
               }}
-              className="w-full p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800"
               required
             >
               <option value="">Select sport</option>
               <option value="football">Football</option>
               <option value="basketball">Basketball</option>
-            </select>
+            </Select>
           </div>
 
           {(sport === "football" || sport === "basketball") && (
             <div>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={allowQuarterClearing}
                   onChange={(e) => setAllowQuarterClearing(e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 cursor-pointer"
                 />
                 <span className="text-sm text-neutral-700 dark:text-neutral-300">
                   Enable quarter-based card clearing
@@ -167,14 +164,11 @@ export default function CreateRoomPage() {
           )}
 
           <div>
-            <label htmlFor="handSize" className="block text-sm font-medium mb-2">
-              Cards Per Hand <span className="text-red-500">*</span>
-            </label>
-            <select
+            <Label htmlFor="handSize" className="mb-2" required>Cards Per Hand</Label>
+            <Select
               id="handSize"
               value={handSize}
               onChange={(e) => setHandSize(Number(e.target.value))}
-              className="w-full p-3 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800"
               required
             >
               <option value={4}>4 cards</option>
@@ -184,20 +178,23 @@ export default function CreateRoomPage() {
               <option value={8}>8 cards</option>
               <option value={9}>9 cards</option>
               <option value={10}>10 cards</option>
-            </select>
+            </Select>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
               Number of cards each player starts with
             </p>
           </div>
         </div>
 
-        <button
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
           onClick={handleCreateRoom}
-          disabled={isCreating || !mode || !sport || !handSize}
-          className="w-full py-3 px-4 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          disabled={!mode || !sport || !handSize}
+          isLoading={isCreating}
         >
-          {isCreating ? "Creating..." : "Create Room"}
-        </button>
+          Create Room
+        </Button>
         </div>
       </div>
     </div>

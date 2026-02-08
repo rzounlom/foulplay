@@ -13,7 +13,20 @@ export function MainNav() {
     return null;
   }
 
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string, options?: { exact?: boolean }) => {
+    if (!pathname) return false;
+    if (options?.exact) return pathname === path;
+    // For /active-games, also treat /game/* as active (in-game or end-game)
+    if (path === "/active-games") return pathname === path || pathname.startsWith("/game/");
+    return pathname === path;
+  };
+
+  const linkClass = (path: string, options?: { exact?: boolean }) =>
+    `text-sm font-medium transition-colors cursor-pointer px-3 py-2 rounded-md ${
+      isActive(path, options)
+        ? "text-primary bg-primary/10 dark:bg-primary/20"
+        : "text-neutral-600 dark:text-neutral-400 hover:text-primary hover:bg-neutral-100 dark:hover:bg-neutral-800"
+    }`;
 
   return (
     <nav className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
@@ -26,55 +39,20 @@ export function MainNav() {
 
           {/* Navigation Links */}
           {isLoaded && isSignedIn && (
-            <div className="flex items-center gap-6">
-              <Link
-                href="/"
-                className={`text-sm font-medium transition-colors cursor-pointer ${
-                  isActive("/")
-                    ? "text-primary"
-                    : "text-neutral-600 dark:text-neutral-400 hover:text-primary"
-                }`}
-              >
+            <div className="flex items-center gap-2">
+              <Link href="/" className={linkClass("/")}>
                 Home
               </Link>
-              <Link
-                href="/create"
-                className={`text-sm font-medium transition-colors cursor-pointer ${
-                  isActive("/create")
-                    ? "text-primary"
-                    : "text-neutral-600 dark:text-neutral-400 hover:text-primary"
-                }`}
-              >
+              <Link href="/create" className={linkClass("/create")}>
                 Create Room
               </Link>
-              <Link
-                href="/join"
-                className={`text-sm font-medium transition-colors cursor-pointer ${
-                  isActive("/join")
-                    ? "text-primary"
-                    : "text-neutral-600 dark:text-neutral-400 hover:text-primary"
-                }`}
-              >
+              <Link href="/join" className={linkClass("/join")}>
                 Join Room
               </Link>
-              <Link
-                href="/active-games"
-                className={`text-sm font-medium transition-colors cursor-pointer ${
-                  isActive("/active-games")
-                    ? "text-primary"
-                    : "text-neutral-600 dark:text-neutral-400 hover:text-primary"
-                }`}
-              >
+              <Link href="/active-games" className={linkClass("/active-games")}>
                 Active Games
               </Link>
-              <Link
-                href="/profile"
-                className={`text-sm font-medium transition-colors cursor-pointer ${
-                  isActive("/profile")
-                    ? "text-primary"
-                    : "text-neutral-600 dark:text-neutral-400 hover:text-primary"
-                }`}
-              >
+              <Link href="/profile" className={linkClass("/profile")}>
                 Profile
               </Link>
 

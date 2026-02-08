@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
 
 interface Card {
   id: string;
@@ -151,20 +152,24 @@ export function VotingUI({
       {/* Accept All / Reject All Buttons */}
       {canVote && (
         <div className="mb-4 flex gap-3">
-          <button
+          <Button
+            variant="outline-success"
+            size="md"
             onClick={() => handleVoteAll(true)}
-            disabled={Object.values(isVoting).some(v => v)}
-            className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            disabled={Object.values(isVoting).some((v) => v)}
+            fullWidth
           >
             Accept All
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline-destructive"
+            size="md"
             onClick={() => handleVoteAll(false)}
-            disabled={Object.values(isVoting).some(v => v)}
-            className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            disabled={Object.values(isVoting).some((v) => v)}
+            fullWidth
           >
             Reject All
-          </button>
+          </Button>
         </div>
       )}
 
@@ -227,20 +232,26 @@ export function VotingUI({
               {/* Individual Vote Buttons */}
               {canVote && (
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    variant="outline-success"
+                    size="sm"
                     onClick={() => handleVote(cardInstance.id, true)}
                     disabled={cardIsVoting}
-                    className="flex-1 px-3 py-1.5 bg-green-500 text-white rounded text-xs font-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    isLoading={cardIsVoting}
+                    fullWidth
                   >
-                    {cardIsVoting ? "..." : "Accept"}
-                  </button>
-                  <button
+                    Accept
+                  </Button>
+                  <Button
+                    variant="outline-destructive"
+                    size="sm"
                     onClick={() => handleVote(cardInstance.id, false)}
                     disabled={cardIsVoting}
-                    className="flex-1 px-3 py-1.5 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    isLoading={cardIsVoting}
+                    fullWidth
                   >
-                    {cardIsVoting ? "..." : "Reject"}
-                  </button>
+                    Reject
+                  </Button>
                 </div>
               )}
             </div>

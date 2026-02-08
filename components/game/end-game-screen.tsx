@@ -124,13 +124,13 @@ export function EndGameScreen({
         <div className="space-y-3">
           <Link
             href="/create"
-            className="block w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white text-center font-medium rounded-xl transition-colors"
+            className="inline-flex items-center justify-center w-full py-2.5 px-5 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Create a room
           </Link>
           <Link
             href="/"
-            className="block w-full py-3 px-4 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 text-center font-medium rounded-xl transition-colors"
+            className="inline-flex items-center justify-center w-full py-2.5 px-5 text-sm font-medium rounded-lg bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
           >
             Go home
           </Link>
