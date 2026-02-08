@@ -58,6 +58,16 @@ export function MainNav() {
                 Join Room
               </Link>
               <Link
+                href="/active-games"
+                className={`text-sm font-medium transition-colors cursor-pointer ${
+                  isActive("/active-games")
+                    ? "text-primary"
+                    : "text-neutral-600 dark:text-neutral-400 hover:text-primary"
+                }`}
+              >
+                Active Games
+              </Link>
+              <Link
                 href="/profile"
                 className={`text-sm font-medium transition-colors cursor-pointer ${
                   isActive("/profile")
