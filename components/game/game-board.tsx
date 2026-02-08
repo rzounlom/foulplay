@@ -143,6 +143,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [recentReactions, setRecentReactions] = useState<ReactionEvent[]>([]);
   const [exitingReactionIds, setExitingReactionIds] = useState<Set<string>>(new Set());
+  const [pointsAwardedPopup, setPointsAwardedPopup] = useState<{ points: number } | null>(null);
 
   const router = useRouter();
   const toast = useToast();
@@ -275,6 +276,25 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         });
       }, 2850);
       return;
+    }
+    if (event === "card_approved" && data) {
+      const payload = data as { pointsAwarded?: number; submittedBy?: { id: string } };
+      const points = payload.pointsAwarded ?? 0;
+      const submitterPlayerId = payload.submittedBy?.id;
+      const currentPlayerId = room.players.find((p) => p.user.id === currentUserId)?.id;
+      const isRecipient = submitterPlayerId && currentPlayerId && submitterPlayerId === currentPlayerId;
+      if (points > 0 && isRecipient) {
+        setPointsAwardedPopup({ points });
+        import("canvas-confetti").then(({ default: confetti }) => {
+          confetti({
+            particleCount: 50,
+            spread: 70,
+            origin: { y: 0.75 },
+            colors: ["#22c55e", "#16a34a", "#f59e0b", "#eab308"],
+          });
+        });
+        setTimeout(() => setPointsAwardedPopup(null), 2200);
+      }
     }
     if (
       event === "game_started" ||
@@ -605,6 +625,17 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
 
       <ReactionDisplay reactions={recentReactions} exitingIds={exitingReactionIds} />
 
+      {pointsAwardedPopup && (
+        <div
+          className="fixed left-1/2 bottom-[40%] -translate-x-1/2 z-50 pointer-events-none"
+          aria-live="polite"
+        >
+          <div className="points-awarded-popup rounded-xl bg-emerald-600 text-white px-6 py-4 shadow-xl border-2 border-emerald-500/50 text-2xl font-bold">
+            +{pointsAwardedPopup.points} pts
+          </div>
+        </div>
+      )}
+
       <ChatPanel
         roomCode={roomCode}
         messages={messages}
@@ -703,7 +734,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                               <>
                                 <Button
                                   type="button"
-                                  variant="primary"
+                                  variant="outline-primary"
                                   size="sm"
                                   onClick={async () => {
                                     try {
@@ -714,11 +745,11 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                       });
                                       if (!response.ok) {
                                         const data = await response.json();
-                                        alert(data.error || "Failed to end round");
+                                        toast.addToast(data.error || "Failed to end round", "error");
                                       }
                                     } catch (error) {
                                       console.error("Failed to end round:", error);
-                                      alert("Failed to end round");
+                                      toast.addToast("Failed to end round", "error");
                                     }
                                   }}
                                 >
@@ -726,7 +757,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                 </Button>
                                 <Button
                                   type="button"
-                                  variant="secondary"
+                                  variant="outline-primary"
                                   size="sm"
                                   onClick={async () => {
                                     try {
@@ -737,16 +768,16 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                       });
                                       if (!response.ok) {
                                         const data = await response.json();
-                                        alert(data.error || "Failed to reset round");
+                                        toast.addToast(data.error || "Failed to reset round", "error");
                                       }
                                     } catch (error) {
                                       console.error("Failed to reset round:", error);
-                                      alert("Failed to reset round");
+                                      toast.addToast("Failed to reset round", "error");
                                     }
                                   }}
-                                  title="Reset round count. Next &quot;End round&quot; will start Round 1."
+                                  title="Reset round count. Next &quot;End Round&quot; will start Round 1."
                                 >
-                                  Reset round
+                                  Reset Round
                                 </Button>
                               </>
                             )}
@@ -780,14 +811,14 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                     )}
                     <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700 space-y-2">
                       <Button
-                        variant="secondary"
+                        variant="outline-primary"
                         fullWidth
                         onClick={() => setShowResetPointsModal(true)}
                       >
                         Reset Points
                       </Button>
                       <Button
-                        variant="primary-destructive"
+                        variant="outline-destructive"
                         fullWidth
                         onClick={() => setShowEndGameModal(true)}
                       >
@@ -1064,7 +1095,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 Cancel
               </Button>
               <Button
-                variant="primary-destructive"
+                variant="outline-destructive"
                 fullWidth
                 onClick={handleEndGame}
                 isLoading={isEndingGame}
@@ -1093,7 +1124,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 Cancel
               </Button>
               <Button
-                variant="secondary"
+                variant="outline-primary"
                 fullWidth
                 onClick={handleResetPoints}
                 isLoading={isResettingPoints}
