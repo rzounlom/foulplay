@@ -37,6 +37,7 @@ import { NextRequest } from "next/server";
 import { POST as startGame } from "@/app/api/game/start/route";
 import { POST as drawCard } from "@/app/api/game/draw/route";
 import { POST as submitCard } from "@/app/api/game/submit/route";
+import { POST as castVote } from "@/app/api/game/vote/route";
 import { GET as getHand } from "@/app/api/game/hand/route";
 import { GET as getSubmissions } from "@/app/api/game/submissions/route";
 import { mockUser, mockPlayer, mockRoom, mockCard, mockCardInstance } from "@/tests/helpers/mocks";
@@ -483,6 +484,289 @@ describe("Game API Routes", () => {
       expect(response.status).toBe(200);
       expect(data).toHaveProperty("submissions");
       expect(Array.isArray(data.submissions)).toBe(true);
+    });
+  });
+
+  describe("POST /api/game/vote", () => {
+    const gameState = {
+      id: "gamestate_123",
+      roomId: "room_123",
+      currentTurnPlayerId: "player_123",
+      activeCardInstanceId: null,
+      deckSeed: "test-seed",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const submitterPlayer = { ...mockPlayer, id: "player_123", userId: mockUser.id, isHost: true };
+    const voterPlayer = { ...mockPlayer, id: "player_456", userId: "user_456", isHost: false };
+    const thirdPlayer = { ...mockPlayer, id: "player_789", userId: "user_789", isHost: false };
+
+    it("should cast a vote successfully (pending resolution)", async () => {
+      mockGetCurrentUser.mockResolvedValue({ ...mockUser, id: "user_456" });
+
+      const submission = {
+        id: "submission_123",
+        roomId: "room_123",
+        submittedById: "player_123",
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        cardInstances: [
+          {
+            ...mockCardInstance,
+            id: "ci_1",
+            votes: [],
+          },
+        ],
+        submittedBy: submitterPlayer,
+      };
+      const submissionAfterVote = {
+        ...submission,
+        cardInstances: [
+          {
+            ...mockCardInstance,
+            id: "ci_1",
+            votes: [{ vote: true }],
+          },
+        ],
+      };
+
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        status: "active",
+        gameState,
+        quarterIntermissionEndsAt: null,
+        players: [submitterPlayer, voterPlayer, thirdPlayer],
+      });
+      mockPrisma.cardSubmission.findUnique = jest
+        .fn()
+        .mockResolvedValueOnce(submission)
+        .mockResolvedValueOnce(submissionAfterVote);
+      mockPrisma.cardVote.upsert = jest.fn().mockResolvedValue({
+        id: "vote_1",
+        cardInstanceId: "ci_1",
+        vote: true,
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/game/vote", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC123",
+          submissionId: "submission_123",
+          cardInstanceIds: ["ci_1"],
+          vote: true,
+        }),
+      });
+
+      const response = await castVote(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toHaveProperty("success", true);
+      expect(data).toHaveProperty("submission");
+      expect(data.submission.status).toBe("pending");
+    });
+
+    it("should return 401 when user is not authenticated", async () => {
+      mockGetCurrentUser.mockResolvedValue(null);
+
+      const request = new NextRequest("http://localhost:3000/api/game/vote", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC123",
+          submissionId: "submission_123",
+          cardInstanceIds: ["ci_1"],
+          vote: true,
+        }),
+      });
+
+      const response = await castVote(request);
+      expect(response.status).toBe(401);
+    });
+
+    it("should return 404 when room does not exist", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue(null);
+
+      const request = new NextRequest("http://localhost:3000/api/game/vote", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "INVALI",
+          submissionId: "submission_123",
+          cardInstanceIds: ["ci_1"],
+          vote: true,
+        }),
+      });
+
+      const response = await castVote(request);
+      expect(response.status).toBe(404);
+    });
+
+    it("should return 404 when submission does not exist", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        status: "active",
+        gameState: {},
+        quarterIntermissionEndsAt: null,
+        players: [submitterPlayer, voterPlayer],
+      });
+      mockPrisma.cardSubmission.findUnique = jest.fn().mockResolvedValue(null);
+
+      const request = new NextRequest("http://localhost:3000/api/game/vote", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC123",
+          submissionId: "submission_nonexistent",
+          cardInstanceIds: ["ci_1"],
+          vote: true,
+        }),
+      });
+
+      const response = await castVote(request);
+      expect(response.status).toBe(404);
+    });
+
+    it("should return 400 when game is not active", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        status: "lobby",
+        players: [submitterPlayer, voterPlayer],
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/game/vote", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC123",
+          submissionId: "submission_123",
+          cardInstanceIds: ["ci_1"],
+          vote: true,
+        }),
+      });
+
+      const response = await castVote(request);
+      expect(response.status).toBe(400);
+    });
+
+    it("should return 400 when voting on own submission", async () => {
+      const submission = {
+        id: "submission_123",
+        roomId: "room_123",
+        submittedById: "player_123",
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        cardInstances: [{ ...mockCardInstance, id: "ci_1", votes: [] }],
+        submittedBy: submitterPlayer,
+      };
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        status: "active",
+        gameState: {},
+        quarterIntermissionEndsAt: null,
+        players: [submitterPlayer, voterPlayer],
+      });
+      mockPrisma.cardSubmission.findUnique = jest.fn().mockResolvedValue(submission);
+      mockGetCurrentUser.mockResolvedValue({ ...mockUser, id: mockUser.id });
+
+      const request = new NextRequest("http://localhost:3000/api/game/vote", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC123",
+          submissionId: "submission_123",
+          cardInstanceIds: ["ci_1"],
+          vote: true,
+        }),
+      });
+
+      const response = await castVote(request);
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("own submission");
+    });
+
+    it("should return 403 when user is not a player in the room", async () => {
+      const submission = {
+        id: "submission_123",
+        roomId: "room_123",
+        submittedById: "player_123",
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        cardInstances: [{ ...mockCardInstance, id: "ci_1", votes: [] }],
+        submittedBy: submitterPlayer,
+      };
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        status: "active",
+        gameState: {},
+        quarterIntermissionEndsAt: null,
+        players: [submitterPlayer, voterPlayer],
+      });
+      mockPrisma.cardSubmission.findUnique = jest.fn().mockResolvedValue(submission);
+      mockGetCurrentUser.mockResolvedValue({ ...mockUser, id: "user_other" });
+
+      const request = new NextRequest("http://localhost:3000/api/game/vote", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC123",
+          submissionId: "submission_123",
+          cardInstanceIds: ["ci_1"],
+          vote: true,
+        }),
+      });
+
+      const response = await castVote(request);
+      expect(response.status).toBe(403);
+    });
+
+    it("should return 400 when submission already resolved", async () => {
+      const submission = {
+        id: "submission_123",
+        roomId: "room_123",
+        submittedById: "player_123",
+        status: "approved",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        cardInstances: [{ ...mockCardInstance, id: "ci_1", votes: [] }],
+        submittedBy: submitterPlayer,
+      };
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        status: "active",
+        gameState: {},
+        quarterIntermissionEndsAt: null,
+        players: [submitterPlayer, voterPlayer],
+      });
+      mockPrisma.cardSubmission.findUnique = jest.fn().mockResolvedValue(submission);
+
+      const request = new NextRequest("http://localhost:3000/api/game/vote", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC123",
+          submissionId: "submission_123",
+          cardInstanceIds: ["ci_1"],
+          vote: true,
+        }),
+      });
+
+      const response = await castVote(request);
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("already been resolved");
+    });
+
+    it("should return 400 for invalid request body", async () => {
+      const request = new NextRequest("http://localhost:3000/api/game/vote", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC12",
+          submissionId: "submission_123",
+          cardInstanceIds: ["ci_1"],
+          vote: true,
+        }),
+      });
+
+      const response = await castVote(request);
+      expect(response.status).toBe(400);
     });
   });
 });

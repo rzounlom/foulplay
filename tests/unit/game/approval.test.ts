@@ -6,6 +6,10 @@ import {
 
 describe("Approval Logic", () => {
   describe("requiredApprovals", () => {
+    it("should return 1 for 0 players (edge case)", () => {
+      expect(requiredApprovals(0)).toBe(1);
+    });
+
     it("should return 1 for single player", () => {
       expect(requiredApprovals(1)).toBe(1);
     });
