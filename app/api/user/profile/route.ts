@@ -4,7 +4,10 @@ import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 
 const updateProfileSchema = z.object({
-  defaultNickname: z.string().min(1).max(50).optional(),
+  defaultNickname: z
+    .union([z.string().max(50), z.null()])
+    .optional()
+    .transform((v) => (v === "" ? null : v)),
   skipTour: z.boolean().optional(),
 });
 

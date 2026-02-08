@@ -178,7 +178,7 @@ export default function ProfilePage() {
 
           {/* Save Button */}
           <Button
-            variant="primary"
+            variant="outline-primary"
             size="lg"
             fullWidth
             onClick={handleSave}

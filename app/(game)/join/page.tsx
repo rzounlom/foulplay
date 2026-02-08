@@ -24,7 +24,7 @@ function JoinRoomForm() {
     }
   }, [searchParams]);
 
-  // Fetch user's default nickname
+  // Fetch user's default nickname once (prefill only when nickname is still empty)
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
 
@@ -33,8 +33,8 @@ function JoinRoomForm() {
         const response = await fetch("/api/user/profile");
         if (response.ok) {
           const data = await response.json();
-          if (data.profile?.defaultNickname && !nickname) {
-            setNickname(data.profile.defaultNickname);
+          if (data.profile?.defaultNickname) {
+            setNickname((prev) => (prev === "" ? data.profile.defaultNickname : prev));
           }
         }
       } catch (err) {
@@ -44,7 +44,7 @@ function JoinRoomForm() {
     };
 
     fetchProfile();
-  }, [isLoaded, isSignedIn, nickname]);
+  }, [isLoaded, isSignedIn]);
 
   // Redirect to sign-in if not authenticated, preserving the current path and code
   useEffect(() => {

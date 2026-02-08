@@ -282,7 +282,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
 
           {isHost && (
             <Button
-              variant="primary"
+              variant="outline-primary"
               size="lg"
               fullWidth
               onClick={handleStartGame}
