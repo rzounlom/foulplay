@@ -59,13 +59,33 @@ export default function ActiveGamesPage() {
         <h1 className="text-page-title text-foreground mb-6">Active Games</h1>
 
         {isLoading ? (
-          <p className="text-neutral-600 dark:text-neutral-400">
-            Loading games...
-          </p>
+          <div className="flex flex-col items-center justify-center py-12 text-neutral-500 dark:text-neutral-400">
+            <svg className="animate-spin h-8 w-8 mb-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <p>Loading games...</p>
+          </div>
         ) : activeGames.length === 0 ? (
-          <p className="text-neutral-600 dark:text-neutral-400 mb-6">
-            No active games. Create or join a room to get started!
-          </p>
+          <div className="text-center py-10 px-4 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 dark:bg-primary/20 text-primary mb-4" aria-hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741.479 3 3 0 003-3v.479a9.094 9.094 0 01-3.741.479m-10.5-6.75h.008v.008h-.008V12zm0 0h.008V12h-.008z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-2">No active games</h2>
+            <p className="text-neutral-600 dark:text-neutral-400 mb-6 max-w-sm mx-auto">
+              Create a room to start a new game, or join one with a code from your friends.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link href="/create" className="text-sm font-medium text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded px-3 py-1.5">
+                Create a room
+              </Link>
+              <Link href="/join" className="link-accent text-sm font-medium hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded px-3 py-1.5">
+                Join a room
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="space-y-3">
             {activeGames.map((game) => (

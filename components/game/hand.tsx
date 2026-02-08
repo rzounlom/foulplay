@@ -66,10 +66,15 @@ export function Hand({
 
   if (cardsInHand.length === 0) {
     return (
-      <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
-        <h3 className="text-lg font-semibold mb-4">Your Hand</h3>
-        <p className="text-neutral-500 dark:text-neutral-400 text-center py-8">
-          No cards in hand
+      <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 text-center">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 mb-3" aria-hidden>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 mb-1">Your Hand</h3>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+          No cards right now. New cards will appear after the next draw or when your submissions are resolved.
         </p>
       </div>
     );

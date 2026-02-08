@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 
 interface LeaderboardEntry {
   playerId: string;
@@ -34,6 +35,34 @@ export function EndGameScreen({
   const { winnerName, winnerNickname, winnerPoints, leaderboard } =
     lastGameEndResult;
   const winnerDisplayName = winnerNickname?.trim() || winnerName;
+  const celebrationFired = useRef(false);
+
+  useEffect(() => {
+    if (celebrationFired.current) return;
+    celebrationFired.current = true;
+    import("canvas-confetti").then(({ default: confetti }) => {
+      const duration = 2500;
+      const end = Date.now() + duration;
+      const frame = () => {
+        confetti({
+          particleCount: 3,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: ["#f59e0b", "#eab308", "#84cc16", "#22c55e"],
+        });
+        confetti({
+          particleCount: 3,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: ["#f59e0b", "#eab308", "#84cc16", "#22c55e"],
+        });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      };
+      frame();
+    });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-100 to-neutral-200 dark:from-neutral-900 dark:to-neutral-800 flex flex-col items-center justify-center p-6">

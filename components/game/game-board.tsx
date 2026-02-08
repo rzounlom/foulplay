@@ -126,6 +126,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [room, setRoom] = useState<Room>(initialRoom);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hand, setHand] = useState<HandCard[]>([]);
+  const [handLoading, setHandLoading] = useState(true);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [startTour, setStartTour] = useState(false);
@@ -176,6 +177,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       }
     } catch (error) {
       console.error("Failed to fetch hand:", error);
+    } finally {
+      setHandLoading(false);
     }
   }, [roomCode]);
 
@@ -934,12 +937,17 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 })()}
               </>
             ) : (
-              <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
-                <h2 className="text-xl font-semibold text-neutral-500 dark:text-neutral-400">
+              <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 mb-3" aria-hidden>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-neutral-700 dark:text-neutral-300">
                   Pending Submissions
                 </h2>
-                <p className="text-sm text-neutral-400 dark:text-neutral-500 mt-2">
-                  Submissions will appear here when players submit cards
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                  When players submit cards, they’ll appear here for everyone to vote on.
                 </p>
               </div>
             )}
@@ -972,6 +980,16 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                   <InstructionsModal onStartTour={handleStartTour} />
                 </div>
               </div>
+              {handLoading ? (
+                <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
+                  <h3 className="text-lg font-semibold mb-4">Your Hand</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
+                    ))}
+                  </div>
+                </div>
+              ) : (
               <Hand
                 cards={hand}
                 onCardSelect={(cardId) => {
@@ -996,6 +1014,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 }
                 roomMode={room.mode}
               />
+              )}
             </div>
           )}
 

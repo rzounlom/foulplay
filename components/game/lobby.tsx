@@ -156,16 +156,25 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
             onClick={(e) => (e.target as HTMLInputElement).select()}
           />
           <Button
-            variant="primary"
+            variant={copied ? "success" : "primary"}
             size="md"
             onClick={handleCopyUrl}
             className="whitespace-nowrap"
           >
-            {copied ? "Copied!" : "Copy Link"}
+            {copied ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Copied!
+              </>
+            ) : (
+              "Copy Link"
+            )}
           </Button>
         </div>
         <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-          Share this link with friends to join the room
+          {copied ? "Link copied to clipboard. Share it with friends to join the room." : "Share this link with friends to join the room"}
         </p>
       </div>
 
