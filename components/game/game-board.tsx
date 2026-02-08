@@ -261,7 +261,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       return;
     }
     if (event === "reaction_sent" && data) {
-      const reaction = data as ReactionEvent;
+      const reaction = data as unknown as ReactionEvent;
       const id = `${reaction.timestamp}-${Math.random()}`;
       setRecentReactions((prev) => [...prev.slice(-4), { ...reaction, id }]);
       setTimeout(() => {
