@@ -22,7 +22,7 @@ export function MainNav() {
   };
 
   const linkClass = (path: string, options?: { exact?: boolean }) =>
-    `text-sm font-medium transition-colors cursor-pointer px-3 py-2 rounded-md ${
+    `text-sm font-medium transition-colors duration-200 cursor-pointer px-3 py-2 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
       isActive(path, options)
         ? "text-primary bg-primary/10 dark:bg-primary/20"
         : "text-neutral-600 dark:text-neutral-400 hover:text-primary hover:bg-neutral-100 dark:hover:bg-neutral-800"
@@ -65,7 +65,7 @@ export function MainNav() {
           {isLoaded && !isSignedIn && (
             <Link
               href="/sign-in"
-              className="text-sm font-medium text-primary hover:opacity-80 cursor-pointer"
+              className="text-sm font-medium text-primary hover:opacity-80 cursor-pointer px-3 py-2 rounded-md transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Sign In
             </Link>

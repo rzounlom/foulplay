@@ -45,10 +45,10 @@ export function SubmissionPending({ submission, totalPlayers, roomMode = null }:
   return (
     <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2">
+        <h3 className="text-section-title mb-2">
           Submission{submission.cardInstances.length > 1 ? "s" : ""} Pending
         </h3>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+        <p className="text-body-muted">
           Waiting for other players to vote on your {submission.cardInstances.length} card{submission.cardInstances.length > 1 ? "s" : ""}
         </p>
       </div>

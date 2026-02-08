@@ -73,8 +73,8 @@ export default function ActiveGamesPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741.479 3 3 0 003-3v.479a9.094 9.094 0 01-3.741.479m-10.5-6.75h.008v.008h-.008V12zm0 0h.008V12h-.008z" />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-2">No active games</h2>
-            <p className="text-neutral-600 dark:text-neutral-400 mb-6 max-w-sm mx-auto">
+            <h2 className="text-section-title text-neutral-800 dark:text-neutral-200 mb-2">No active games</h2>
+            <p className="text-body-muted mb-6 max-w-sm mx-auto">
               Create a room to start a new game, or join one with a code from your friends.
             </p>
             <div className="flex flex-wrap justify-center gap-3">

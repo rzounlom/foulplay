@@ -33,16 +33,18 @@ export function PlayerList({ players, currentUserId, showPoints = false }: Playe
             <div
               key={player.id}
               className={`flex items-center gap-2 p-3 rounded-lg border ${
-                isCurrentUser
-                  ? "bg-primary/10 border-primary"
-                  : "bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800"
+                player.isHost
+                  ? "bg-accent/10 border-accent"
+                  : isCurrentUser
+                    ? "bg-primary/10 border-primary"
+                    : "bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800"
               }`}
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <span className="font-medium truncate">{displayName}</span>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   {player.isHost && (
-                    <span className="text-xs px-2 py-1 bg-accent text-white rounded whitespace-nowrap">
+                    <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded whitespace-nowrap">
                       Host
                     </span>
                   )}

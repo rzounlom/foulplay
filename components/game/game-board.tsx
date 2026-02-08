@@ -551,7 +551,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
 
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <h1 className="text-3xl font-bold">Game Room {room.code}</h1>
+          <h1 className="text-page-title text-foreground">Game Room {room.code}</h1>
           <button
             type="button"
             onClick={async () => {
@@ -570,7 +570,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 }
               }
             }}
-            className="p-1.5 rounded-md text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-md text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors duration-200 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             title="Copy invite link"
             aria-label="Copy invite link"
           >
@@ -608,7 +608,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
               fetchMessages();
             }}
             aria-label={chatUnreadCount > 0 ? `Open chat (${chatUnreadCount} new)` : "Open chat"}
-            className="relative inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] [text-shadow:0_0_8px_rgba(255,102,0,0.6)]"
+            className="relative inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] [text-shadow:0_0_8px_rgba(255,102,0,0.6)] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -654,7 +654,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           {/* Host Controls - at top so always visible with many players */}
           {isHost && (
             <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
-              <h4 className="text-sm font-semibold mb-3 text-neutral-700 dark:text-neutral-300">
+              <h4 className="text-section-title mb-3 text-neutral-700 dark:text-neutral-300">
                 Host Controls
               </h4>
               <div className="space-y-3">
@@ -894,7 +894,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           >
             {activeCard ? (
               <>
-                <h2 className="text-xl font-semibold mb-4">Active Card</h2>
+                <h2 className="text-section-title mb-4">Active Card</h2>
               <div className="p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border-2 border-primary/30">
                 <div className="flex items-start justify-between mb-4">
                   <div>
@@ -936,7 +936,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
               </>
             ) : (
               <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
-                <h2 className="text-xl font-semibold text-neutral-500 dark:text-neutral-400">
+                <h2 className="text-section-title text-neutral-500 dark:text-neutral-400">
                   Active Card
                 </h2>
                 <p className="text-sm text-neutral-400 dark:text-neutral-500 mt-2">
@@ -1000,7 +1000,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-semibold text-neutral-700 dark:text-neutral-300">
+                <h2 className="text-section-title text-neutral-700 dark:text-neutral-300">
                   Pending Submissions
                 </h2>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
@@ -1032,14 +1032,14 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           {currentPlayer && (
             <div data-tour="your-cards" className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Your Cards</h2>
+                <h2 className="text-section-title">Your Cards</h2>
                 <div data-tour="instructions">
                   <InstructionsModal onStartTour={handleStartTour} />
                 </div>
               </div>
               {handLoading ? (
                 <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
-                  <h3 className="text-lg font-semibold mb-4">Your Hand</h3>
+                  <h3 className="text-section-title mb-4">Your Hand</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div key={i} className="h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
@@ -1082,8 +1082,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       {showEndGameModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 max-w-md w-full border border-neutral-200 dark:border-neutral-800">
-            <h3 className="text-xl font-bold mb-4">End Game?</h3>
-            <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+            <h3 className="text-section-title font-bold mb-4">End Game?</h3>
+            <p className="text-body-muted mb-6">
               This will end the current game, declare a winner (highest points), and start a new game with the same players. All points will be reset.
             </p>
             <div className="flex gap-3">
@@ -1111,8 +1111,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       {showResetPointsModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 max-w-md w-full border border-neutral-200 dark:border-neutral-800">
-            <h3 className="text-xl font-bold mb-4">Reset All Points?</h3>
-            <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+            <h3 className="text-section-title font-bold mb-4">Reset All Points?</h3>
+            <p className="text-body-muted mb-6">
               This will reset all player points to 0. The game will continue with the same state. This is useful if players join late and you want to reset for fairness.
             </p>
             <div className="flex gap-3">

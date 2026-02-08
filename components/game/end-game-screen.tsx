@@ -68,10 +68,10 @@ export function EndGameScreen({
     <div className="min-h-screen bg-gradient-to-b from-neutral-100 to-neutral-200 dark:from-neutral-900 dark:to-neutral-800 flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-lg">
         {/* Header */}
-        <h1 className="text-3xl md:text-4xl font-bold text-center text-neutral-900 dark:text-white mb-2">
+        <h1 className="text-page-title text-center text-neutral-900 dark:text-white mb-2">
           Game Over
         </h1>
-        <p className="text-center text-neutral-600 dark:text-neutral-400 mb-8">
+        <p className="text-center text-body-muted mb-8">
           Room {roomCode}
         </p>
 

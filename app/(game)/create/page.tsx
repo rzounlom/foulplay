@@ -99,7 +99,7 @@ export default function CreateRoomPage() {
       <div className="w-full max-w-2xl">
         <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800">
         <h1 className="text-page-title text-foreground mb-4">Create a Room</h1>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
+        <p className="text-body-muted mb-6">
           Start a new game room and invite your friends to join.
         </p>
 

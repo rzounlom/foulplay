@@ -24,14 +24,14 @@ export function ReactionBar({ roomCode, onSendReaction }: ReactionBarProps) {
 
   return (
     <div className="flex items-center gap-1 flex-wrap">
-      <span className="text-xs text-neutral-500 dark:text-neutral-400 mr-1">React:</span>
+      <span className="text-caption mr-1">React:</span>
       {REACTIONS.map((emoji) => (
         <button
           key={emoji}
           type="button"
           onClick={() => handleClick(emoji)}
           disabled={!!sending}
-          className="text-xl p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-transform hover:scale-110 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="text-xl p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200 hover:scale-110 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           title={`Send ${emoji}`}
           aria-label={`Send reaction ${emoji}`}
         >

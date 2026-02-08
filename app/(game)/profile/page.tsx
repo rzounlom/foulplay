@@ -159,7 +159,7 @@ export default function ProfilePage() {
               placeholder="Enter a default nickname"
               maxLength={50}
             />
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+            <p className="text-caption mt-1">
               This nickname will be used as the default when joining rooms. You can still override it per room.
             </p>
           </div>

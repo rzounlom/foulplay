@@ -140,8 +140,8 @@ export function VotingUI({
   return (
     <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2">Vote on Submission</h3>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+        <h3 className="text-section-title mb-2">Vote on Submission</h3>
+        <p className="text-body-muted">
           Submitted by: {submission.submittedBy.nickname || submission.submittedBy.user.name}
         </p>
       </div>
