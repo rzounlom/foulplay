@@ -1143,7 +1143,7 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
   {
     sport: "basketball",
     title: "Technical Foul",
-    description: "Specific drink/shot instruction",
+    description: "Take 2 drinks",
     severity: "moderate",
     type: "penalty",
     points: 4,
@@ -1151,7 +1151,7 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
   {
     sport: "basketball",
     title: "Player Dunk",
-    description: "Specific drink instruction",
+    description: "Take 2 drinks",
     severity: "moderate",
     type: "penalty",
     points: 4,
