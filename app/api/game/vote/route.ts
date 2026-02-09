@@ -254,8 +254,6 @@ export async function POST(request: NextRequest) {
         voteCounts.rejections
       );
       
-      console.log(`Card ${cardInstance.id}: ${voteCounts.approvals} approvals, ${voteCounts.rejections} rejections, resolution: ${resolution}, totalPlayers: ${totalPlayers}`);
-
       if (resolution === "approved") {
         approvedCards.push(cardInstance);
       } else if (resolution === "rejected") {
@@ -277,7 +275,6 @@ export async function POST(request: NextRequest) {
           submissionId: null, // Remove link to submission since it's resolved
         },
       });
-      console.log(`Resolved ${approvedCards.length} approved cards:`, approvedCardIds);
     }
 
     // Resolve rejected cards (return to hand)
@@ -292,7 +289,6 @@ export async function POST(request: NextRequest) {
           submissionId: null, // Remove link to submission
         },
       });
-      console.log(`Returned ${rejectedCards.length} rejected cards to hand:`, rejectedCardIds);
     }
 
     // Check if submission is fully resolved (all cards are approved or rejected)

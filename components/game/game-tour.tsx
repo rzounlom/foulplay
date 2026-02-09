@@ -149,7 +149,7 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
           body: JSON.stringify({ skipTour: true }),
         });
       } catch (error) {
-        console.error("Failed to save tour preference:", error);
+        if (process.env.NODE_ENV === "development") console.error("Failed to save tour preference:", error);
       }
     }
   }, [dontShowAgain]);

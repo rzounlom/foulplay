@@ -39,7 +39,7 @@ function JoinRoomForm() {
         }
       } catch (err) {
         // Silently fail - user can still enter nickname manually
-        console.error("Failed to fetch default nickname:", err);
+        if (process.env.NODE_ENV === "development") console.error("Failed to fetch default nickname:", err);
       }
     };
 

@@ -40,7 +40,7 @@ export default function ActiveGamesPage() {
           setActiveGames(data.games || []);
         }
       } catch (err) {
-        console.error("Failed to fetch active games:", err);
+        if (process.env.NODE_ENV === "development") console.error("Failed to fetch active games:", err);
       } finally {
         setIsLoading(false);
       }

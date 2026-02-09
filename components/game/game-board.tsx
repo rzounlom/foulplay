@@ -158,7 +158,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         setRoom(roomData);
       }
     } catch (error) {
-      console.error("Failed to fetch room:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to fetch room:", error);
     }
   };
 
@@ -170,7 +170,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         setMessages(data.messages ?? []);
       }
     } catch (error) {
-      console.error("Failed to fetch messages:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to fetch messages:", error);
     }
   }, [roomCode]);
 
@@ -182,7 +182,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         setHand(data.cards || []);
       }
     } catch (error) {
-      console.error("Failed to fetch hand:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to fetch hand:", error);
     } finally {
       setHandLoading(false);
     }
@@ -196,7 +196,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         setSubmissions(data.submissions || []);
       }
     } catch (error) {
-      console.error("Failed to fetch submissions:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to fetch submissions:", error);
     }
   }, [roomCode]);
 
@@ -242,7 +242,6 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
 
   // Subscribe to game events
   useRoomChannel(roomCode, (event: RoomEvent, data: Record<string, unknown>) => {
-    console.log("Received game event:", event);
     // If we're redirecting to end-game, ignore all further events (don't start tour, don't fetch)
     if (isRedirectingToEndGame.current) return;
     // When game ends, redirect all players to end-game page (no alert, no tour)
@@ -336,8 +335,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
               setStartTour(true);
             }
           } catch (error) {
-            // If profile fetch fails, start tour anyway (default behavior)
-            console.error("Failed to check tour preference:", error);
+            if (process.env.NODE_ENV === "development") console.error("Failed to check tour preference:", error);
             setStartTour(true);
           }
         };
@@ -379,7 +377,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         fetchSubmissions();
       }
     } catch (error) {
-      console.error("Failed to submit card:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to submit card:", error);
       toast.addToast("Failed to submit card", "error");
     } finally {
       setIsSubmitting(false);
@@ -404,7 +402,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         fetchHand();
       }
     } catch (error) {
-      console.error("Failed to vote:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to vote:", error);
       toast.addToast("Failed to vote", "error");
     }
   };
@@ -432,7 +430,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       setShowEndGameModal(false);
       router.push(`/game/${roomCode}/end-game`);
     } catch (error) {
-      console.error("Failed to end game:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to end game:", error);
       toast.addToast(error instanceof Error ? error.message : "Failed to end game", "error");
     } finally {
       setIsEndingGame(false);
@@ -456,7 +454,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       setShowResetPointsModal(false);
       // Data will be refreshed via Ably events
     } catch (error) {
-      console.error("Failed to reset points:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to reset points:", error);
       toast.addToast(error instanceof Error ? error.message : "Failed to reset points", "error");
     } finally {
       setIsResettingPoints(false);
@@ -479,7 +477,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       setSelectedCardIds([]);
       fetchHand();
     } catch (error) {
-      console.error("Failed to discard cards:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to discard cards:", error);
       alert(error instanceof Error ? error.message : "Failed to discard cards");
     }
   };
@@ -500,7 +498,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       setSelectedCardIds([]);
       fetchRoom();
     } catch (error) {
-      console.error("Failed to save quarter discard selection:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to save quarter discard selection:", error);
       alert(
         error instanceof Error ? error.message : "Failed to save selection"
       );
@@ -717,7 +715,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                               setRoom(updatedRoom);
                             }
                           } catch (err) {
-                            console.error("Failed to update showPoints:", err);
+                            if (process.env.NODE_ENV === "development") console.error("Failed to update showPoints:", err);
                           }
                         }}
                       />
@@ -738,7 +736,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                               setRoom(updatedRoom);
                             }
                           } catch (err) {
-                            console.error("Failed to update allowJoinInProgress:", err);
+                            if (process.env.NODE_ENV === "development") console.error("Failed to update allowJoinInProgress:", err);
                           }
                         }}
                       />
@@ -788,7 +786,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                           setRoom(updatedRoom);
                         }
                       } catch (error) {
-                        console.error("Failed to update showPoints:", error);
+                        if (process.env.NODE_ENV === "development") console.error("Failed to update showPoints:", error);
                       }
                     }}
                   />
@@ -813,10 +811,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                           setRoom(updatedRoom);
                         }
                       } catch (error) {
-                        console.error(
-                          "Failed to update allowJoinInProgress:",
-                          error
-                        );
+                        if (process.env.NODE_ENV === "development") console.error("Failed to update allowJoinInProgress:", error);
                       }
                     }}
                   />
@@ -863,7 +858,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                         toast.addToast(data.error || "Failed to end round", "error");
                                       }
                                     } catch (error) {
-                                      console.error("Failed to end round:", error);
+                                      if (process.env.NODE_ENV === "development") console.error("Failed to end round:", error);
                                       toast.addToast("Failed to end round", "error");
                                     }
                                   }}
@@ -886,7 +881,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                         toast.addToast(data.error || "Failed to reset round", "error");
                                       }
                                     } catch (error) {
-                                      console.error("Failed to reset round:", error);
+                                      if (process.env.NODE_ENV === "development") console.error("Failed to reset round:", error);
                                       toast.addToast("Failed to reset round", "error");
                                     }
                                   }}
@@ -913,7 +908,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                   alert(data.error || "Failed to update turn-in control");
                                 }
                               } catch (error) {
-                                console.error("Failed to update turn-in control:", error);
+                                if (process.env.NODE_ENV === "development") console.error("Failed to update turn-in control:", error);
                                 alert("Failed to update turn-in control");
                               }
                             }}
@@ -990,7 +985,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                           alert(data.error || "Failed to end intermission");
                         }
                       } catch (error) {
-                        console.error("Failed to finalize quarter:", error);
+                        if (process.env.NODE_ENV === "development") console.error("Failed to finalize quarter:", error);
                         alert("Failed to end intermission");
                       }
                     }}

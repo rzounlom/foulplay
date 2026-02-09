@@ -60,7 +60,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
         setRoom(updatedRoom);
       }
     } catch (error) {
-      console.error("Failed to update room settings:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to update room settings:", error);
     } finally {
       setIsUpdatingSettings(false);
     }
@@ -75,24 +75,17 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
         setRoom(roomData);
       }
     } catch (error) {
-      console.error("Failed to fetch room:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to fetch room:", error);
     }
   };
 
   // Subscribe to room events
-  useRoomChannel(roomCode, (event: RoomEvent, data) => {
-    console.log("Received Ably event:", event, data);
+  useRoomChannel(roomCode, (event: RoomEvent) => {
     if (event === "player_joined") {
-      // Refetch room data when a player joins
-      console.log("Player joined, refetching room data...");
       fetchRoom();
     } else if (event === "room_settings_updated") {
-      // Refetch room data when settings are updated
       fetchRoom();
     } else if (event === "game_started") {
-      // Game started, refresh the page to show game board
-      // The server component will re-render with the new status
-      console.log("Game started, refreshing page...");
       router.refresh();
     }
   });
@@ -118,7 +111,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
       // The server component will re-fetch with the new status
       router.refresh();
     } catch (error) {
-      console.error("Failed to start game:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to start game:", error);
     } finally {
       setIsStarting(false);
     }
@@ -139,7 +132,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error("Failed to copy URL:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to copy URL:", error);
     }
   };
 

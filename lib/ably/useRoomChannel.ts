@@ -80,14 +80,12 @@ export function useRoomChannel(
       if (!isCleaningUpRef.current) {
         setIsConnected(true);
         setConnectionError(null);
-        console.log(`[Ably] Connected to room:${roomCode}`);
       }
     });
 
     client.connection.on("disconnected", () => {
       if (!isCleaningUpRef.current) {
         setIsConnected(false);
-        console.log(`[Ably] Disconnected from room:${roomCode}`);
       }
     });
 
@@ -97,7 +95,7 @@ export function useRoomChannel(
         setConnectionError(
           new Error(`Connection failed: ${stateChange.reason}`)
         );
-        console.error(`[Ably] Connection failed for room:${roomCode}`, stateChange.reason);
+        if (process.env.NODE_ENV === "development") console.error(`[Ably] Connection failed for room:${roomCode}`, stateChange.reason);
       }
     });
 
@@ -108,7 +106,6 @@ export function useRoomChannel(
     // Subscribe to all events
     // Use onEventRef.current to always call the latest callback without re-subscribing
     channel.subscribe((message) => {
-      console.log(`[Ably] Received event: ${message.name}`, message.data);
       if (onEventRef.current && message.name) {
         onEventRef.current(message.name as RoomEvent, message.data as RoomEventData);
       }
@@ -118,23 +115,19 @@ export function useRoomChannel(
     // Check channel state first to avoid attaching when already attached or detaching
     const channelState = channel.state;
     if (channelState === "attached") {
-      console.log(`[Ably] Already attached to channel room:${roomCode}`);
+      // Already attached, no-op
     } else if (channelState === "detached" || channelState === "failed") {
       // Only attach if channel is detached or failed
-      channel.attach().then(() => {
-        console.log(`[Ably] Attached to channel room:${roomCode}`);
-      }).catch((err) => {
+      channel.attach().then(() => {}).catch((err) => {
         // Only log if it's not a state-related error (which is expected during cleanup)
-        const errorMessage = err?.message || err?.toString() || "";
-        if (!errorMessage.includes("state = detached") && !errorMessage.includes("state = detaching")) {
+                    const errorMessage = err?.message || err?.toString() || "";
+                    if (process.env.NODE_ENV === "development" && !errorMessage.includes("state = detached") && !errorMessage.includes("state = detaching")) {
           console.error(`[Ably] Failed to attach to channel room:${roomCode}`, err);
         }
       });
     } else if (channelState === "attaching") {
       // Channel is already attaching, wait for it to complete
-      channel.attach().then(() => {
-        console.log(`[Ably] Attached to channel room:${roomCode}`);
-      }).catch(() => {
+      channel.attach().then(() => {}).catch(() => {
         // Silently ignore - channel might already be attached
       });
     } else {
@@ -142,13 +135,9 @@ export function useRoomChannel(
       setTimeout(() => {
         const currentState = channel.state;
         if (currentState === "detached" || currentState === "failed") {
-          channel.attach().then(() => {
-            console.log(`[Ably] Attached to channel room:${roomCode} after retry`);
-          }).catch(() => {
+          channel.attach().then(() => {}).catch(() => {
             // Silently ignore retry failures
           });
-        } else if (currentState === "attached") {
-          console.log(`[Ably] Channel room:${roomCode} attached during retry wait`);
         }
       }, 100);
     }
@@ -185,8 +174,7 @@ export function useRoomChannel(
                     // Silently ignore expected errors during cleanup
                     // These are normal when component unmounts quickly
                     const errorMessage = err?.message || err?.toString() || "";
-                    if (!errorMessage.includes("state = detached") && !errorMessage.includes("state = detaching")) {
-                      // Only log unexpected errors
+                    if (process.env.NODE_ENV === "development" && !errorMessage.includes("state = detached") && !errorMessage.includes("state = detaching")) {
                       console.warn(`[Ably] Unexpected error during channel detach:`, err);
                     }
                   });
@@ -245,7 +233,7 @@ export function useRoomChannel(
     try {
       await channelRef.current.publish(event, data);
     } catch (error) {
-      console.error("Failed to publish event:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to publish event:", error);
       throw error;
     }
   };

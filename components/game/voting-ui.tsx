@@ -109,7 +109,7 @@ export function VotingUI({
     try {
       await onVote(submission.id, [cardInstanceId], vote);
     } catch (error) {
-      console.error("Failed to vote:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to vote:", error);
     } finally {
       setIsVoting((prev) => ({ ...prev, [cardInstanceId]: false }));
     }
@@ -128,7 +128,7 @@ export function VotingUI({
     try {
       await onVote(submission.id, allCardIds, vote);
     } catch (error) {
-      console.error("Failed to vote:", error);
+      if (process.env.NODE_ENV === "development") console.error("Failed to vote:", error);
     } finally {
       // Clear all voting states
       const clearedState: Record<string, boolean> = {};
