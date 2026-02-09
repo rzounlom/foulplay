@@ -66,26 +66,24 @@ export function PendingDiscard({
             >
               Remove
             </Button>
-            <div className="flex items-start justify-between gap-1 lg:gap-2 mb-1 lg:mb-1.5 pr-12 lg:pr-14">
-              <h4 className="font-semibold text-[10px] lg:text-xs leading-tight flex-1 min-w-0 truncate">
-                {cardInstance.card.title}
-              </h4>
-              <div className="flex flex-col items-end gap-0.5 lg:gap-1 shrink-0">
-                <span
-                  className={`px-1 py-0.5 rounded text-[9px] lg:text-[10px] font-medium whitespace-nowrap ${
-                    cardInstance.card.severity === "severe"
-                      ? "bg-red-500/20 text-red-600 dark:text-red-400"
-                      : cardInstance.card.severity === "moderate"
-                      ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
-                      : "bg-green-500/20 text-green-600 dark:text-green-400"
-                  }`}
-                >
-                  {cardInstance.card.severity}
-                </span>
-                <span className="px-1 py-0.5 bg-accent/20 text-accent rounded text-[9px] lg:text-[10px] font-medium whitespace-nowrap">
-                  {cardInstance.card.points} pts
-                </span>
-              </div>
+            <h4 className="font-semibold text-[10px] lg:text-xs leading-tight truncate mb-1 lg:mb-1.5 pr-10 lg:pr-12">
+              {cardInstance.card.title}
+            </h4>
+            <div className="flex flex-wrap items-center gap-1 lg:gap-2 mb-1 lg:mb-1.5 pr-10 lg:pr-12">
+              <span
+                className={`px-1 py-0.5 rounded text-[9px] lg:text-[10px] font-medium whitespace-nowrap ${
+                  cardInstance.card.severity === "severe"
+                    ? "bg-red-500/20 text-red-600 dark:text-red-400"
+                    : cardInstance.card.severity === "moderate"
+                    ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                    : "bg-green-500/20 text-green-600 dark:text-green-400"
+                }`}
+              >
+                {cardInstance.card.severity}
+              </span>
+              <span className="px-1 py-0.5 bg-accent/20 text-accent rounded text-[9px] lg:text-[10px] font-medium whitespace-nowrap">
+                {cardInstance.card.points} pts
+              </span>
             </div>
             <p className="text-[9px] lg:text-[11px] text-neutral-600 dark:text-neutral-400 line-clamp-1 lg:line-clamp-2 leading-tight">
               {getCardDescriptionForDisplay(cardInstance.card.description, roomMode)}

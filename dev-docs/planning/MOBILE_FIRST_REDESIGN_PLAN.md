@@ -152,7 +152,15 @@ Use a single, consistent set of breakpoints across the app:
 - **Submission cards** (cards in a submission): Same idea — smaller on mobile, 3 per row where it makes sense. In `VotingUI` and `SubmissionPending`, use a responsive grid (e.g. `grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3`) and reduced padding/font sizes for the card tiles.
 - **Pending Discard:** Reuse the same compact card style when in discard flow.
 
-### 6.3 Summary
+### 6.3 Card layout: title then pills on one row
+
+- **Rework game card layout** so it stays readable on small screens:
+  - **Row 1:** Card title only (full width, truncate if needed).
+  - **Row 2:** Severity pill and points pill on **one row** (e.g. `flex gap-1` or `flex gap-2`), directly under the title.
+  - **Row 3:** Description (line-clamp as above).
+- This avoids stacking severity/points in a column beside the title and keeps the card block compact and scannable on mobile.
+
+### 6.4 Summary
 
 | Area              | Mobile (default)     | Tablet (md)   | Desktop (lg)   |
 |-------------------|----------------------|---------------|----------------|
@@ -161,6 +169,7 @@ Use a single, consistent set of breakpoints across the app:
 | Card padding      | p-2                  | p-2.5         | p-3            |
 | Title font        | text-[10px] / xs     | text-xs       | text-xs/sm     |
 | Description       | line-clamp-1 or hide | line-clamp-2  | line-clamp-2   |
+| Pills             | One row under title  | Same          | Same           |
 
 ---
 
