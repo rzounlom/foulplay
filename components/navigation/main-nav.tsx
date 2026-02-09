@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
@@ -8,6 +9,21 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 export function MainNav() {
   const { isSignedIn, isLoaded } = useUser();
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar on escape; lock body scroll when open
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSidebarOpen(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "";
+    };
+  }, [sidebarOpen]);
 
   // Don't show nav on auth pages
   if (pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up")) {
@@ -17,7 +33,6 @@ export function MainNav() {
   const isActive = (path: string, options?: { exact?: boolean }) => {
     if (!pathname) return false;
     if (options?.exact) return pathname === path;
-    // For /active-games, also treat /game/* as active (in-game or end-game)
     if (path === "/active-games") return pathname === path || pathname.startsWith("/game/");
     return pathname === path;
   };
@@ -29,50 +44,117 @@ export function MainNav() {
         : "text-neutral-600 dark:text-neutral-400 hover:text-primary hover:bg-surface-muted"
     }`;
 
+  const navLinks = (
+    <>
+      <Link href="/" className={linkClass("/")} onClick={() => setSidebarOpen(false)}>
+        Home
+      </Link>
+      <Link href="/create" className={linkClass("/create")} onClick={() => setSidebarOpen(false)}>
+        Create Room
+      </Link>
+      <Link href="/join" className={linkClass("/join")} onClick={() => setSidebarOpen(false)}>
+        Join Room
+      </Link>
+      <Link href="/active-games" className={linkClass("/active-games")} onClick={() => setSidebarOpen(false)}>
+        Active Games
+      </Link>
+      <Link href="/profile" className={linkClass("/profile")} onClick={() => setSidebarOpen(false)}>
+        Profile
+      </Link>
+    </>
+  );
+
   return (
-    <nav className="border-b border-border bg-surface shadow-sm dark:shadow-none">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo/Brand */}
-          <Link href="/" className="text-2xl font-bold text-primary hover:opacity-80 cursor-pointer">
-            FoulPlay
-          </Link>
-
-          {/* Navigation Links */}
-          {isLoaded && isSignedIn && (
-            <div className="flex items-center gap-2">
-              <Link href="/" className={linkClass("/")}>
-                Home
-              </Link>
-              <Link href="/create" className={linkClass("/create")}>
-                Create Room
-              </Link>
-              <Link href="/join" className={linkClass("/join")}>
-                Join Room
-              </Link>
-              <Link href="/active-games" className={linkClass("/active-games")}>
-                Active Games
-              </Link>
-              <Link href="/profile" className={linkClass("/profile")}>
-                Profile
-              </Link>
-
-              <ThemeToggle />
-              <UserButton afterSignOutUrl="/" />
-            </div>
-          )}
-
-          {/* Sign In Link (if not signed in) */}
-          {isLoaded && !isSignedIn && (
-            <Link
-              href="/sign-in"
-              className="text-sm font-medium text-primary hover:opacity-80 cursor-pointer px-3 py-2 rounded-md transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              Sign In
+    <>
+      <nav className="border-b border-border bg-surface shadow-sm dark:shadow-none">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo/Brand */}
+            <Link href="/" className="text-2xl font-bold text-primary hover:opacity-80 cursor-pointer">
+              FoulPlay
             </Link>
-          )}
+
+            {/* Desktop: full nav links (lg and up) */}
+            {isLoaded && isSignedIn && (
+              <div className="hidden lg:flex items-center gap-2">
+                {navLinks}
+                <ThemeToggle />
+                <UserButton afterSignOutUrl="/" />
+              </div>
+            )}
+
+            {/* Mobile/Tablet: hamburger + theme + user only */}
+            {isLoaded && isSignedIn && (
+              <div className="flex lg:hidden items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(true)}
+                  className="p-2 rounded-md text-neutral-600 dark:text-neutral-400 hover:text-primary hover:bg-surface-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  aria-label="Open menu"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+                <ThemeToggle />
+                <UserButton afterSignOutUrl="/" />
+              </div>
+            )}
+
+            {/* Sign In (desktop) */}
+            {isLoaded && !isSignedIn && (
+              <Link
+                href="/sign-in"
+                className="text-sm font-medium text-primary hover:opacity-80 cursor-pointer px-3 py-2 rounded-md transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Sign In
+              </Link>
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Mobile/Tablet slide-out sidebar */}
+      {sidebarOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-[9998] lg:hidden transition-opacity"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden
+          />
+          <div
+            className="fixed top-0 left-0 h-full w-[min(320px,85vw)] bg-surface border-r border-border shadow-xl z-[9999] lg:hidden flex flex-col animate-slide-in-from-left"
+            role="dialog"
+            aria-label="Navigation menu"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <span className="text-lg font-bold text-primary">Menu</span>
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                className="p-2 rounded-md text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                aria-label="Close menu"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex flex-col gap-1 p-4">
+              {isLoaded && isSignedIn && navLinks}
+              {isLoaded && !isSignedIn && (
+                <Link
+                  href="/sign-in"
+                  className="text-sm font-medium text-primary hover:opacity-80 cursor-pointer px-3 py-2 rounded-md"
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  Sign In
+                </Link>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }

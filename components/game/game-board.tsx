@@ -144,6 +144,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [recentReactions, setRecentReactions] = useState<ReactionEvent[]>([]);
   const [exitingReactionIds, setExitingReactionIds] = useState<Set<string>>(new Set());
   const [pointsAwardedPopup, setPointsAwardedPopup] = useState<{ points: number } | null>(null);
+  const [playersPanelOpen, setPlayersPanelOpen] = useState(false);
 
   const router = useRouter();
   const toast = useToast();
@@ -603,6 +604,21 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
               onSendReaction={handleSendReaction}
             />
           </span>
+          <span data-tour="players-button" className="lg:hidden">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setPlayersPanelOpen(true)}
+              className="inline-flex items-center gap-1.5 border border-border bg-surface hover:bg-surface-muted"
+              aria-label="Open players"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              Players {room.players.length > 0 && `(${room.players.length})`}
+            </Button>
+          </span>
           <span data-tour="chat-button">
             <Button
               type="button"
@@ -655,9 +671,101 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         }}
       />
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Left Column - Host Controls (top) & Players */}
-        <div className="md:col-span-1 space-y-6">
+      {/* Players slide-out panel (mobile/tablet only) */}
+      {playersPanelOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-[9000] lg:hidden"
+            onClick={() => setPlayersPanelOpen(false)}
+            aria-hidden
+          />
+          <div
+            className="fixed top-0 right-0 h-full w-[min(320px,85vw)] bg-surface border-l border-border shadow-xl z-[9001] lg:hidden flex flex-col animate-slide-in-right"
+            role="dialog"
+            aria-label="Players and host controls"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
+              <h2 className="text-lg font-bold text-foreground">Players</h2>
+              <button
+                type="button"
+                onClick={() => setPlayersPanelOpen(false)}
+                className="p-2 rounded-md text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                aria-label="Close players"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {isHost && (
+                <div className="p-4 bg-surface-muted rounded-lg border border-border">
+                  <h4 className="text-section-title mb-3 text-neutral-700 dark:text-neutral-300">Host Controls</h4>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={room.showPoints}
+                        onChange={async (e) => {
+                          try {
+                            const response = await fetch(`/api/rooms/${roomCode}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ showPoints: e.target.checked }),
+                            });
+                            if (response.ok) {
+                              const updatedRoom = await response.json();
+                              setRoom(updatedRoom);
+                            }
+                          } catch (err) {
+                            console.error("Failed to update showPoints:", err);
+                          }
+                        }}
+                      />
+                      <span className="text-sm text-neutral-700 dark:text-neutral-300">Show all players&apos; points</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={room.allowJoinInProgress ?? false}
+                        onChange={async (e) => {
+                          try {
+                            const response = await fetch(`/api/rooms/${roomCode}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ allowJoinInProgress: e.target.checked }),
+                            });
+                            if (response.ok) {
+                              const updatedRoom = await response.json();
+                              setRoom(updatedRoom);
+                            }
+                          } catch (err) {
+                            console.error("Failed to update allowJoinInProgress:", err);
+                          }
+                        }}
+                      />
+                      <span className="text-sm text-neutral-700 dark:text-neutral-300">Allow new users to join</span>
+                    </label>
+                    <div className="pt-2 border-t border-border space-y-2">
+                      <Button variant="outline-primary" fullWidth size="sm" onClick={() => setShowResetPointsModal(true)}>
+                        Reset Points
+                      </Button>
+                      <Button variant="outline-destructive" fullWidth size="sm" onClick={() => setShowEndGameModal(true)}>
+                        End Game
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="bg-surface rounded-lg p-4 border border-border">
+                <PlayerList players={room.players} currentUserId={currentUserId} showPoints={room.showPoints} />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Left Column - Host Controls (top) & Players — desktop only; on mobile/tablet use Players panel */}
+        <div className="hidden lg:block lg:col-span-1 space-y-6">
           {/* Host Controls - at top so always visible with many players */}
           {isHost && (
             <div data-tour="host-controls" className="p-4 bg-surface-muted rounded-lg border border-border shadow-sm dark:shadow-none">
@@ -846,8 +954,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           </div>
         </div>
 
-        {/* Center Column - Game Area */}
-        <div className="md:col-span-2 space-y-6">
+        {/* Center Column - Game Area (full width on mobile/tablet) */}
+        <div className="lg:col-span-2 space-y-6">
           {/* Round intermission callout — above Pending Submissions/Discard, compact like heading row */}
           {showQuarterControls && isQuarterIntermission && (
             <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border-2 border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/30">
@@ -891,6 +999,53 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                   </Button>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Your Cards first — hand always in view */}
+          {currentPlayer && (
+            <div data-tour="your-cards" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-section-title">Your Cards</h2>
+                <div data-tour="instructions">
+                  <InstructionsModal onStartTour={handleStartTour} />
+                </div>
+              </div>
+              {handLoading ? (
+                <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
+                  <h3 className="text-section-title mb-4">Your Hand</h3>
+                  <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="h-20 lg:h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+              <Hand
+                cards={hand}
+                onCardSelect={(cardId) => {
+                  setSelectedCardIds((prev) =>
+                    prev.includes(cardId)
+                      ? prev.filter((id) => id !== cardId)
+                      : [...prev, cardId]
+                  );
+                }}
+                onCardSubmit={handleSubmitCard}
+                onCardDiscard={handleDiscardCards}
+                onQuarterDiscardSelection={handleQuarterDiscardSelection}
+                selectedCardIds={selectedCardIds}
+                handSize={room.handSize || 5}
+                allowQuarterClearing={room.allowQuarterClearing}
+                currentQuarter={room.currentQuarter}
+                canTurnInCards={room.canTurnInCards}
+                isQuarterIntermission={isQuarterIntermission}
+                intermissionSecondsLeft={intermissionSecondsLeft}
+                myQuarterSelectionIds={
+                  (room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer?.id] ?? []
+                }
+                roomMode={room.mode}
+              />
+              )}
             </div>
           )}
 
@@ -1032,53 +1187,6 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 intermissionSecondsLeft={intermissionSecondsLeft}
                 roomMode={room.mode}
               />
-            </div>
-          )}
-
-          {/* Player Hand */}
-          {currentPlayer && (
-            <div data-tour="your-cards" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-section-title">Your Cards</h2>
-                <div data-tour="instructions">
-                  <InstructionsModal onStartTour={handleStartTour} />
-                </div>
-              </div>
-              {handLoading ? (
-                <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
-                  <h3 className="text-section-title mb-4">Your Hand</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-              <Hand
-                cards={hand}
-                onCardSelect={(cardId) => {
-                  setSelectedCardIds((prev) => 
-                    prev.includes(cardId) 
-                      ? prev.filter(id => id !== cardId)
-                      : [...prev, cardId]
-                  );
-                }}
-                onCardSubmit={handleSubmitCard}
-                onCardDiscard={handleDiscardCards}
-                onQuarterDiscardSelection={handleQuarterDiscardSelection}
-                selectedCardIds={selectedCardIds}
-                handSize={room.handSize || 5}
-                allowQuarterClearing={room.allowQuarterClearing}
-                currentQuarter={room.currentQuarter}
-                canTurnInCards={room.canTurnInCards}
-                isQuarterIntermission={isQuarterIntermission}
-                intermissionSecondsLeft={intermissionSecondsLeft}
-                myQuarterSelectionIds={
-                  (room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer?.id] ?? []
-                }
-                roomMode={room.mode}
-              />
-              )}
             </div>
           )}
 
