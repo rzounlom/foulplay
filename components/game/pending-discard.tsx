@@ -51,7 +51,7 @@ export function PendingDiscard({
 
       {/* Cards Display - same layout as SubmissionPending */}
       {cardInstances.length > 0 ? (
-      <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 lg:gap-3">
         {cardInstances.map((cardInstance) => (
           <div
             key={cardInstance.id}

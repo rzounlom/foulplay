@@ -54,7 +54,7 @@ export function SubmissionPending({ submission, totalPlayers, roomMode = null }:
       </div>
 
       {/* Cards Display */}
-      <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 lg:gap-3 mb-4">
         {submission.cardInstances.map((cardInstance, index) => (
           <div
             key={cardInstance.id}

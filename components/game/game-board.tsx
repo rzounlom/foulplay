@@ -1014,7 +1014,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
               {handLoading ? (
                 <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
                   <h3 className="text-section-title mb-4">Your Hand</h3>
-                  <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 lg:gap-3">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div key={i} className="h-20 lg:h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
                     ))}

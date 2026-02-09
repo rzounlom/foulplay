@@ -139,9 +139,9 @@ Use a single, consistent set of breakpoints across the app:
 **Current:** Grid `grid-cols-1 md:grid-cols-2 lg:grid-cols-3`; cards have padding, title, severity, points, description (line-clamp-2).
 
 **New:**
-- **Mobile (default):** `grid-cols-3` — always 3 cards per row. Reduce padding (e.g. `p-2`), smaller font sizes (e.g. title `text-[10px]` or `text-xs`), single line for title (truncate), description `line-clamp-1` or hidden on smallest screens. Severity and points remain visible (tiny badges).
-- **Tablet (md):** Can stay 3 per row or allow 4 per row (`md:grid-cols-4`) with slightly larger tap targets.
-- **Desktop (lg+):** Keep or refine current card size (e.g. `lg:grid-cols-3` with current padding and text sizes).
+- **Mobile (default):** `grid-cols-2` — 2 cards per row. Reduce padding (e.g. `p-2`), smaller font sizes, single line for title (truncate), description `line-clamp-1`. Severity and points on one row under title.
+- **Tablet (md) and up:** `md:grid-cols-3` — 3 cards per row.
+- **Desktop (lg+):** Same 3 per row with current padding and text sizes.
 
 **Card component structure (hand):**
 - Use a single shared card layout that accepts a “compact” or “size” prop, or use responsive classes only (e.g. `p-2 lg:p-3`, `text-[10px] lg:text-xs`).
@@ -149,7 +149,7 @@ Use a single, consistent set of breakpoints across the app:
 
 ### 6.2 Pending Submissions & Voting UI
 
-- **Submission cards** (cards in a submission): Same idea — smaller on mobile, 3 per row where it makes sense. In `VotingUI` and `SubmissionPending`, use a responsive grid (e.g. `grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3`) and reduced padding/font sizes for the card tiles.
+- **Submission cards** (cards in a submission): Same idea — smaller on mobile, 2 per row on mobile and 3 per row on tablet+. In `VotingUI` and `SubmissionPending`, use `grid grid-cols-2 md:grid-cols-3` and reduced padding/font sizes for the card tiles.
 - **Pending Discard:** Reuse the same compact card style when in discard flow.
 
 ### 6.3 Card layout: title then pills on one row
@@ -164,8 +164,8 @@ Use a single, consistent set of breakpoints across the app:
 
 | Area              | Mobile (default)     | Tablet (md)   | Desktop (lg)   |
 |-------------------|----------------------|---------------|----------------|
-| Hand cards        | 3 per row, compact   | 3–4 per row   | Current size   |
-| Submission cards  | 3 per row, compact   | 2–3 per row   | Current        |
+| Hand cards        | 2 per row, compact   | 3 per row     | Current size   |
+| Submission cards  | 2 per row, compact   | 3 per row     | Current        |
 | Card padding      | p-2                  | p-2.5         | p-3            |
 | Title font        | text-[10px] / xs     | text-xs       | text-xs/sm     |
 | Description       | line-clamp-1 or hide | line-clamp-2  | line-clamp-2   |
