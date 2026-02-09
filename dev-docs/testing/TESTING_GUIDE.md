@@ -1,5 +1,19 @@
 # FoulPlay Testing Guide
 
+## CI & local checks
+
+- **Typecheck:** `npm run typecheck` — runs `tsc --noEmit` on app/lib (excludes `tests/`). Fix type errors in source before pushing.
+- **Lint:** `npm run lint` — ESLint (Next.js config).
+- **Unit & integration tests:** `npm run test` — Jest; use `npm run test:watch` during development.
+
+**Pre-commit (Husky):** typecheck → lint → test. All must pass to commit.
+
+**Pre-push (Husky):** `npm run build` to ensure the app builds.
+
+**GitHub Actions (CI):** On push/PR to `main` or `develop`, one job runs: typecheck → lint → test (Jest with `--ci`) → build. Required env (or dummy) for build: `DATABASE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `ABLY_API_KEY`.
+
+---
+
 ## ✅ Features Ready to Test
 
 Based on the implementation, here's what you can test right now:

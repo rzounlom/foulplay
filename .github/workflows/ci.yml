@@ -7,7 +7,8 @@ on:
     branches: [main, develop]
 
 jobs:
-  test:
+  lint-typecheck-test:
+    name: Lint, typecheck & test
     runs-on: ubuntu-latest
 
     steps:
@@ -27,11 +28,14 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://user:password@localhost:5432/test' }}
 
-      - name: Run linter
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
         run: npm run lint
 
-      - name: Run tests
-        run: npm test
+      - name: Test
+        run: npm test -- --ci
 
       - name: Build
         run: npm run build
