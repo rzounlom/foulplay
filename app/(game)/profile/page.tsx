@@ -96,9 +96,9 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-6 bg-background">
+      <div className="flex min-h-screen items-center justify-center px-4 py-6 bg-background">
         <div className="w-full max-w-2xl">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
+          <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
             <p className="text-center">Loading profile...</p>
           </div>
         </div>
@@ -107,46 +107,46 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl min-h-screen bg-background">
-      <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
-        <h1 className="text-page-title text-foreground mb-6">Profile</h1>
+    <div className="container mx-auto px-4 py-6 md:py-8 max-w-4xl min-h-screen bg-background">
+      <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
+        <h1 className="text-xl md:text-page-title text-foreground mb-4 md:mb-6">Profile</h1>
 
         {error && (
-          <div className="mb-6 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded">
+          <div className="mb-4 md:mb-6 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-sm">
             {error}
           </div>
         )}
 
         {/* User Stats */}
         {profile && (
-          <div className="mb-8">
-            <h2 className="text-section-title text-foreground mb-4">Statistics</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+          <div className="mb-6 md:mb-8">
+            <h2 className="text-lg md:text-section-title text-foreground mb-3 md:mb-4">Statistics</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+              <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4 min-h-[80px] flex flex-col justify-center">
                 <div className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
                   Games Played
                 </div>
-                <div className="text-2xl font-bold">{profile.gamesPlayed}</div>
+                <div className="text-xl md:text-2xl font-bold">{profile.gamesPlayed}</div>
               </div>
-              <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+              <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4 min-h-[80px] flex flex-col justify-center">
                 <div className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
                   Games Won
                 </div>
-                <div className="text-2xl font-bold">{profile.gamesWon}</div>
+                <div className="text-xl md:text-2xl font-bold">{profile.gamesWon}</div>
               </div>
-              <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+              <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4 min-h-[80px] flex flex-col justify-center">
                 <div className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
                   Total Points
                 </div>
-                <div className="text-2xl font-bold">{profile.totalPoints}</div>
+                <div className="text-xl md:text-2xl font-bold">{profile.totalPoints}</div>
               </div>
             </div>
           </div>
         )}
 
         {/* Profile Settings */}
-        <div className="space-y-6">
-          <h2 className="text-section-title text-foreground">Settings</h2>
+        <div className="space-y-4 md:space-y-6">
+          <h2 className="text-lg md:text-section-title text-foreground">Settings</h2>
 
           {/* Default Nickname */}
           <div>
@@ -158,6 +158,7 @@ export default function ProfilePage() {
               onChange={(e) => setDefaultNickname(e.target.value.slice(0, 50))}
               placeholder="Enter a default nickname"
               maxLength={50}
+              className="min-h-[48px]"
             />
             <p className="text-caption mt-1">
               This nickname will be used as the default when joining rooms. You can still override it per room.
@@ -165,7 +166,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Skip Tour */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-h-[44px]">
             <Checkbox
               id="skipTour"
               checked={skipTour}
@@ -183,6 +184,7 @@ export default function ProfilePage() {
             fullWidth
             onClick={handleSave}
             isLoading={isSaving}
+            className="min-h-[48px]"
           >
             Save Changes
           </Button>

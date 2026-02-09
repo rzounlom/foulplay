@@ -137,22 +137,22 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl min-h-screen bg-background">
-      <div className="mb-8">
-        <h1 className="text-page-title text-foreground mb-4">Room {room.code}</h1>
-        <div className="flex items-center gap-2 p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
+    <div className="container mx-auto px-4 py-6 md:p-6 max-w-4xl min-h-screen bg-background">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-xl md:text-page-title text-foreground mb-3 md:mb-4">Room {room.code}</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 md:p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
           <Input
             type="text"
             value={roomUrl}
             readOnly
-            className="flex-1 border-0 bg-transparent p-0 focus:ring-0 focus:ring-offset-0"
+            className="flex-1 min-w-0 border-0 bg-transparent p-0 text-sm md:text-base focus:ring-0 focus:ring-offset-0"
             onClick={(e) => (e.target as HTMLInputElement).select()}
           />
           <Button
             variant={copied ? "success" : "primary"}
             size="md"
             onClick={handleCopyUrl}
-            className="whitespace-nowrap"
+            className="whitespace-nowrap min-h-[44px] sm:min-h-0 shrink-0"
           >
             {copied ? (
               <>
@@ -171,14 +171,14 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-2">
+        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
           <PlayerList players={room.players} currentUserId={currentUserId} showPoints={room.showPoints} />
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
-            <h3 className="text-section-title text-foreground mb-4">Game Settings</h3>
+        <div className="space-y-4 md:space-y-6">
+          <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
+            <h3 className="text-lg md:text-section-title text-foreground mb-3 md:mb-4">Game Settings</h3>
             <div className="space-y-4">
               <div>
                 <Label className="mb-2 text-neutral-600 dark:text-neutral-400">Mode</Label>
@@ -290,6 +290,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
               onClick={handleStartGame}
               disabled={!canStart}
               isLoading={isStarting}
+              className="min-h-[48px]"
             >
               {room.players.length < 2
                 ? "Need at least 2 players"

@@ -247,9 +247,19 @@ Use a single, consistent set of breakpoints across the app:
 
 ## 10. Out of Scope (for this plan)
 
-- Changes to lobby, create room, join room, or profile pages (can be done later with same mobile-first principles).
 - Actual native mobile app (this plan is “web app that looks/feels like an app” on tablet and mobile).
 - Changes to game logic or API.
+
+### Phase 6 — Other pages (done)
+
+Mobile-first was extended to lobby, create room, join room, profile, active games, and home using the same breakpoints (0 / 768px `md` / 1024px `lg`):
+
+- **Lobby** (`components/game/lobby.tsx`): Responsive padding (`px-4 py-6 md:p-6`), URL row stacks on small screens (`flex-col sm:flex-row`), copy button min-height 44px, card padding `p-4 md:p-6`, section titles `text-lg md:text-section-title`, Start Game button `min-h-[48px]`.
+- **Create room** (`app/(game)/create/page.tsx`): Responsive outer and card padding, responsive title/body, primary button `min-h-[48px]`, loading state aligned.
+- **Join room** (`app/(game)/join/page.tsx`): Same pattern; room code and nickname inputs `min-h-[48px]`, Join button `min-h-[48px]`, Suspense fallback aligned.
+- **Profile** (`app/(game)/profile/page.tsx`): Card padding `p-4 md:p-8`, stats grid `sm:grid-cols-3`, stat cards `min-h-[80px]`, inputs/checkbox/save button touch-friendly.
+- **Active games** (`app/(game)/active-games/page.tsx`): Card padding, game list items `min-h-[72px]`, Create/Join links `min-h-[44px]` with padded tap area.
+- **Home** (`app/page.tsx`): Responsive title/paragraph, CTA buttons `min-h-[48px]` and flex-centered, responsive gaps and padding.
 
 ---
 
@@ -263,4 +273,4 @@ Use a single, consistent set of breakpoints across the app:
 
 ---
 
-*Document version: 1.0. Last updated: 2025-02-07.*
+*Document version: 1.1. Last updated: 2025-02-07. Phase 6 (other pages) added.*

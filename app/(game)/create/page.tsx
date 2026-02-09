@@ -79,13 +79,13 @@ export default function CreateRoomPage() {
 
   if (!isLoaded) {
     return (
-<div className="flex min-h-screen items-center justify-center p-6 bg-background">
-          <div className="w-full max-w-2xl">
-            <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
-              <p className="text-center">Loading...</p>
-            </div>
+      <div className="flex min-h-screen items-center justify-center px-4 py-6 bg-background">
+        <div className="w-full max-w-2xl">
+          <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
+            <p className="text-center">Loading...</p>
           </div>
         </div>
+      </div>
     );
   }
 
@@ -94,21 +94,21 @@ export default function CreateRoomPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6 bg-background">
+    <div className="flex min-h-screen items-center justify-center px-4 py-6 md:p-6 bg-background">
       <div className="w-full max-w-2xl">
-        <div className="bg-white dark:bg-neutral-900 rounded-lg p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
-        <h1 className="text-page-title text-foreground mb-4">Create a Room</h1>
-        <p className="text-body-muted mb-6">
-          Start a new game room and invite your friends to join.
-        </p>
+        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
+          <h1 className="text-xl md:text-page-title text-foreground mb-3 md:mb-4">Create a Room</h1>
+          <p className="text-body-muted text-sm md:text-base mb-4 md:mb-6">
+            Start a new game room and invite your friends to join.
+          </p>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded">
-            {error}
-          </div>
-        )}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-sm">
+              {error}
+            </div>
+          )}
 
-        <div className="space-y-5 mb-6">
+          <div className="space-y-4 md:space-y-5 mb-6">
           <div>
             <Label htmlFor="mode" className="mb-2" required>Game Mode</Label>
             <Select
@@ -187,16 +187,17 @@ export default function CreateRoomPage() {
           </div>
         </div>
 
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={handleCreateRoom}
-          disabled={!mode || !sport || !handSize}
-          isLoading={isCreating}
-        >
-          Create Room
-        </Button>
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            onClick={handleCreateRoom}
+            disabled={!mode || !sport || !handSize}
+            isLoading={isCreating}
+            className="min-h-[48px]"
+          >
+            Create Room
+          </Button>
         </div>
       </div>
     </div>
