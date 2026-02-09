@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Expo / mobile app
+apps/mobile/node_modules
+apps/mobile/.expo
+apps/mobile/dist
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

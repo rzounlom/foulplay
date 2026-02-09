@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "FoulPlay",
+    "slug": "foulplay",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "foulplay",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.foulplay.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0A"
+      },
+      "package": "com.foulplay.app"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
