@@ -9,7 +9,7 @@ import {
   generateDeckForMode,
   type GameMode,
 } from "@/lib/game/engine";
-import { getCurrentUser } from "@/lib/auth/clerk";
+import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { getRoomChannel } from "@/lib/ably/client";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
@@ -23,7 +23,7 @@ const voteSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

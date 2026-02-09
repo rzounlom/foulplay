@@ -29,7 +29,7 @@ jest.mock("next/server", () => ({
 }));
 
 jest.mock("@/lib/auth/clerk", () => ({
-  getCurrentUser: jest.fn(),
+  getCurrentUserFromRequest: jest.fn(),
 }));
 
 jest.mock("@/lib/db/prisma", () => ({
@@ -41,12 +41,13 @@ jest.mock("@/lib/db/prisma", () => ({
   },
 }));
 
+import { NextRequest } from "next/server";
 import { GET as getProfile, PATCH as updateProfile } from "@/app/api/user/profile/route";
-import { getCurrentUser } from "@/lib/auth/clerk";
+import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { mockUser } from "@/tests/helpers/mocks";
 
-const mockGetCurrentUser = getCurrentUser as jest.MockedFunction<typeof getCurrentUser>;
+const mockGetCurrentUserFromRequest = getCurrentUserFromRequest as jest.MockedFunction<typeof getCurrentUserFromRequest>;
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
 const mockProfile = {
@@ -64,14 +65,15 @@ const mockProfile = {
 describe("User Profile API Routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetCurrentUser.mockResolvedValue(mockUser);
+    mockGetCurrentUserFromRequest.mockResolvedValue(mockUser);
   });
 
   describe("GET /api/user/profile", () => {
     it("should return profile when authenticated", async () => {
       mockPrisma.user.findUnique = jest.fn().mockResolvedValue(mockProfile);
 
-      const response = await getProfile();
+      const request = new NextRequest("http://localhost:3000/api/user/profile");
+      const response = await getProfile(request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -88,16 +90,18 @@ describe("User Profile API Routes", () => {
     });
 
     it("should return 401 when not authenticated", async () => {
-      mockGetCurrentUser.mockResolvedValue(null);
+      mockGetCurrentUserFromRequest.mockResolvedValue(null);
 
-      const response = await getProfile();
+      const request = new NextRequest("http://localhost:3000/api/user/profile");
+      const response = await getProfile(request);
       expect(response.status).toBe(401);
     });
 
     it("should return 404 when user not found in DB", async () => {
       mockPrisma.user.findUnique = jest.fn().mockResolvedValue(null);
 
-      const response = await getProfile();
+      const request = new NextRequest("http://localhost:3000/api/user/profile");
+      const response = await getProfile(request);
       expect(response.status).toBe(404);
     });
   });
@@ -127,7 +131,7 @@ describe("User Profile API Routes", () => {
     });
 
     it("should return 401 when not authenticated", async () => {
-      mockGetCurrentUser.mockResolvedValue(null);
+      mockGetCurrentUserFromRequest.mockResolvedValue(null);
 
       const request = new Request("http://localhost:3000/api/user/profile", {
         method: "PATCH",

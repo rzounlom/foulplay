@@ -1,9 +1,17 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { createClerkClient } from "@clerk/backend";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+
+function clerkUserName(clerkUser: { firstName: string | null; lastName: string | null; username: string | null; emailAddresses: { emailAddress: string }[] }): string {
+  return clerkUser.firstName && clerkUser.lastName
+    ? `${clerkUser.firstName} ${clerkUser.lastName}`
+    : clerkUser.username || clerkUser.emailAddresses[0]?.emailAddress || "User";
+}
 
 /**
  * Get the current authenticated user from Clerk and sync with database
- * Returns the database user record
+ * Returns the database user record. Uses cookie-based auth (for web).
  */
 export async function getCurrentUser() {
   const { userId: clerkId } = await auth();
@@ -12,38 +20,78 @@ export async function getCurrentUser() {
     return null;
   }
 
-  // Get user info from Clerk
   const clerkUser = await currentUser();
   if (!clerkUser) {
     return null;
   }
 
-  // Find or create user in database
+  return syncUserToDb(clerkId, clerkUserName(clerkUser));
+}
+
+/**
+ * Get the current user from an incoming request. Supports both:
+ * - Web: cookie-based auth (__session)
+ * - Mobile: Authorization: Bearer <Clerk session token>
+ * Use this in API route handlers and pass the request.
+ */
+export async function getCurrentUserFromRequest(request: NextRequest) {
+  const secretKey = process.env.CLERK_SECRET_KEY;
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  if (!secretKey || !publishableKey) {
+    return null;
+  }
+
+  const client = createClerkClient({ secretKey, publishableKey });
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+  const authorizedParties = [
+    appUrl,
+    "http://localhost:3000",
+    "http://localhost:8081", // Expo dev
+  ].filter(Boolean);
+
+  const state = await client.authenticateRequest(request, {
+    authorizedParties,
+  });
+
+  if (!state.isAuthenticated) {
+    return null;
+  }
+
+  const auth = await state.toAuth();
+  const clerkId = auth?.userId;
+  if (!clerkId) {
+    return null;
+  }
+
+  const clerkUser = await client.users.getUser(clerkId);
+  const name = clerkUserName({
+    firstName: clerkUser.firstName,
+    lastName: clerkUser.lastName,
+    username: clerkUser.username,
+    emailAddresses: clerkUser.emailAddresses.map((e) => ({ emailAddress: e.emailAddress })),
+  });
+
+  return syncUserToDb(clerkId, name);
+}
+
+async function syncUserToDb(clerkId: string, name: string) {
   let user = await prisma.user.findUnique({
     where: { clerkId },
   });
 
   if (!user) {
     user = await prisma.user.create({
-      data: {
-        clerkId,
-        name: clerkUser.firstName && clerkUser.lastName
-          ? `${clerkUser.firstName} ${clerkUser.lastName}`
-          : clerkUser.username || clerkUser.emailAddresses[0]?.emailAddress || "User",
-      },
+      data: { clerkId, name },
     });
-  } else {
-    // Update name if it changed in Clerk
-    const name = clerkUser.firstName && clerkUser.lastName
-      ? `${clerkUser.firstName} ${clerkUser.lastName}`
-      : clerkUser.username || clerkUser.emailAddresses[0]?.emailAddress || "User";
-    
-    if (user.name !== name) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { name },
-      });
-    }
+  } else if (user.name !== name) {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { name },
+    });
   }
 
   return user;

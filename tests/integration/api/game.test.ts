@@ -44,7 +44,7 @@ import { mockUser, mockPlayer, mockRoom, mockCard, mockCardInstance } from "@/te
 
 // Mock dependencies
 jest.mock("@/lib/auth/clerk", () => ({
-  getCurrentUser: jest.fn(),
+  getCurrentUserFromRequest: jest.fn(),
 }));
 
 jest.mock("@/lib/db/prisma", () => ({
@@ -96,10 +96,10 @@ jest.mock("@/lib/ably/client", () => ({
   })),
 }));
 
-import { getCurrentUser } from "@/lib/auth/clerk";
+import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 
-const mockGetCurrentUser = getCurrentUser as jest.MockedFunction<typeof getCurrentUser>;
+const mockGetCurrentUserFromRequest = getCurrentUserFromRequest as jest.MockedFunction<typeof getCurrentUserFromRequest>;
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
 /** Build mock cards with deterministic id order and severity mix: 50 mild (0-49), 30 moderate (50-79), 20 severe (80-99) */
@@ -122,7 +122,7 @@ function mockCardsWithSeverity(): Array<{ id: string; sport: string; title: stri
 describe("Game API Routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetCurrentUser.mockResolvedValue(mockUser);
+    mockGetCurrentUserFromRequest.mockResolvedValue(mockUser);
   });
 
   describe("POST /api/game/start", () => {
@@ -544,7 +544,7 @@ describe("Game API Routes", () => {
     const thirdPlayer = { ...mockPlayer, id: "player_789", userId: "user_789", isHost: false };
 
     it("should cast a vote successfully (pending resolution)", async () => {
-      mockGetCurrentUser.mockResolvedValue({ ...mockUser, id: "user_456" });
+      mockGetCurrentUserFromRequest.mockResolvedValue({ ...mockUser, id: "user_456" });
 
       const submission = {
         id: "submission_123",
@@ -610,7 +610,7 @@ describe("Game API Routes", () => {
     });
 
     it("should return 401 when user is not authenticated", async () => {
-      mockGetCurrentUser.mockResolvedValue(null);
+      mockGetCurrentUserFromRequest.mockResolvedValue(null);
 
       const request = new NextRequest("http://localhost:3000/api/game/vote", {
         method: "POST",
@@ -707,7 +707,7 @@ describe("Game API Routes", () => {
         players: [submitterPlayer, voterPlayer],
       });
       mockPrisma.cardSubmission.findUnique = jest.fn().mockResolvedValue(submission);
-      mockGetCurrentUser.mockResolvedValue({ ...mockUser, id: mockUser.id });
+      mockGetCurrentUserFromRequest.mockResolvedValue({ ...mockUser, id: mockUser.id });
 
       const request = new NextRequest("http://localhost:3000/api/game/vote", {
         method: "POST",
@@ -744,7 +744,7 @@ describe("Game API Routes", () => {
         players: [submitterPlayer, voterPlayer],
       });
       mockPrisma.cardSubmission.findUnique = jest.fn().mockResolvedValue(submission);
-      mockGetCurrentUser.mockResolvedValue({ ...mockUser, id: "user_other" });
+      mockGetCurrentUserFromRequest.mockResolvedValue({ ...mockUser, id: "user_other" });
 
       const request = new NextRequest("http://localhost:3000/api/game/vote", {
         method: "POST",

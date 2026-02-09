@@ -1,14 +1,14 @@
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/clerk";
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 
 /**
  * GET /api/user/active-games
  * Get all active games (lobby or active status) that the current user is in
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserFromRequest(request);
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

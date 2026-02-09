@@ -42,7 +42,7 @@ import { mockUser, mockPlayer, mockRoom } from "@/tests/helpers/mocks";
 
 // Mock dependencies
 jest.mock("@/lib/auth/clerk", () => ({
-  getCurrentUser: jest.fn(),
+  getCurrentUserFromRequest: jest.fn(),
 }));
 
 jest.mock("@/lib/db/prisma", () => {
@@ -93,16 +93,16 @@ jest.mock("@/lib/ably/client", () => ({
   })),
 }));
 
-import { getCurrentUser } from "@/lib/auth/clerk";
+import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 
-const mockGetCurrentUser = getCurrentUser as jest.MockedFunction<typeof getCurrentUser>;
+const mockGetCurrentUserFromRequest = getCurrentUserFromRequest as jest.MockedFunction<typeof getCurrentUserFromRequest>;
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
 describe("Room API Routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetCurrentUser.mockResolvedValue(mockUser);
+    mockGetCurrentUserFromRequest.mockResolvedValue(mockUser);
   });
 
   describe("POST /api/rooms", () => {
@@ -156,7 +156,7 @@ describe("Room API Routes", () => {
     });
 
     it("should return 401 when user is not authenticated", async () => {
-      mockGetCurrentUser.mockResolvedValue(null);
+      mockGetCurrentUserFromRequest.mockResolvedValue(null);
 
       const request = new NextRequest("http://localhost:3000/api/rooms", {
         method: "POST",
