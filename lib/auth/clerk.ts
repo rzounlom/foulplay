@@ -42,16 +42,24 @@ export async function getCurrentUserFromRequest(request: NextRequest) {
   }
 
   const client = createClerkClient({ secretKey, publishableKey });
+
+  // Normalize URLs (no trailing slash) so Clerk matches the request origin
+  const normalize = (url: string) => url.replace(/\/$/, "");
   const appUrl = process.env.NEXT_PUBLIC_APP_URL
-    ? process.env.NEXT_PUBLIC_APP_URL
+    ? normalize(process.env.NEXT_PUBLIC_APP_URL)
     : process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
+      ? normalize(`https://${process.env.VERCEL_URL}`)
       : "http://localhost:3000";
+  const vercelUrl = process.env.VERCEL_URL
+    ? normalize(`https://${process.env.VERCEL_URL}`)
+    : null;
   const authorizedParties = [
     appUrl,
+    ...(vercelUrl && vercelUrl !== appUrl ? [vercelUrl] : []),
     "http://localhost:3000",
+    "https://localhost:3000",
     "http://localhost:8081", // Expo dev
-  ].filter(Boolean);
+  ].filter((v, i, a) => a.indexOf(v) === i);
 
   const state = await client.authenticateRequest(request, {
     authorizedParties,
