@@ -123,7 +123,7 @@ export function MainNav() {
             aria-hidden
           />
           <div
-            className="fixed top-0 left-0 h-full w-[min(320px,85vw)] bg-surface border-r border-border shadow-xl z-[9999] lg:hidden flex flex-col animate-slide-in-from-left"
+            className="fixed top-0 right-0 h-full w-[min(320px,85vw)] bg-surface border-l border-border shadow-xl z-[9999] lg:hidden flex flex-col animate-slide-in-right"
             role="dialog"
             aria-label="Navigation menu"
           >
