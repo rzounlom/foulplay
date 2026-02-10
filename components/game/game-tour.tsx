@@ -30,7 +30,7 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     {
       target: '[data-tour="game-info"]',
       title: "Game Room Info",
-      content: "Here you see the room's Mode and Sport. Mode affects the mix of card severities (mild / moderate / severe). You'll also find the React bar and Chat button here — use them to send quick emoji reactions or open the room chat.",
+      content: "Here you see the room's Mode and Sport. Mode affects the mix of card severities (mild / moderate / severe). You'll also find the How to Play and Chat buttons here.",
       position: "bottom",
     },
     {
@@ -52,12 +52,6 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
       position: "bottom",
     },
     {
-      target: '[data-tour="reactions"]',
-      title: "Reactions",
-      content: "Send quick emoji reactions (thumbs up, celebrate, fire, etc.) that appear on screen for everyone. Great for reacting to approvals or the game!",
-      position: "bottom",
-    },
-    {
       target: '[data-tour="chat-button"]',
       title: "Chat",
       content: "Open the room chat to send messages to all players. The badge shows unread message count when you have new messages.",
@@ -72,7 +66,7 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     {
       target: '[data-tour="instructions"]',
       title: "How to Play",
-      content: "Click 'How to Play' anytime for full rules: game mode, voting, host controls, chat, reactions, and round-based clearing (if enabled).",
+      content: "Click 'How to Play' anytime for full rules: game mode, voting, host controls, chat, and round-based clearing (if enabled).",
       position: "left",
     },
   ], []);

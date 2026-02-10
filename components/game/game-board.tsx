@@ -14,8 +14,6 @@ import { Hand } from "./hand";
 import { InstructionsModal } from "./instructions-modal";
 import { PendingDiscard } from "./pending-discard";
 import { PlayerList } from "./player-list";
-import { ReactionBar } from "./reaction-bar";
-import { ReactionDisplay, type ReactionEvent } from "./reaction-display";
 import { SubmissionPending } from "./submission-pending";
 import { VotingUI } from "./voting-ui";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
@@ -141,8 +139,6 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [chatOpen, setChatOpen] = useState(false);
   const [lastSeenMessageCount, setLastSeenMessageCount] = useState<number | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [recentReactions, setRecentReactions] = useState<ReactionEvent[]>([]);
-  const [exitingReactionIds, setExitingReactionIds] = useState<Set<string>>(new Set());
   const [pointsAwardedPopup, setPointsAwardedPopup] = useState<{ points: number } | null>(null);
   const [playersPanelOpen, setPlayersPanelOpen] = useState(false);
 
@@ -258,23 +254,6 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         sender: { id: string; nickname?: string | null; user: { id: string; name: string } };
       };
       setMessages((prev) => [...prev, { id: msg.id, message: msg.message, createdAt: msg.createdAt, sender: msg.sender }]);
-      return;
-    }
-    if (event === "reaction_sent" && data) {
-      const reaction = data as unknown as ReactionEvent;
-      const id = `${reaction.timestamp}-${Math.random()}`;
-      setRecentReactions((prev) => [...prev.slice(-4), { ...reaction, id }]);
-      setTimeout(() => {
-        setExitingReactionIds((prev) => new Set(prev).add(id));
-      }, 2500);
-      setTimeout(() => {
-        setRecentReactions((prev) => prev.filter((r) => (r as ReactionEvent & { id?: string }).id !== id));
-        setExitingReactionIds((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
-      }, 2850);
       return;
     }
     if (event === "card_approved" && data) {
@@ -521,18 +500,6 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     }
   };
 
-  const handleSendReaction = async (reactionType: string) => {
-    const response = await fetch("/api/chat/reaction", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomCode, reactionType }),
-    });
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || "Failed to send reaction");
-    }
-  };
-
   const isFootballOrBasketball =
     room.sport === "football" || room.sport === "basketball";
   const showQuarterControls =
@@ -549,8 +516,10 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       />
 
       <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <h1 className="text-page-title text-foreground">Game Room {room.code}</h1>
+        <div className="flex items-center justify-center md:justify-start gap-2 mb-2 min-w-0">
+          <h1 className="text-lg sm:text-page-title text-foreground truncate min-w-0" title={`Game Room ${room.code}`}>
+            Game Room {room.code}
+          </h1>
           <button
             type="button"
             onClick={async () => {
@@ -569,7 +538,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 }
               }
             }}
-            className="p-1.5 rounded-md text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors duration-200 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="p-1.5 shrink-0 rounded-md text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors duration-200 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             title="Copy invite link"
             aria-label="Copy invite link"
           >
@@ -586,65 +555,64 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         </div>
         <div
           data-tour="game-info"
-          className="flex flex-wrap items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400"
+          className="flex flex-wrap items-center justify-between gap-y-4 gap-x-4 text-sm text-neutral-600 dark:text-neutral-400"
         >
-          <span title="Game mode affects the mix of card severities (mild / moderate / severe) in the deck.">Mode: {room.mode || "N/A"}</span>
-          <span>Sport: {room.sport || "N/A"}</span>
-          {showQuarterControls && (
-            <span>Round: {roundLabel ?? "Not started"}</span>
-          )}
-          {submissions.length > 0 && (
-            <span>Pending Submissions: {submissions.length}</span>
-          )}
-          <span data-tour="reactions">
-            <ReactionBar
-              roomCode={roomCode}
-              onSendReaction={handleSendReaction}
-            />
-          </span>
-          <span data-tour="players-button" className="lg:hidden">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => setPlayersPanelOpen(true)}
-              className="inline-flex items-center gap-1.5 border border-border bg-surface hover:bg-surface-muted"
-              aria-label="Open players"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              Players {room.players.length > 0 && `(${room.players.length})`}
-            </Button>
-          </span>
-          <span data-tour="chat-button">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-              setChatOpen(true);
-              setLastSeenMessageCount(messages.length);
-              fetchMessages();
-            }}
-            aria-label={chatUnreadCount > 0 ? `Open chat (${chatUnreadCount} new)` : "Open chat"}
-            className="relative inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 dark:shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 dark:hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] dark:[text-shadow:0_0_8px_rgba(255,102,0,0.6)] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary shadow-sm hover:shadow-md"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            Chat
-            {chatUnreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white px-1.5">
-                {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
-              </span>
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 min-w-0 w-full md:w-auto">
+            <span title="Game mode affects the mix of card severities (mild / moderate / severe) in the deck.">Mode: {room.mode || "N/A"}</span>
+            <span>Sport: {room.sport || "N/A"}</span>
+            {showQuarterControls && (
+              <span>Round: {roundLabel ?? "Not started"}</span>
             )}
-          </Button>
-          </span>
+            {submissions.length > 0 && (
+              <span>Pending Submissions: {submissions.length}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 justify-center md:justify-end w-full md:w-auto">
+            <span data-tour="instructions">
+              <InstructionsModal onStartTour={handleStartTour} />
+            </span>
+            <span data-tour="players-button" className="lg:hidden">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setPlayersPanelOpen(true)}
+                className="relative inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 dark:shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 dark:hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] dark:[text-shadow:0_0_8px_rgba(255,102,0,0.6)] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary shadow-sm hover:shadow-md whitespace-nowrap"
+                aria-label={room.players.length > 0 ? `Open players (${room.players.length})` : "Open players"}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span className="hidden sm:inline">Players {room.players.length > 0 && `(${room.players.length})`}</span>
+              </Button>
+            </span>
+            <span data-tour="chat-button">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                setChatOpen(true);
+                setLastSeenMessageCount(messages.length);
+                fetchMessages();
+              }}
+              aria-label={chatUnreadCount > 0 ? `Open chat (${chatUnreadCount} new)` : "Open chat"}
+              className="relative inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 dark:shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 dark:hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] dark:[text-shadow:0_0_8px_rgba(255,102,0,0.6)] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary shadow-sm hover:shadow-md whitespace-nowrap"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span className="hidden sm:inline">Chat</span>
+              {chatUnreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white px-1.5">
+                  {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+                </span>
+              )}
+            </Button>
+            </span>
+          </div>
         </div>
       </div>
-
-      <ReactionDisplay reactions={recentReactions} exitingIds={exitingReactionIds} />
 
       {pointsAwardedPopup && (
         <div
@@ -997,18 +965,11 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             </div>
           )}
 
-          {/* Your Cards first — hand always in view */}
+          {/* Your hand first — front and center */}
           {currentPlayer && (
             <div data-tour="your-cards" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-section-title">Your Cards</h2>
-                <div data-tour="instructions">
-                  <InstructionsModal onStartTour={handleStartTour} />
-                </div>
-              </div>
               {handLoading ? (
                 <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
-                  <h3 className="text-section-title mb-4">Your Hand</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 lg:gap-3">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div key={i} className="h-20 lg:h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />

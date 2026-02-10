@@ -14,13 +14,14 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
     <>
       <Button
         variant="secondary"
-        size="md"
+        size="sm"
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-2 border-2 border-primary text-primary bg-primary/5 dark:shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 dark:hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] dark:[text-shadow:0_0_8px_rgba(255,102,0,0.6)] shadow-sm hover:shadow-md"
+        aria-label="How to Play"
+        className="inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 dark:shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 dark:hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] dark:[text-shadow:0_0_8px_rgba(255,102,0,0.6)] shadow-sm hover:shadow-md whitespace-nowrap"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]"
+          className="h-5 w-5 shrink-0 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -32,7 +33,7 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        How to Play
+        <span className="hidden sm:inline">How to Play</span>
       </Button>
 
       {isOpen && (
@@ -193,10 +194,10 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
 
                 <div>
                   <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
-                    Chat &amp; Reactions
+                    Chat
                   </h3>
                   <p>
-                    Use the <strong>Chat</strong> button to send messages to everyone in the room. Use the <strong>React</strong> bar to send quick emoji reactions (e.g. 👍 🎉 🔥) that appear on screen for everyone — great for celebrating approvals or reacting to the game.
+                    Use the <strong>Chat</strong> button to send messages to everyone in the room.
                   </p>
                 </div>
 
