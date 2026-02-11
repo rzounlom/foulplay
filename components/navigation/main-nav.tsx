@@ -67,7 +67,7 @@ export function MainNav() {
   return (
     <>
       <nav className="border-b border-border bg-surface shadow-sm dark:shadow-none">
-        <div className="container mx-auto px-4 py-2">
+        <div className="container mx-auto px-4 py-2 md:py-4">
           <div className="flex items-center justify-between">
             {/* Logo/Brand */}
             <Link href="/" className="text-2xl font-bold text-primary hover:opacity-80 cursor-pointer">

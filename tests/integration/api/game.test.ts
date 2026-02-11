@@ -221,12 +221,18 @@ describe("Game API Routes", () => {
         updatedAt: new Date(),
       };
       const mockPlayer2 = { ...mockPlayer, id: "player_456", userId: "user_456", isHost: false };
+      let dateNowSpy: jest.SpyInstance;
 
       beforeEach(() => {
+        dateNowSpy = jest.spyOn(Date, "now").mockReturnValue(1700000000000);
         mockPrisma.card.findMany = jest.fn().mockResolvedValue(cardsWithSeverity);
         mockPrisma.gameState.create = jest.fn().mockResolvedValue(gameState);
         mockPrisma.cardInstance.createMany = jest.fn().mockResolvedValue({ count: 10 });
         mockPrisma.room.update = jest.fn().mockResolvedValue({ ...mockRoom, status: "active" });
+      });
+
+      afterEach(() => {
+        dateNowSpy?.mockRestore();
       });
 
       it("Casual mode: dealt cards should have predominantly mild (mode-based mix, then shuffled)", async () => {
