@@ -17,7 +17,7 @@ export default function Home() {
 
       <main className="relative z-10 flex min-h-screen w-full max-w-4xl flex-col items-center justify-center gap-6 md:gap-8 px-4 py-12 md:px-6 md:py-16">
         <div className="text-center space-y-3 md:space-y-4">
-          <h1 className="text-2xl md:text-page-title font-bold text-white drop-shadow-md">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight drop-shadow-2xl [text-shadow:0_0_40px_rgba(255,102,0,0.5)]">
             FoulPlay
           </h1>
           <p className="text-base md:text-section-title text-neutral-200 md:text-neutral-100">
