@@ -194,7 +194,7 @@ export function VotingUI({
           return (
             <div
               key={`${cardInstance.id}-${resolution}`}
-              className={`p-2 lg:p-3 rounded-lg border-2 min-h-0 transition-all duration-300 ease-out hover:shadow-md ${resolution === "pending" ? "animate-fade-in-up" : ""} ${flashClass} ${
+              className={`p-2 lg:p-3 rounded-lg border-2 min-h-0 min-w-0 overflow-hidden transition-all duration-300 ease-out hover:shadow-md ${resolution === "pending" ? "animate-fade-in-up" : ""} ${flashClass} ${
                 isApproved
                   ? "ring-2 ring-green-500/50 border-green-500/30 bg-green-50/50 dark:bg-green-950/20"
                   : isRejected
@@ -242,14 +242,14 @@ export function VotingUI({
 
               {/* Individual Vote Buttons */}
               {canVote && (
-                <div className="flex gap-2">
+                <div className="flex gap-1 sm:gap-2 min-w-0">
                   <Button
                     variant="outline-success"
                     size="sm"
                     onClick={() => handleVote(cardInstance.id, true)}
                     disabled={cardIsVoting}
                     isLoading={cardIsVoting}
-                    fullWidth
+                    className="min-w-0 flex-1 shrink px-2 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-xs"
                   >
                     Accept
                   </Button>
@@ -259,7 +259,7 @@ export function VotingUI({
                     onClick={() => handleVote(cardInstance.id, false)}
                     disabled={cardIsVoting}
                     isLoading={cardIsVoting}
-                    fullWidth
+                    className="min-w-0 flex-1 shrink px-2 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-xs"
                   >
                     Reject
                   </Button>
