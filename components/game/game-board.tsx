@@ -1000,6 +1000,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                   (room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer?.id] ?? []
                 }
                 roomMode={room.mode}
+                currentUserPoints={currentPlayer.points}
               />
               )}
             </div>

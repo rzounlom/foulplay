@@ -35,6 +35,8 @@ interface HandProps {
   intermissionSecondsLeft?: number | null;
   myQuarterSelectionIds?: string[];
   roomMode?: string | null;
+  /** Shown to the right of "Your Hand" on small screens when Players panel is hidden */
+  currentUserPoints?: number;
 }
 
 export function Hand({
@@ -49,6 +51,7 @@ export function Hand({
   isQuarterIntermission = false,
   myQuarterSelectionIds = [],
   roomMode = null,
+  currentUserPoints,
 }: HandProps) {
   const isMultiSelect = !!(onCardSubmit || onQuarterDiscardSelection);
   const selectedIds = useMemo(
@@ -103,7 +106,14 @@ export function Hand({
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
           </svg>
         </div>
-        <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 mb-1">Your Hand</h3>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300">Your Hand</h3>
+          {currentUserPoints !== undefined && (
+            <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400 lg:hidden" aria-label="Your points">
+              {currentUserPoints} pts
+            </span>
+          )}
+        </div>
         <p className="text-sm text-neutral-500 dark:text-neutral-400">
           No cards right now. New cards will appear after the next draw or when your submissions are resolved.
         </p>
@@ -113,9 +123,16 @@ export function Hand({
 
   return (
     <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
-      <h3 className="text-lg font-semibold mb-4">
-        Your Hand ({cardsStaying.length}/{handSize})
-      </h3>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <h3 className="text-lg font-semibold">
+          Your Hand ({cardsStaying.length}/{handSize})
+        </h3>
+        {currentUserPoints !== undefined && (
+          <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400 lg:hidden" aria-label="Your points">
+            {currentUserPoints} pts
+          </span>
+        )}
+      </div>
       {!canTurnInCards && !isQuarterIntermission && (
         <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded text-sm">
           Card turn-in is currently disabled by the host
