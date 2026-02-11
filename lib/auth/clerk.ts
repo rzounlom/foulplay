@@ -53,13 +53,26 @@ export async function getCurrentUserFromRequest(request: NextRequest) {
   const vercelUrl = process.env.VERCEL_URL
     ? normalize(`https://${process.env.VERCEL_URL}`)
     : null;
-  const authorizedParties = [
+  const parties: string[] = [
     appUrl,
     ...(vercelUrl && vercelUrl !== appUrl ? [vercelUrl] : []),
     "http://localhost:3000",
     "https://localhost:3000",
     "http://localhost:8081", // Expo dev
-  ].filter((v, i, a) => a.indexOf(v) === i);
+  ];
+  // Include the request's origin so cookie auth works when it matches our app (e.g. production)
+  try {
+    const origin = request.headers.get("origin");
+    const referer = request.headers.get("referer");
+    const requestOrigin = origin ?? (referer ? new URL(referer).origin : null);
+    if (requestOrigin) {
+      const o = normalize(requestOrigin);
+      if (o && !parties.includes(o)) parties.push(o);
+    }
+  } catch {
+    // ignore
+  }
+  const authorizedParties = [...new Set(parties)];
 
   const state = await client.authenticateRequest(request, {
     authorizedParties,
