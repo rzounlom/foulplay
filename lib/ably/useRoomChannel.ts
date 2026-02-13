@@ -72,7 +72,12 @@ export function useRoomChannel(
       return;
     }
 
-    const client = new Ably.Realtime({ key: apiKey });
+    const client = new Ably.Realtime({
+      key: apiKey,
+      // Increase timeouts to tolerate production proxies/firewalls that close idle connections
+      realtimeRequestTimeout: 60000,
+      disconnectedRetryTimeout: 10000,
+    } as Ably.ClientOptions);
     clientRef.current = client;
 
     // Set up connection state listeners
