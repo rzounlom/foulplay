@@ -146,17 +146,19 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const toast = useToast();
   const isRedirectingToEndGame = useRef(false);
 
-  const fetchRoom = async () => {
+  const fetchRoom = useCallback(async (): Promise<Room | null> => {
     try {
       const response = await fetch(`/api/rooms/${roomCode}`);
       if (response.ok) {
         const roomData = await response.json();
         setRoom(roomData);
+        return roomData;
       }
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.error("Failed to fetch room:", error);
     }
-  };
+    return null;
+  }, [roomCode]);
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -236,8 +238,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when endsAt or roomCode changes; fetchRoom called when timer ends
   }, [endsAt, roomCode]);
 
-  // Subscribe to game events
-  useRoomChannel(roomCode, (event: RoomEvent, data: Record<string, unknown>) => {
+  // Subscribe to game events; fall back to polling when Ably is disconnected
+  const { isConnected } = useRoomChannel(roomCode, (event: RoomEvent, data: Record<string, unknown>) => {
     // If we're redirecting to end-game, ignore all further events (don't start tour, don't fetch)
     if (isRedirectingToEndGame.current) return;
     // When game ends, redirect all players to end-game page (no alert, no tour)
@@ -322,6 +324,31 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       }
     }
   });
+
+  // Polling fallback when Ably is disconnected — start after 2s grace, poll every 3s
+  useEffect(() => {
+    if (isConnected) return;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+    const graceTimer = setTimeout(() => {
+      const poll = async () => {
+        const roomData = await fetchRoom();
+        if (roomData?.status === "ended" && !isRedirectingToEndGame.current) {
+          isRedirectingToEndGame.current = true;
+          router.push(`/game/${roomCode}/end-game`);
+          return;
+        }
+        fetchHand();
+        fetchSubmissions();
+        fetchMessages();
+      };
+      void poll();
+      pollInterval = setInterval(() => void poll(), 3000);
+    }, 2000);
+    return () => {
+      clearTimeout(graceTimer);
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [isConnected, fetchRoom, fetchHand, fetchSubmissions, fetchMessages, roomCode, router]);
 
   const currentPlayer = room.players.find((p) => p.user.id === currentUserId);
   const isHost = room.players.some(

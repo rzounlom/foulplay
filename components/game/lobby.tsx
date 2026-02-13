@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useRoomChannel, RoomEvent } from "@/lib/ably/useRoomChannel";
 import { Button } from "@/components/ui/button";
@@ -66,8 +66,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
     }
   };
 
-  // Define fetchRoom before using it in the callback
-  const fetchRoom = async () => {
+  const fetchRoom = useCallback(async () => {
     try {
       const response = await fetch(`/api/rooms/${roomCode}`);
       if (response.ok) {
@@ -77,10 +76,10 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.error("Failed to fetch room:", error);
     }
-  };
+  }, [roomCode]);
 
-  // Subscribe to room events
-  useRoomChannel(roomCode, (event: RoomEvent) => {
+  // Subscribe to room events; fall back to polling when Ably is disconnected
+  const { isConnected } = useRoomChannel(roomCode, (event: RoomEvent) => {
     if (event === "player_joined") {
       fetchRoom();
     } else if (event === "room_settings_updated") {
@@ -89,6 +88,34 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
       router.refresh();
     }
   });
+
+  // Polling fallback when Ably is disconnected — start after 2s grace, poll every 3s
+  useEffect(() => {
+    if (isConnected) return;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+    const graceTimer = setTimeout(() => {
+      const doPoll = async () => {
+        try {
+          const response = await fetch(`/api/rooms/${roomCode}`);
+          if (response.ok) {
+            const roomData = await response.json();
+            setRoom(roomData);
+            if (roomData.status === "active") {
+              router.refresh();
+            }
+          }
+        } catch (error) {
+          if (process.env.NODE_ENV === "development") console.error("Failed to poll room:", error);
+        }
+      };
+      doPoll();
+      pollInterval = setInterval(doPoll, 3000);
+    }, 2000);
+    return () => {
+      clearTimeout(graceTimer);
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [isConnected, roomCode, router]);
 
   const handleStartGame = async () => {
     if (room.players.length < 2) {
