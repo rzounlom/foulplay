@@ -737,6 +737,98 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                       />
                       <span className="text-sm text-neutral-700 dark:text-neutral-300">Allow new users to join</span>
                     </label>
+                    {showQuarterControls && (
+                      <>
+                        <div className="pt-2 border-t border-border">
+                          <Label className="block text-xs font-medium mb-2 text-neutral-600 dark:text-neutral-400">
+                            Current Round
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                              {roundLabel ?? "Not started"}
+                            </span>
+                            {!isQuarterIntermission && (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="outline-primary"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      const response = await fetch("/api/game/end-quarter", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ roomCode }),
+                                      });
+                                      if (!response.ok) {
+                                        const data = await response.json();
+                                        toast.addToast(data.error || "Failed to end round", "error");
+                                      }
+                                    } catch (error) {
+                                      if (process.env.NODE_ENV === "development") console.error("Failed to end round:", error);
+                                      toast.addToast("Failed to end round", "error");
+                                    }
+                                  }}
+                                >
+                                  End Round
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline-primary"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      const response = await fetch("/api/game/reset-round", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ roomCode }),
+                                      });
+                                      if (!response.ok) {
+                                        const data = await response.json();
+                                        toast.addToast(data.error || "Failed to reset round", "error");
+                                      }
+                                    } catch (error) {
+                                      if (process.env.NODE_ENV === "development") console.error("Failed to reset round:", error);
+                                      toast.addToast("Failed to reset round", "error");
+                                    }
+                                  }}
+                                  title="Reset round count. Next End Round will start Round 1."
+                                >
+                                  Reset Round
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <Checkbox
+                            checked={room.canTurnInCards}
+                            onChange={async (e) => {
+                              try {
+                                const response = await fetch("/api/game/turn-in-control", {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ roomCode, canTurnInCards: e.target.checked }),
+                                });
+                                if (!response.ok) {
+                                  const data = await response.json();
+                                  toast.addToast(data.error || "Failed to update turn-in control", "error");
+                                } else {
+                                  const updatedRoom = await response.json();
+                                  setRoom(updatedRoom);
+                                }
+                              } catch (error) {
+                                if (process.env.NODE_ENV === "development") console.error("Failed to update turn-in control:", error);
+                                toast.addToast("Failed to update turn-in control", "error");
+                              }
+                            }}
+                          />
+                          <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                            Allow card turn-in
+                          </span>
+                        </label>
+                      </>
+                    )}
                     <div className="pt-2 border-t border-border space-y-2">
                       <Button variant="outline-primary" fullWidth size="sm" onClick={() => setShowResetPointsModal(true)}>
                         Reset Points
