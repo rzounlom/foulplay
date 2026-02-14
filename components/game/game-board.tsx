@@ -567,7 +567,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       : 0;
 
   return (
-    <div className="container mx-auto px-2 py-4 md:p-6 max-w-6xl min-h-screen bg-background">
+    <div className="container mx-auto px-2 py-4 md:p-6 lg:p-4 max-w-6xl min-h-screen bg-background">
       <GameTour 
         startTour={startTour}
         onTourStart={() => setStartTour(false)}
@@ -927,12 +927,12 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         </>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:gap-4 lg:grid-cols-[280px_1fr]">
         {/* Left Column - Host Controls (top) & Players — desktop only; on mobile/tablet use Players panel */}
-        <div className="hidden lg:block lg:col-span-1 space-y-6">
+        <div className="hidden lg:block lg:min-w-0 space-y-6">
           {/* Host Controls - at top so always visible with many players */}
           {isHost && (
-            <div data-tour="host-controls" className="p-4 bg-surface-muted rounded-lg border border-border shadow-sm dark:shadow-none">
+            <div data-tour="host-controls" className="p-4 lg:p-3 bg-surface-muted rounded-lg border border-border shadow-sm dark:shadow-none">
               <h4 className="text-section-title mb-3 text-neutral-700 dark:text-neutral-300">
                 Host Controls
               </h4>
@@ -1109,14 +1109,14 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
 
           <div
             data-tour="player-list"
-            className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none sticky top-6"
+            className="bg-surface rounded-lg p-6 lg:p-4 border border-border shadow-sm dark:shadow-none sticky top-6"
           >
             <PlayerList players={room.players} currentUserId={currentUserId} showPoints={room.showPoints} />
           </div>
         </div>
 
         {/* Center Column - Game Area (full width on mobile/tablet) */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:min-w-0 space-y-6">
           {/* Round intermission callout — above Pending Submissions/Discard, compact like heading row */}
           {showQuarterControls && isQuarterIntermission && (
             <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border-2 border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/30">
@@ -1176,10 +1176,10 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           {currentPlayer && (
             <div data-tour="your-cards" className="space-y-4">
               {handLoading ? (
-                <div className="bg-surface rounded-lg p-3 md:p-6 border border-border shadow-sm dark:shadow-none">
+                <div className="bg-surface rounded-lg p-3 md:p-6 lg:min-h-[480px] lg:p-5 border border-border shadow-sm dark:shadow-none">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4">
                     {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="h-[150px] md:h-[120px] lg:h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
+                      <div key={i} className="h-[150px] md:h-[120px] lg:h-[220px] rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
                     ))}
                   </div>
                 </div>

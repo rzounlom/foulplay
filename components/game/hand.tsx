@@ -100,7 +100,7 @@ export function Hand({
 
   if (cardsInHand.length === 0) {
     return (
-      <div className="bg-surface rounded-lg p-3 md:p-6 border border-border shadow-sm dark:shadow-none text-center">
+      <div className="bg-surface rounded-lg p-3 md:p-6 lg:min-h-[480px] lg:p-5 border border-border shadow-sm dark:shadow-none text-center">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 mb-3" aria-hidden>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
@@ -122,9 +122,9 @@ export function Hand({
   }
 
   return (
-    <div className="bg-surface rounded-lg p-3 md:p-6 border border-border shadow-sm dark:shadow-none">
-      <div className="flex items-center justify-between gap-2 mb-4">
-        <h3 className="text-lg font-semibold">
+    <div className="bg-surface rounded-lg p-3 md:p-6 lg:min-h-[480px] lg:p-5 border border-border shadow-sm dark:shadow-none">
+      <div className="flex items-center justify-between gap-2 mb-4 lg:mb-6">
+        <h3 className="text-lg font-semibold lg:text-xl">
           Your Hand ({cardsStaying.length}/{handSize})
         </h3>
         {currentUserPoints !== undefined && (
@@ -145,7 +145,7 @@ export function Hand({
       )}
 
       {(canSubmitCards && selectedIds.length > 0) || (isQuarterIntermission && onQuarterDiscardSelection && selectedIds.length > 0) ? (
-        <div className="mb-4 flex gap-2">
+        <div className="mb-4 lg:mb-6 flex gap-2">
           {canSubmitCards && selectedIds.length > 0 && (
             <Button
               variant="outline-primary"
@@ -180,19 +180,19 @@ export function Hand({
             <div
               key={cardInstance.id}
               onClick={() => onCardSelect?.(cardInstance.id)}
-              className={`p-3 md:p-4 lg:p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[150px] md:min-h-[120px] lg:min-h-[100px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up ${
+              className={`p-3 md:p-4 lg:p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[150px] md:min-h-[120px] lg:min-h-[220px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up ${
                 isSelected
                   ? "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.02] shadow-md"
                   : "border-neutral-200 dark:border-neutral-800 hover:border-primary/50"
               }`}
               style={{ animationDelay: `${index * 40}ms` }}
             >
-              <h4 className="font-semibold text-base md:text-sm leading-tight break-words mb-2 md:mb-1.5">
+              <h4 className="font-semibold text-base md:text-sm lg:text-xl leading-tight break-words mb-2 md:mb-1.5 lg:mb-3">
                 {cardInstance.card.title}
               </h4>
-              <div className="flex flex-wrap items-center gap-2 md:gap-1.5 lg:gap-2 mb-2 md:mb-1.5">
+              <div className="flex flex-wrap items-center gap-2 md:gap-1.5 lg:gap-3 mb-2 md:mb-1.5 lg:mb-3">
                 <span
-                  className={`px-2 py-0.5 rounded text-xs md:text-[11px] font-medium whitespace-nowrap ${
+                  className={`px-2 py-0.5 lg:px-3 lg:py-1 rounded text-xs md:text-[11px] lg:text-sm font-medium whitespace-nowrap ${
                     cardInstance.card.severity === "severe"
                       ? "bg-red-500/20 text-red-600 dark:text-red-400"
                       : cardInstance.card.severity === "moderate"
@@ -202,11 +202,11 @@ export function Hand({
                 >
                   {cardInstance.card.severity}
                 </span>
-                <span className="px-2 py-0.5 bg-accent/20 text-accent rounded text-xs md:text-[11px] font-medium whitespace-nowrap">
+                <span className="px-2 py-0.5 lg:px-3 lg:py-1 bg-accent/20 text-accent rounded text-xs md:text-[11px] lg:text-sm font-medium whitespace-nowrap">
                   {cardInstance.card.points} pts
                 </span>
               </div>
-              <p className="text-sm md:text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight">
+              <p className="text-sm md:text-xs lg:text-base text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight">
                 {getCardDescriptionForDisplay(cardInstance.card.description, roomMode)}
               </p>
             </div>
