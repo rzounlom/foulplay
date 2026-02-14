@@ -72,6 +72,8 @@ export function VotingPanel({
 
   const requiredApprovals = Math.ceil(totalPlayers / 2);
 
+  const isAnyVoteInProgress = Object.values(isVoting).some(Boolean);
+
   const hasVotedOnAll = useMemo(() => {
     for (const submission of submissionsToVote) {
       for (const card of submission.cardInstances) {
@@ -151,7 +153,7 @@ export function VotingPanel({
                       variant="outline-success"
                       size="sm"
                       onClick={() => handleVoteAll(submission, true)}
-                      disabled={isVoting[`all-${submission.id}`]}
+                      disabled={isVoting[`all-${submission.id}`] || isAnyVoteInProgress}
                       isLoading={isVoting[`all-${submission.id}`]}
                     >
                       Accept All
@@ -160,7 +162,7 @@ export function VotingPanel({
                       variant="outline-destructive"
                       size="sm"
                       onClick={() => handleVoteAll(submission, false)}
-                      disabled={isVoting[`all-${submission.id}`]}
+                      disabled={isVoting[`all-${submission.id}`] || isAnyVoteInProgress}
                       isLoading={isVoting[`all-${submission.id}`]}
                     >
                       Reject All
@@ -235,7 +237,7 @@ export function VotingPanel({
                                 onClick={() =>
                                   handleVote(submission.id, cardInstance.id, true)
                                 }
-                                disabled={isVoting[`${submission.id}-${cardInstance.id}`]}
+                                disabled={isVoting[`${submission.id}-${cardInstance.id}`] || isAnyVoteInProgress}
                                 isLoading={isVoting[`${submission.id}-${cardInstance.id}`]}
                                 className="flex-1"
                               >
@@ -247,7 +249,7 @@ export function VotingPanel({
                                 onClick={() =>
                                   handleVote(submission.id, cardInstance.id, false)
                                 }
-                                disabled={isVoting[`${submission.id}-${cardInstance.id}`]}
+                                disabled={isVoting[`${submission.id}-${cardInstance.id}`] || isAnyVoteInProgress}
                                 isLoading={isVoting[`${submission.id}-${cardInstance.id}`]}
                                 className="flex-1"
                               >

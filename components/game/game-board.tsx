@@ -567,7 +567,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       : 0;
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-6xl min-h-screen bg-background">
+    <div className="container mx-auto px-2 py-4 md:p-6 max-w-6xl min-h-screen bg-background">
       <GameTour 
         startTour={startTour}
         onTourStart={() => setStartTour(false)}
@@ -1176,8 +1176,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           {currentPlayer && (
             <div data-tour="your-cards" className="space-y-4">
               {handLoading ? (
-                <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-3 lg:gap-4">
+                <div className="bg-surface rounded-lg p-3 md:p-6 border border-border shadow-sm dark:shadow-none">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div key={i} className="h-[150px] md:h-[120px] lg:h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
                     ))}

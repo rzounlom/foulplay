@@ -100,7 +100,7 @@ export function Hand({
 
   if (cardsInHand.length === 0) {
     return (
-      <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none text-center">
+      <div className="bg-surface rounded-lg p-3 md:p-6 border border-border shadow-sm dark:shadow-none text-center">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 mb-3" aria-hidden>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
@@ -122,7 +122,7 @@ export function Hand({
   }
 
   return (
-    <div className="bg-surface rounded-lg p-4 md:p-6 border border-border shadow-sm dark:shadow-none">
+    <div className="bg-surface rounded-lg p-3 md:p-6 border border-border shadow-sm dark:shadow-none">
       <div className="flex items-center justify-between gap-2 mb-4">
         <h3 className="text-lg font-semibold">
           Your Hand ({cardsStaying.length}/{handSize})
@@ -171,7 +171,7 @@ export function Hand({
           )}
         </div>
       ) : null}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-3 lg:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4">
         {cardsStaying.map((cardInstance, index) => {
           const isSelected = isMultiSelect 
             ? selectedIds.includes(cardInstance.id)
@@ -180,7 +180,7 @@ export function Hand({
             <div
               key={cardInstance.id}
               onClick={() => onCardSelect?.(cardInstance.id)}
-              className={`p-5 md:p-4 lg:p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[150px] md:min-h-[120px] lg:min-h-[100px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up ${
+              className={`p-3 md:p-4 lg:p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[150px] md:min-h-[120px] lg:min-h-[100px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up ${
                 isSelected
                   ? "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.02] shadow-md"
                   : "border-neutral-200 dark:border-neutral-800 hover:border-primary/50"
