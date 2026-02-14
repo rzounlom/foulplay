@@ -171,7 +171,7 @@ export function Hand({
           )}
         </div>
       ) : null}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-2 lg:gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-3 lg:gap-4">
         {cardsStaying.map((cardInstance, index) => {
           const isSelected = isMultiSelect 
             ? selectedIds.includes(cardInstance.id)
@@ -180,19 +180,19 @@ export function Hand({
             <div
               key={cardInstance.id}
               onClick={() => onCardSelect?.(cardInstance.id)}
-              className={`p-4 md:p-2.5 lg:p-3 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[100px] md:min-h-[88px] lg:min-h-[72px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up ${
+              className={`p-5 md:p-4 lg:p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[150px] md:min-h-[120px] lg:min-h-[100px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up ${
                 isSelected
                   ? "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.02] shadow-md"
                   : "border-neutral-200 dark:border-neutral-800 hover:border-primary/50"
               }`}
               style={{ animationDelay: `${index * 40}ms` }}
             >
-              <h4 className="font-semibold text-sm md:text-xs leading-tight truncate mb-1.5 md:mb-1">
+              <h4 className="font-semibold text-base md:text-sm leading-tight break-words mb-2 md:mb-1.5">
                 {cardInstance.card.title}
               </h4>
-              <div className="flex flex-wrap items-center gap-1.5 md:gap-1 lg:gap-2 mb-1.5 md:mb-1">
+              <div className="flex flex-wrap items-center gap-2 md:gap-1.5 lg:gap-2 mb-2 md:mb-1.5">
                 <span
-                  className={`px-1.5 py-0.5 rounded text-xs md:text-[10px] font-medium whitespace-nowrap ${
+                  className={`px-2 py-0.5 rounded text-xs md:text-[11px] font-medium whitespace-nowrap ${
                     cardInstance.card.severity === "severe"
                       ? "bg-red-500/20 text-red-600 dark:text-red-400"
                       : cardInstance.card.severity === "moderate"
@@ -202,11 +202,11 @@ export function Hand({
                 >
                   {cardInstance.card.severity}
                 </span>
-                <span className="px-1.5 py-0.5 bg-accent/20 text-accent rounded text-xs md:text-[10px] font-medium whitespace-nowrap">
+                <span className="px-2 py-0.5 bg-accent/20 text-accent rounded text-xs md:text-[11px] font-medium whitespace-nowrap">
                   {cardInstance.card.points} pts
                 </span>
               </div>
-              <p className="text-xs md:text-[11px] text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight">
+              <p className="text-sm md:text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight">
                 {getCardDescriptionForDisplay(cardInstance.card.description, roomMode)}
               </p>
             </div>

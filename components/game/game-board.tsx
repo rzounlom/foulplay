@@ -2,20 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import { RoomEvent, useRoomChannel } from "@/lib/ably/useRoomChannel";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/toast";
 import { ChatPanel, type ChatMessage } from "./chat-panel";
+import { DiscardPanel } from "./discard-panel";
 import { GameTour } from "./game-tour";
 import { Hand } from "./hand";
 import { InstructionsModal } from "./instructions-modal";
-import { PendingDiscard } from "./pending-discard";
 import { PlayerList } from "./player-list";
-import { SubmissionPending } from "./submission-pending";
-import { VotingUI } from "./voting-ui";
+import { SubmitterPendingBadge } from "./submitter-pending-badge";
+import { VotingPanel } from "./voting-panel";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
 
 interface Player {
@@ -141,6 +141,10 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pointsAwardedPopup, setPointsAwardedPopup] = useState<{ points: number } | null>(null);
   const [playersPanelOpen, setPlayersPanelOpen] = useState(false);
+  const [votingPanelOpen, setVotingPanelOpen] = useState(false);
+  const [votingDismissed, setVotingDismissed] = useState(false);
+  const [discardPanelOpen, setDiscardPanelOpen] = useState(false);
+  const prevSubmissionsToVoteCount = useRef(0);
 
   const router = useRouter();
   const toast = useToast();
@@ -535,6 +539,33 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const roundLabel =
     room.currentQuarter?.replace(/^Q/, "") ?? null;
 
+  const submissionsToVote = useMemo(
+    () =>
+      submissions.filter(
+        (s) =>
+          s.status === "pending" &&
+          s.submittedBy.user.id !== currentUserId
+      ),
+    [submissions, currentUserId]
+  );
+
+  useEffect(() => {
+    if (submissionsToVote.length > 0) {
+      if (submissionsToVote.length > prevSubmissionsToVoteCount.current) {
+        setVotingDismissed(false);
+      }
+      setVotingPanelOpen(true);
+    } else {
+      setVotingDismissed(false);
+    }
+    prevSubmissionsToVoteCount.current = submissionsToVote.length;
+  }, [submissionsToVote.length]);
+
+  const myPendingDiscardCount =
+    currentPlayer && showQuarterControls && isQuarterIntermission
+      ? ((room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? []).length
+      : 0;
+
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-6xl min-h-screen bg-background">
       <GameTour 
@@ -590,14 +621,27 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             {showQuarterControls && (
               <span>Round: {roundLabel ?? "Not started"}</span>
             )}
-            {submissions.length > 0 && (
-              <span>Pending Submissions: {submissions.length}</span>
-            )}
           </div>
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 justify-center md:justify-end w-full md:w-auto">
             <span data-tour="instructions">
               <InstructionsModal onStartTour={handleStartTour} />
             </span>
+            {submissionsToVote.length > 0 && (
+              <span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setVotingPanelOpen(true);
+                    setVotingDismissed(false);
+                  }}
+                  className="border-amber-500/50 text-amber-700 dark:text-amber-300"
+                >
+                  Vote ({submissionsToVote.length})
+                </Button>
+              </span>
+            )}
             <span data-tour="players-button" className="lg:hidden">
               <Button
                 type="button"
@@ -663,6 +707,41 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           setLastSeenMessageCount(messages.length);
         }}
       />
+
+      {/* Voting panel - blocking slide-out (mobile) / modal (desktop) */}
+      {votingPanelOpen &&
+        submissionsToVote.length > 0 &&
+        !votingDismissed && (
+          <VotingPanel
+            submissions={submissions}
+            currentUserId={currentUserId}
+            totalPlayers={room.players.length}
+            onVote={handleVote}
+            onClose={() => {
+              setVotingPanelOpen(false);
+              setVotingDismissed(true);
+            }}
+            votingPaused={isQuarterIntermission}
+            roomMode={room.mode}
+          />
+        )}
+
+      {/* Discard panel - slide-out (mobile) / modal (desktop) during intermission */}
+      {currentPlayer && isQuarterIntermission && showQuarterControls && (
+        <DiscardPanel
+          cardInstances={hand.filter((c) =>
+            ((room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? []).includes(c.id)
+          )}
+          onRemove={(cardInstanceId) => {
+            const current = (room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? [];
+            handleQuarterDiscardSelection(current.filter((id) => id !== cardInstanceId));
+          }}
+          onClose={() => setDiscardPanelOpen(false)}
+          intermissionSecondsLeft={intermissionSecondsLeft}
+          roomMode={room.mode}
+          isOpen={discardPanelOpen}
+        />
+      )}
 
       {/* Players slide-out panel (mobile/tablet only) */}
       {playersPanelOpen && (
@@ -1045,6 +1124,15 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 Round ending — select cards to turn in
               </span>
               <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setDiscardPanelOpen(true)}
+                  className="border-amber-500/50"
+                >
+                  Pending Discard {myPendingDiscardCount > 0 && `(${myPendingDiscardCount})`}
+                </Button>
                 <span
                   className="text-xl font-mono font-bold tabular-nums text-amber-800 dark:text-amber-200 min-w-20 text-center"
                   aria-label="Time remaining"
@@ -1089,9 +1177,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             <div data-tour="your-cards" className="space-y-4">
               {handLoading ? (
                 <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-2 lg:gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-3 lg:gap-4">
                     {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="h-[100px] md:h-[88px] lg:h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
+                      <div key={i} className="h-[150px] md:h-[120px] lg:h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
                     ))}
                   </div>
                 </div>
@@ -1185,85 +1273,12 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           </div>
 
 
-          {/* Pending Submissions (hidden during round intermission to reduce clutter) */}
+          {/* Submitter: compact "Vote pending" badge for own submissions */}
           {!isQuarterIntermission && (
-          <div data-tour="pending-submissions" className="space-y-4">
-            {submissions.length > 0 ? (
-              <>
-                {(() => {
-                  // Group submissions by submitter
-                  const submissionsBySubmitter = submissions.reduce((acc, submission) => {
-                    const submitterId = submission.submittedBy.user.id;
-                    if (!acc[submitterId]) {
-                      acc[submitterId] = [];
-                    }
-                    acc[submitterId].push(submission);
-                    return acc;
-                  }, {} as Record<string, typeof submissions>);
-
-                  return Object.entries(submissionsBySubmitter).map(([submitterId, submitterSubmissions]) => {
-                    const isCurrentUser = submitterId === currentUserId;
-                    
-                    if (isCurrentUser) {
-                      // Show pending view for submitter (one submission can have multiple cards)
-                      return submitterSubmissions.map((submission) => (
-                        <SubmissionPending
-                          key={submission.id}
-                          submission={submission}
-                          totalPlayers={room.players.length}
-                          roomMode={room.mode}
-                        />
-                      ));
-                    } else {
-                      // Show voting UI for other players
-                      return submitterSubmissions.map((submission) => (
-                        <VotingUI
-                          key={submission.id}
-                          submission={submission}
-                          currentUserId={currentUserId}
-                          totalPlayers={room.players.length}
-                          onVote={handleVote}
-                          votingPaused={isQuarterIntermission}
-                          roomMode={room.mode}
-                        />
-                      ));
-                    }
-                  });
-                })()}
-              </>
-            ) : (
-              <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-surface-muted text-neutral-400 dark:text-neutral-500 mb-3" aria-hidden>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h2 className="text-section-title text-neutral-700 dark:text-neutral-300">
-                  Pending Submissions
-                </h2>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                  When players submit cards, they’ll appear here for everyone to vote on.
-                </p>
-              </div>
-            )}
-          </div>
-          )}
-
-          {/* Pending Discard (round intermission only) - same pattern as Pending Submissions */}
-          {currentPlayer && isQuarterIntermission && showQuarterControls && (
-            <div className="space-y-4">
-              <PendingDiscard
-                cardInstances={hand.filter((c) =>
-                  ((room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? []).includes(c.id)
-                )}
-                onRemove={(cardInstanceId) => {
-                  const current = (room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? [];
-                  handleQuarterDiscardSelection(current.filter((id) => id !== cardInstanceId));
-                }}
-                intermissionSecondsLeft={intermissionSecondsLeft}
-                roomMode={room.mode}
-              />
-            </div>
+            <SubmitterPendingBadge
+              submissions={submissions.filter((s) => s.submittedBy.user.id === currentUserId)}
+              roomMode={room.mode}
+            />
           )}
 
         </div>
