@@ -1,8 +1,46 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
+
+const HAND_LAYOUT_KEY = "foulplay-hand-layout";
+type HandLayout = "1v" | "1h" | "2v" | "2h";
+
+function useHandLayout() {
+  const [layout, setLayout] = useState<HandLayout>(() => {
+    if (typeof window === "undefined") return "2v";
+    try {
+      const stored = localStorage.getItem(HAND_LAYOUT_KEY) as HandLayout | null;
+      if (stored && ["1v", "1h", "2v", "2h"].includes(stored)) return stored;
+    } catch {
+      /* ignore */
+    }
+    return "2v";
+  });
+  const setAndStore = (value: HandLayout) => {
+    setLayout(value);
+    try {
+      localStorage.setItem(HAND_LAYOUT_KEY, value);
+    } catch {
+      /* ignore */
+    }
+  };
+  return [layout, setAndStore] as const;
+}
+
+function useIsSmallViewport() {
+  const [isSmall, setIsSmall] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 820px)").matches : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 820px)");
+    const handler = () => setIsSmall(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isSmall;
+}
 
 interface Card {
   id: string;
@@ -53,6 +91,8 @@ export function Hand({
   roomMode = null,
   currentUserPoints,
 }: HandProps) {
+  const [handLayout, setHandLayout] = useHandLayout();
+  const isSmallViewport = useIsSmallViewport();
   const isMultiSelect = !!(onCardSubmit || onQuarterDiscardSelection);
   const selectedIds = useMemo(
     () => (isMultiSelect ? selectedCardIds : selectedCardId ? [selectedCardId] : []),
@@ -122,30 +162,59 @@ export function Hand({
   }
 
   return (
-    <div className="bg-surface rounded-lg p-3 md:p-6 lg:min-h-[480px] lg:p-5 border border-border shadow-sm dark:shadow-none">
-      <div className="flex items-center justify-between gap-2 mb-4 lg:mb-6">
+    <div className="bg-surface rounded-lg p-3 md:p-6 lg:p-5 border border-border shadow-sm dark:shadow-none flex flex-col min-h-0 min-w-0 max-h-[calc(100vh-12rem)] overflow-x-hidden">
+      <div className="flex items-center justify-between gap-2 mb-4 lg:mb-6 flex-wrap shrink-0">
         <h3 className="text-lg font-semibold lg:text-xl">
           Your Hand ({cardsStaying.length}/{handSize})
         </h3>
-        {currentUserPoints !== undefined && (
-          <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400 lg:hidden" aria-label="Your points">
-            {currentUserPoints} pts
-          </span>
-        )}
+        <div className="flex items-center gap-1">
+          {currentUserPoints !== undefined && (
+            <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400 min-[821px]:hidden" aria-label="Your points">
+              {currentUserPoints} pts
+            </span>
+          )}
+          {isSmallViewport && (
+            <div className="flex items-center gap-1 ml-2" role="group" aria-label="Card layout">
+              {(
+                [
+                  ["1v", "1 col, scroll down", "↓"],
+                  ["1h", "1 col, scroll right", "→"],
+                  ["2v", "2 cols, scroll down", "2↓"],
+                  ["2h", "2 cols, scroll right", "2→"],
+                ] as const
+              ).map(([value, label, short]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setHandLayout(value)}
+                  title={label}
+                  aria-pressed={handLayout === value}
+                  className={`min-w-9 h-8 px-1.5 rounded text-xs font-medium transition-colors ${
+                    handLayout === value
+                      ? "bg-primary text-white"
+                      : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                  }`}
+                >
+                  {short}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       {!canTurnInCards && !isQuarterIntermission && (
-        <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded text-sm">
+        <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded text-sm shrink-0">
           Card turn-in is currently disabled by the host
         </div>
       )}
       {isQuarterIntermission && (
-        <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm">
+        <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm shrink-0">
           Select cards from your hand and click Submit for discard. They will move to Pending Discard above. Remove from Pending Discard to keep them. When the timer ends, cards in Pending Discard are discarded and replaced.{roomMode !== "non-drinking" && " Drink penalty applies."}
         </div>
       )}
 
       {(canSubmitCards && selectedIds.length > 0) || (isQuarterIntermission && onQuarterDiscardSelection && selectedIds.length > 0) ? (
-        <div className="mb-4 lg:mb-6 flex gap-2">
+        <div className="mb-4 lg:mb-6 flex gap-2 shrink-0">
           {canSubmitCards && selectedIds.length > 0 && (
             <Button
               variant="outline-primary"
@@ -171,28 +240,51 @@ export function Hand({
           )}
         </div>
       ) : null}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4">
+      <div
+        className={
+          isSmallViewport
+            ? handLayout === "1v"
+              ? "flex flex-col gap-4 overflow-y-auto min-h-0 flex-1 max-h-[calc(100vh-12rem)]"
+              : handLayout === "1h"
+                ? "flex overflow-x-auto overflow-y-hidden gap-4 pb-2 snap-x snap-mandatory min-h-0 min-w-0 w-full flex-1 max-h-[calc(100vh-12rem)]"
+                : handLayout === "2v"
+                  ? "grid grid-cols-2 gap-4 overflow-y-auto min-h-0 flex-1 max-h-[calc(100vh-12rem)]"
+                  : "grid grid-flow-col gap-4 overflow-x-auto overflow-y-auto pb-2 auto-cols-[minmax(160px,min(45vw,300px))] min-h-0 min-w-0 w-full flex-1 max-h-[calc(100vh-12rem)] [grid-template-rows:repeat(2,auto)]"
+            : "grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4 overflow-y-auto min-h-0 flex-1"
+        }
+      >
         {cardsStaying.map((cardInstance, index) => {
           const isSelected = isMultiSelect 
             ? selectedIds.includes(cardInstance.id)
             : selectedCardId === cardInstance.id;
+          const cardClasses = isSmallViewport
+            ? handLayout === "1v"
+              ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[280px] flex-shrink-0 w-full hover:scale-[1.01] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
+              : handLayout === "1h"
+                ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[280px] flex-shrink-0 w-[min(85vw,320px)] snap-center hover:scale-[1.01] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
+                : handLayout === "2v"
+                  ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[220px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
+                  : "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
+            : "p-3 md:p-4 lg:p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[150px] md:min-h-[120px] lg:min-h-[220px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up";
           return (
             <div
               key={cardInstance.id}
               onClick={() => onCardSelect?.(cardInstance.id)}
-              className={`p-3 md:p-4 lg:p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[150px] md:min-h-[120px] lg:min-h-[220px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up ${
+              className={`${cardClasses} ${
                 isSelected
                   ? "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.02] shadow-md"
                   : "border-neutral-200 dark:border-neutral-800 hover:border-primary/50"
               }`}
               style={{ animationDelay: `${index * 40}ms` }}
             >
-              <h4 className="font-semibold text-base md:text-sm lg:text-xl leading-tight break-words mb-2 md:mb-1.5 lg:mb-3">
+              <h4 className={`font-semibold leading-tight break-words ${isSmallViewport ? "text-base mb-2" : "text-base md:text-sm lg:text-xl mb-2 md:mb-1.5 lg:mb-3"}`}>
                 {cardInstance.card.title}
               </h4>
-              <div className="flex flex-wrap items-center gap-2 md:gap-1.5 lg:gap-3 mb-2 md:mb-1.5 lg:mb-3">
+              <div className={`flex flex-wrap items-center gap-2 ${isSmallViewport ? "mb-2" : "md:gap-1.5 lg:gap-3 mb-2 md:mb-1.5 lg:mb-3"}`}>
                 <span
-                  className={`px-2 py-0.5 lg:px-3 lg:py-1 rounded text-xs md:text-[11px] lg:text-sm font-medium whitespace-nowrap ${
+                  className={`px-2 py-0.5 rounded font-medium whitespace-nowrap ${
+                    isSmallViewport ? "text-xs" : "text-xs md:text-[11px] lg:text-sm lg:px-3 lg:py-1"
+                  } ${
                     cardInstance.card.severity === "severe"
                       ? "bg-red-500/20 text-red-600 dark:text-red-400"
                       : cardInstance.card.severity === "moderate"
@@ -202,11 +294,11 @@ export function Hand({
                 >
                   {cardInstance.card.severity}
                 </span>
-                <span className="px-2 py-0.5 lg:px-3 lg:py-1 bg-accent/20 text-accent rounded text-xs md:text-[11px] lg:text-sm font-medium whitespace-nowrap">
+                <span className={`px-2 py-0.5 bg-accent/20 text-accent rounded font-medium whitespace-nowrap ${isSmallViewport ? "text-xs" : "text-xs md:text-[11px] lg:text-sm lg:px-3 lg:py-1"}`}>
                   {cardInstance.card.points} pts
                 </span>
               </div>
-              <p className="text-sm md:text-xs lg:text-base text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight">
+              <p className={`text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight ${isSmallViewport ? "text-sm" : "text-sm md:text-xs lg:text-base"}`}>
                 {getCardDescriptionForDisplay(cardInstance.card.description, roomMode)}
               </p>
             </div>

@@ -567,7 +567,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       : 0;
 
   return (
-    <div className="container mx-auto px-2 py-4 md:p-6 lg:p-4 max-w-6xl min-h-screen bg-background">
+    <div className="container mx-auto px-2 py-4 md:p-6 lg:p-4 max-w-6xl min-h-screen bg-background overflow-x-hidden">
       <GameTour 
         startTour={startTour}
         onTourStart={() => setStartTour(false)}
@@ -1116,7 +1116,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         </div>
 
         {/* Center Column - Game Area (full width on mobile/tablet) */}
-        <div className="lg:min-w-0 space-y-6">
+        <div className="lg:min-w-0 space-y-6 overflow-x-hidden">
           {/* Round intermission callout — above Pending Submissions/Discard, compact like heading row */}
           {showQuarterControls && isQuarterIntermission && (
             <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border-2 border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/30">
@@ -1174,10 +1174,10 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
 
           {/* Your hand first — front and center */}
           {currentPlayer && (
-            <div data-tour="your-cards" className="space-y-4">
+            <div data-tour="your-cards" className="space-y-4 min-w-0 overflow-x-hidden">
               {handLoading ? (
-                <div className="bg-surface rounded-lg p-3 md:p-6 lg:min-h-[480px] lg:p-5 border border-border shadow-sm dark:shadow-none">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4">
+                <div className="bg-surface rounded-lg p-3 md:p-6 lg:p-5 border border-border shadow-sm dark:shadow-none flex flex-col min-h-0 max-h-[calc(100vh-12rem)]">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4 overflow-y-auto min-h-0 flex-1">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div key={i} className="h-[150px] md:h-[120px] lg:h-[220px] rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
                     ))}
