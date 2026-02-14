@@ -72,6 +72,13 @@ export default async function GameRoomPage({
     return <GameBoard roomCode={roomCode} currentUserId={user.id} initialRoom={roomForClient} />;
   }
 
-  // Ended game state - could add a game over screen later
+  // Ended game — redirect to end-game page (or lobby if no result)
+  if (room.status === "ended") {
+    const hasEndResult = room.lastGameEndResult && typeof room.lastGameEndResult === "object";
+    if (hasEndResult) {
+      redirect(`/game/${roomCode}/end-game`);
+    }
+  }
+
   return <Lobby roomCode={roomCode} currentUserId={user.id} initialRoom={room} />;
 }

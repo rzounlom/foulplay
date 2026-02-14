@@ -37,6 +37,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
+    if (room.status === "ended") {
+      return NextResponse.json(
+        { error: "This game has ended" },
+        { status: 400 }
+      );
+    }
+
     if (room.status !== "lobby" && !room.allowJoinInProgress) {
       return NextResponse.json(
         { error: "Room is not accepting new players" },

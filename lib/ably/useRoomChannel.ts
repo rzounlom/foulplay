@@ -60,24 +60,31 @@ export function useRoomChannel(
       return;
     }
 
-    // Initialize Ably client
+    // Prefer token auth in production (keeps API key server-side, often more reliable)
     const apiKey = process.env.NEXT_PUBLIC_ABLY_API_KEY;
-    if (!apiKey) {
-      // Use setTimeout to avoid synchronous setState in effect
+    const useTokenAuth =
+      process.env.NODE_ENV === "production" ||
+      process.env.NEXT_PUBLIC_ABLY_USE_TOKEN === "true";
+
+    if (!apiKey && !useTokenAuth) {
       setTimeout(() => {
         setConnectionError(
-          new Error("NEXT_PUBLIC_ABLY_API_KEY is not set")
+          new Error("NEXT_PUBLIC_ABLY_API_KEY or ABLY_API_KEY (with token auth) is not set")
         );
       }, 0);
       return;
     }
 
-    const client = new Ably.Realtime({
-      key: apiKey,
-      // Increase timeouts to tolerate production proxies/firewalls that close idle connections
+    const clientOptions = {
+      // Token auth: client fetches short-lived token from our API (recommended for production)
+      ...(useTokenAuth
+        ? { authUrl: "/api/ably/token" }
+        : { key: apiKey }),
       realtimeRequestTimeout: 60000,
       disconnectedRetryTimeout: 10000,
-    } as Ably.ClientOptions);
+    } as Ably.ClientOptions;
+
+    const client = new Ably.Realtime(clientOptions);
     clientRef.current = client;
 
     // Set up connection state listeners
