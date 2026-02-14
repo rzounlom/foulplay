@@ -536,7 +536,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     room.currentQuarter?.replace(/^Q/, "") ?? null;
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl min-h-screen bg-background">
+    <div className="container mx-auto p-4 md:p-6 max-w-6xl min-h-screen bg-background">
       <GameTour 
         startTour={startTour}
         onTourStart={() => setStartTour(false)}
@@ -1089,9 +1089,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             <div data-tour="your-cards" className="space-y-4">
               {handLoading ? (
                 <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 lg:gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-2 lg:gap-3">
                     {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="h-20 lg:h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
+                      <div key={i} className="h-[100px] md:h-[88px] lg:h-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
                     ))}
                   </div>
                 </div>
@@ -1128,12 +1128,12 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           {/* Active Card Display */}
           <div 
             data-tour="active-card"
-            className={activeCard ? "bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none" : "hidden"}
+            className={activeCard ? "bg-surface rounded-lg p-4 md:p-6 border border-border shadow-sm dark:shadow-none" : "hidden"}
           >
             {activeCard ? (
               <>
                 <h2 className="text-section-title mb-4">Active Card</h2>
-              <div className="p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border-2 border-primary/30">
+              <div className="p-4 md:p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border-2 border-primary/30">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-2xl font-bold mb-2">{activeCard.card.title}</h3>
