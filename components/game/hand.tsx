@@ -244,13 +244,13 @@ export function Hand({
         className={
           isSmallViewport
             ? handLayout === "1v"
-              ? "flex flex-col gap-4 overflow-y-auto min-h-0 flex-1 max-h-[calc(100vh-12rem)]"
+              ? "flex flex-col gap-2 overflow-y-auto min-h-0 flex-1 max-h-[calc(100vh-12rem)] p-1"
               : handLayout === "1h"
-                ? "flex overflow-x-auto overflow-y-hidden gap-4 pb-2 snap-x snap-mandatory min-h-0 min-w-0 w-full flex-1 max-h-[calc(100vh-12rem)]"
+                ? "flex overflow-x-auto overflow-y-hidden gap-2 p-1 pb-2 snap-x snap-mandatory min-h-0 min-w-0 w-full flex-1 max-h-[calc(100vh-12rem)]"
                 : handLayout === "2v"
-                  ? "grid grid-cols-2 gap-4 overflow-y-auto min-h-0 flex-1 max-h-[calc(100vh-12rem)]"
-                  : "grid grid-flow-col gap-4 overflow-x-auto overflow-y-auto pb-2 auto-cols-[minmax(160px,min(45vw,300px))] min-h-0 min-w-0 w-full flex-1 max-h-[calc(100vh-12rem)] [grid-template-rows:repeat(2,auto)]"
-            : "grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4 overflow-y-auto min-h-0 flex-1"
+                  ? "grid grid-cols-2 gap-2 overflow-y-auto min-h-0 flex-1 max-h-[calc(100vh-12rem)] p-1"
+                  : "grid grid-flow-col gap-2 overflow-x-auto overflow-y-auto p-1 pb-2 auto-cols-[minmax(160px,min(45vw,300px))] min-h-0 min-w-0 w-full flex-1 max-h-[calc(100vh-12rem)] [grid-template-rows:repeat(2,auto)]"
+            : "grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 lg:gap-5 p-2 overflow-y-auto min-h-0 flex-1"
         }
       >
         {cardsStaying.map((cardInstance, index) => {
@@ -263,8 +263,8 @@ export function Hand({
               : handLayout === "1h"
                 ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[280px] flex-shrink-0 w-[min(85vw,320px)] snap-center hover:scale-[1.01] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
                 : handLayout === "2v"
-                  ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[220px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
-                  : "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
+                  ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[220px] hover:scale-[1.01] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
+                  : "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer hover:scale-[1.01] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
             : "p-3 md:p-4 lg:p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[150px] md:min-h-[120px] lg:min-h-[220px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up";
           return (
             <div
@@ -272,7 +272,9 @@ export function Hand({
               onClick={() => onCardSelect?.(cardInstance.id)}
               className={`${cardClasses} ${
                 isSelected
-                  ? "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.02] shadow-md"
+                  ? isSmallViewport
+                    ? "border-primary bg-primary/10 shadow-md"
+                    : "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.02] shadow-md"
                   : "border-neutral-200 dark:border-neutral-800 hover:border-primary/50"
               }`}
               style={{ animationDelay: `${index * 40}ms` }}
