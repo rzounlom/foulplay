@@ -75,6 +75,8 @@ interface HandProps {
   roomMode?: string | null;
   /** Shown to the right of "Your Hand" on small screens when Players panel is hidden */
   currentUserPoints?: number;
+  /** When true, disables card submission and quarter discard submission (e.g. while host is ending round) */
+  submissionDisabled?: boolean;
 }
 
 export function Hand({
@@ -90,6 +92,7 @@ export function Hand({
   myQuarterSelectionIds = [],
   roomMode = null,
   currentUserPoints,
+  submissionDisabled = false,
 }: HandProps) {
   const [handLayout, setHandLayout] = useHandLayout();
   const isSmallViewport = useIsSmallViewport();
@@ -99,7 +102,7 @@ export function Hand({
     [isMultiSelect, selectedCardIds, selectedCardId]
   );
   // During normal play, only submit-for-vote is allowed. Discard with penalty is only during round intermission.
-  const canSubmitCards = canTurnInCards && !isQuarterIntermission;
+  const canSubmitCards = canTurnInCards && !isQuarterIntermission && !submissionDisabled;
   const cardsInHand = cards.filter((c) => c.status === "drawn");
 
   const cardsStaying =
@@ -109,7 +112,7 @@ export function Hand({
 
   const canSubmitWithEnter =
     (canSubmitCards && selectedIds.length > 0) ||
-    (isQuarterIntermission && !!onQuarterDiscardSelection && selectedIds.length > 0);
+    (isQuarterIntermission && !!onQuarterDiscardSelection && selectedIds.length > 0 && !submissionDisabled);
 
   useEffect(() => {
     if (!canSubmitWithEnter) return;
@@ -136,6 +139,7 @@ export function Hand({
     myQuarterSelectionIds,
     onCardSubmit,
     onQuarterDiscardSelection,
+    submissionDisabled,
   ]);
 
   if (cardsInHand.length === 0) {
@@ -205,6 +209,11 @@ export function Hand({
       {!canTurnInCards && !isQuarterIntermission && (
         <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded text-sm shrink-0">
           Card turn-in is currently disabled by the host
+        </div>
+      )}
+      {submissionDisabled && (
+        <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm shrink-0">
+          Submissions paused — round is ending
         </div>
       )}
       {isQuarterIntermission && (

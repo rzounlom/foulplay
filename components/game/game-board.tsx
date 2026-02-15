@@ -131,8 +131,12 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [startTour, setStartTour] = useState(false);
   const [showEndGameModal, setShowEndGameModal] = useState(false);
   const [showResetPointsModal, setShowResetPointsModal] = useState(false);
+  const [showEndRoundModal, setShowEndRoundModal] = useState(false);
+  const [showEndRoundEarlyModal, setShowEndRoundEarlyModal] = useState(false);
   const [isEndingGame, setIsEndingGame] = useState(false);
   const [isResettingPoints, setIsResettingPoints] = useState(false);
+  const [isEndingRound, setIsEndingRound] = useState(false);
+  const [isEndingRoundEarly, setIsEndingRoundEarly] = useState(false);
   const [intermissionSecondsLeft, setIntermissionSecondsLeft] = useState<number | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showMoreHostControls, setShowMoreHostControls] = useState(false);
@@ -468,6 +472,50 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       toast.addToast(error instanceof Error ? error.message : "Failed to reset points", "error");
     } finally {
       setIsResettingPoints(false);
+    }
+  };
+
+  const handleEndRound = async () => {
+    setIsEndingRound(true);
+    try {
+      const response = await fetch("/api/game/end-quarter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomCode }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to end round");
+      }
+      setShowEndRoundModal(false);
+      fetchRoom();
+    } catch (error) {
+      if (process.env.NODE_ENV === "development") console.error("Failed to end round:", error);
+      toast.addToast(error instanceof Error ? error.message : "Failed to end round", "error");
+    } finally {
+      setIsEndingRound(false);
+    }
+  };
+
+  const handleEndRoundEarly = async () => {
+    setIsEndingRoundEarly(true);
+    try {
+      const response = await fetch("/api/game/finalize-quarter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomCode }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to end intermission");
+      }
+      setShowEndRoundEarlyModal(false);
+      fetchRoom();
+    } catch (error) {
+      if (process.env.NODE_ENV === "development") console.error("Failed to end intermission:", error);
+      toast.addToast(error instanceof Error ? error.message : "Failed to end intermission", "error");
+    } finally {
+      setIsEndingRoundEarly(false);
     }
   };
 
@@ -832,22 +880,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                   type="button"
                                   variant="outline-primary"
                                   size="sm"
-                                  onClick={async () => {
-                                    try {
-                                      const response = await fetch("/api/game/end-quarter", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ roomCode }),
-                                      });
-                                      if (!response.ok) {
-                                        const data = await response.json();
-                                        toast.addToast(data.error || "Failed to end round", "error");
-                                      }
-                                    } catch (error) {
-                                      if (process.env.NODE_ENV === "development") console.error("Failed to end round:", error);
-                                      toast.addToast("Failed to end round", "error");
-                                    }
-                                  }}
+                                  onClick={() => setShowEndRoundModal(true)}
                                 >
                                   End Round
                                 </Button>
@@ -1012,22 +1045,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                   type="button"
                                   variant="outline-primary"
                                   size="sm"
-                                  onClick={async () => {
-                                    try {
-                                      const response = await fetch("/api/game/end-quarter", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ roomCode }),
-                                      });
-                                      if (!response.ok) {
-                                        const data = await response.json();
-                                        toast.addToast(data.error || "Failed to end round", "error");
-                                      }
-                                    } catch (error) {
-                                      if (process.env.NODE_ENV === "development") console.error("Failed to end round:", error);
-                                      toast.addToast("Failed to end round", "error");
-                                    }
-                                  }}
+                                  onClick={() => setShowEndRoundModal(true)}
                                 >
                                   End Round
                                 </Button>
@@ -1146,24 +1164,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                     type="button"
                     variant="primary"
                     size="sm"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch("/api/game/finalize-quarter", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ roomCode }),
-                        });
-                        if (response.ok) {
-                          fetchRoom();
-                        } else {
-                          const data = await response.json();
-                          alert(data.error || "Failed to end intermission");
-                        }
-                      } catch (error) {
-                        if (process.env.NODE_ENV === "development") console.error("Failed to finalize quarter:", error);
-                        alert("Failed to end intermission");
-                      }
-                    }}
+                    onClick={() => setShowEndRoundEarlyModal(true)}
                   >
                     End round early
                   </Button>
@@ -1208,6 +1209,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 }
                 roomMode={room.mode}
                 currentUserPoints={currentPlayer.points}
+                submissionDisabled={
+                  (showEndRoundModal || showEndRoundEarlyModal || isEndingRound || isEndingRoundEarly) && isHost
+                }
               />
               )}
             </div>
@@ -1250,11 +1254,13 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                     variant="outline-primary"
                     fullWidth
                     onClick={() => handleSubmitCard(activeCard.id)}
-                    disabled={isQuarterIntermission}
+                    disabled={isQuarterIntermission || (isHost && (showEndRoundModal || showEndRoundEarlyModal || isEndingRound || isEndingRoundEarly))}
                     isLoading={isSubmitting}
                   >
                     {isQuarterIntermission
                       ? "Submissions paused (round intermission)"
+                      : isHost && (showEndRoundModal || showEndRoundEarlyModal || isEndingRound || isEndingRoundEarly)
+                      ? "Submissions paused (round ending)"
                       : "Submit Card"}
                   </Button>
                 )}
@@ -1336,6 +1342,64 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 isLoading={isResettingPoints}
               >
                 Reset Points
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* End Round Confirmation Modal */}
+      {showEndRoundModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-surface rounded-lg p-6 max-w-md w-full border border-border shadow-lg dark:shadow-none">
+            <h3 className="text-section-title font-bold mb-4">End Round?</h3>
+            <p className="text-body-muted mb-6">
+              This will end the current round and start the quarter intermission. Players will have time to turn in unwanted cards before the next round begins.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setShowEndRoundModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline-primary"
+                fullWidth
+                onClick={handleEndRound}
+                isLoading={isEndingRound}
+              >
+                End Round
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* End Round Early Confirmation Modal */}
+      {showEndRoundEarlyModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-surface rounded-lg p-6 max-w-md w-full border border-border shadow-lg dark:shadow-none">
+            <h3 className="text-section-title font-bold mb-4">End Round Early?</h3>
+            <p className="text-body-muted mb-6">
+              This will end the intermission now. All pending card turn-ins will be processed and players will receive new cards. Players who haven&apos;t selected cards to turn in will keep their current hand.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setShowEndRoundEarlyModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline-primary"
+                fullWidth
+                onClick={handleEndRoundEarly}
+                isLoading={isEndingRoundEarly}
+              >
+                End Round Early
               </Button>
             </div>
           </div>
