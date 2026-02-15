@@ -1,6 +1,6 @@
 export function GamesPageSkeleton() {
   return (
-    <div className="container mx-auto px-4 py-6 md:py-8 max-w-4xl min-h-screen bg-background">
+    <div className="container mx-auto px-4 py-4 md:py-6 max-w-4xl min-h-[calc(100vh-4.5rem)] bg-background">
       <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
         {/* Title */}
         <div className="h-7 md:h-8 w-32 mb-4 md:mb-6 rounded bg-neutral-200 dark:bg-neutral-700 animate-pulse" aria-hidden />

@@ -56,11 +56,27 @@
   --border: #262626;
 }
 
+html {
+  overflow-y: auto;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Prevent scroll on landing page */
+body.landing-no-scroll {
+  overflow: hidden;
+  height: 100vh;
 }
 
 /* Typography utilities – use for consistent hierarchy */
