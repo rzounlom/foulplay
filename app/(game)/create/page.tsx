@@ -94,8 +94,8 @@ export default function CreateRoomPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-6 md:p-6 bg-background">
-      <div className="w-full max-w-2xl">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8 md:py-12 bg-background">
+      <div className="w-full max-w-2xl mx-auto my-auto">
         <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
           <h1 className="text-xl md:text-page-title text-foreground mb-3 md:mb-4">Create a Room</h1>
           <p className="text-body-muted text-sm md:text-base mb-4 md:mb-6">
@@ -118,10 +118,10 @@ export default function CreateRoomPage() {
               required
             >
               <option value="">Select mode</option>
-              <option value="casual">Casual — milder cards (~70% mild)</option>
-              <option value="party">Party — balanced mix (~50% mild)</option>
-              <option value="lit">Lit — more intense (~40% mild, more severe)</option>
-              <option value="non-drinking">Non-drinking — same mix as Casual</option>
+              <option value="casual">Casual — mild drinking penalties</option>
+              <option value="party">Party — balanced mix</option>
+              <option value="lit">Get Lit — intense drinking penalties</option>
+              <option value="non-drinking">Non-drinking</option>
             </Select>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
               Mode affects the mix of card severities (mild / moderate / severe) in the deck.
@@ -156,11 +156,11 @@ export default function CreateRoomPage() {
                   onChange={(e) => setAllowQuarterClearing(e.target.checked)}
                 />
                 <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                  Enable quarter-based card clearing
+                  Enable round clearing
                 </span>
               </label>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-6">
-                Host can end quarters; players get 5 minutes to turn in unwanted cards (drink penalty applies).
+                Host controls when rounds end; players get 5 minutes to turn in unwanted cards (drink penalty applies).
               </p>
             </div>
           )}
@@ -188,7 +188,7 @@ export default function CreateRoomPage() {
         </div>
 
           <Button
-            variant="primary"
+            variant="outline-primary"
             size="lg"
             fullWidth
             onClick={handleCreateRoom}
