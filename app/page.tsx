@@ -42,7 +42,7 @@ export default function Home() {
 
         <div className="mt-6 md:mt-8 text-center px-2">
           <p className="text-sm md:text-base text-neutral-300">
-            Play interactive card-based games with friends in real-time
+            Create a room, share the code, and start playing—no downloads required
           </p>
         </div>
       </main>
