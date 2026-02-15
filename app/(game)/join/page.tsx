@@ -107,7 +107,7 @@ function JoinRoomForm() {
 
   if (!isLoaded) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-6 bg-background">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8 bg-background">
         <div className="w-full max-w-2xl">
           <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
             <p className="text-center">Loading...</p>
@@ -122,8 +122,8 @@ function JoinRoomForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-6 md:p-6 bg-background">
-      <div className="w-full max-w-2xl">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8 md:py-12 bg-background">
+      <div className="w-full max-w-2xl mx-auto my-auto">
         <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
           <h1 className="text-xl md:text-page-title text-foreground mb-3 md:mb-4">Join a Room</h1>
           <p className="text-body-muted text-sm md:text-base mb-4 md:mb-6">
@@ -171,7 +171,7 @@ function JoinRoomForm() {
 
             <Button
               type="submit"
-              variant="primary"
+              variant="outline-primary"
               size="lg"
               fullWidth
               disabled={code.length !== 6}
@@ -190,7 +190,7 @@ function JoinRoomForm() {
 export default function JoinRoomPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center px-4 py-6 bg-background">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8 bg-background">
         <div className="w-full max-w-2xl">
           <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
             <p className="text-center">Loading...</p>
