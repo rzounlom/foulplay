@@ -112,6 +112,17 @@ a {
   transition: color var(--transition-duration) ease;
 }
 
+/* Navbar: ensure pointer cursor persists on hover (children like SVG can override) */
+nav a,
+nav button,
+nav [role="button"] {
+  cursor: pointer;
+}
+nav a *,
+nav button * {
+  cursor: inherit;
+}
+
 /* Focus visible for accessibility (keyboard nav) */
 button:focus-visible,
 a:focus-visible,

@@ -6,6 +6,7 @@ import { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { JoinRoomCardSkeleton } from "@/components/join/join-room-card-skeleton";
 
 function JoinRoomForm() {
   const router = useRouter();
@@ -107,12 +108,8 @@ function JoinRoomForm() {
 
   if (!isLoaded) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8 bg-background">
-        <div className="w-full max-w-2xl">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
-            <p className="text-center">Loading...</p>
-          </div>
-        </div>
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8 md:py-12 bg-background">
+        <JoinRoomCardSkeleton />
       </div>
     );
   }
@@ -190,12 +187,8 @@ function JoinRoomForm() {
 export default function JoinRoomPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8 bg-background">
-        <div className="w-full max-w-2xl">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
-            <p className="text-center">Loading...</p>
-          </div>
-        </div>
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8 md:py-12 bg-background">
+        <JoinRoomCardSkeleton />
       </div>
     }>
       <JoinRoomForm />

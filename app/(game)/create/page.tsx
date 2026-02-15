@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CreateRoomCardSkeleton } from "@/components/create/create-room-card-skeleton";
 
 export default function CreateRoomPage() {
   const router = useRouter();
@@ -79,12 +80,8 @@ export default function CreateRoomPage() {
 
   if (!isLoaded) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-6 bg-background">
-        <div className="w-full max-w-2xl">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
-            <p className="text-center">Loading...</p>
-          </div>
-        </div>
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8 md:py-12 bg-background">
+        <CreateRoomCardSkeleton />
       </div>
     );
   }

@@ -70,16 +70,40 @@ export function MainNav() {
         <div className="container mx-auto px-4 py-2 md:py-4">
           <div className="flex items-center justify-between">
             {/* Logo/Brand */}
-            <Link href="/" className="text-2xl font-bold text-primary hover:opacity-80 cursor-pointer">
+            <Link href="/" className="text-2xl font-bold text-primary hover:opacity-80 cursor-pointer shrink-0">
               FoulPlay
             </Link>
+
+            {/* Loading skeleton for nav (desktop) */}
+            {!isLoaded && (
+              <div className="hidden lg:flex items-center gap-2" aria-hidden>
+                <div className="h-8 w-14 rounded bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+                <div className="h-8 w-20 rounded bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+                <div className="h-8 w-16 rounded bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+                <div className="h-8 w-24 rounded bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+                <div className="h-8 w-14 rounded bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+                <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+                <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+              </div>
+            )}
+
+            {/* Loading skeleton for nav (mobile) */}
+            {!isLoaded && (
+              <div className="flex lg:hidden items-center gap-2" aria-hidden>
+                <div className="h-10 w-10 rounded-md bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+                <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+                <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+              </div>
+            )}
 
             {/* Desktop: full nav links (lg and up) */}
             {isLoaded && isSignedIn && (
               <div className="hidden lg:flex items-center gap-2">
                 {navLinks}
                 <ThemeToggle />
-                <UserButton afterSignOutUrl="/" />
+                <div className="cursor-pointer *:cursor-pointer inline-flex">
+                  <UserButton afterSignOutUrl="/" />
+                </div>
               </div>
             )}
 
@@ -89,7 +113,7 @@ export function MainNav() {
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
-                  className="p-2 rounded-md text-neutral-600 dark:text-neutral-400 hover:text-primary hover:bg-surface-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="p-2 rounded-md text-neutral-600 dark:text-neutral-400 hover:text-primary hover:bg-surface-muted transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   aria-label="Open menu"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -97,7 +121,9 @@ export function MainNav() {
                   </svg>
                 </button>
                 <ThemeToggle />
-                <UserButton afterSignOutUrl="/" />
+                <div className="cursor-pointer *:cursor-pointer inline-flex">
+                  <UserButton afterSignOutUrl="/" />
+                </div>
               </div>
             )}
 
@@ -132,7 +158,7 @@ export function MainNav() {
               <button
                 type="button"
                 onClick={() => setSidebarOpen(false)}
-                className="p-2 rounded-md text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="p-2 rounded-md text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-surface-muted cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 aria-label="Close menu"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
