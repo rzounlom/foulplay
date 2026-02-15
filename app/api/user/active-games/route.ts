@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 
 /**
  * GET /api/user/active-games
- * Get all active games (lobby or active status) that the current user is in
+ * Get all games (lobby, active, or ended) that the current user is in
  */
 export async function GET(request: NextRequest) {
   try {
@@ -14,16 +14,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Find all rooms where the user is a player and room status is lobby or active
+    // Find all rooms where the user is a player (any status: lobby, active, ended)
     const activeGames = await prisma.room.findMany({
       where: {
         players: {
           some: {
             userId: user.id,
           },
-        },
-        status: {
-          in: ["lobby", "active"],
         },
       },
       include: {

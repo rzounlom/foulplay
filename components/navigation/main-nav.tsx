@@ -33,7 +33,7 @@ export function MainNav() {
   const isActive = (path: string, options?: { exact?: boolean }) => {
     if (!pathname) return false;
     if (options?.exact) return pathname === path;
-    if (path === "/active-games") return pathname === path || pathname.startsWith("/game/");
+    if (path === "/games") return pathname === path || pathname.startsWith("/game/");
     return pathname === path;
   };
 
@@ -55,8 +55,8 @@ export function MainNav() {
       <Link href="/join" className={linkClass("/join")} onClick={() => setSidebarOpen(false)}>
         Join Room
       </Link>
-      <Link href="/active-games" className={linkClass("/active-games")} onClick={() => setSidebarOpen(false)}>
-        Active Games
+      <Link href="/games" className={linkClass("/games")} onClick={() => setSidebarOpen(false)}>
+        Games
       </Link>
       <Link href="/profile" className={linkClass("/profile")} onClick={() => setSidebarOpen(false)}>
         Profile
