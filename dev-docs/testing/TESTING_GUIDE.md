@@ -285,8 +285,6 @@ Based on the implementation, here's what you can test right now:
 ## 🐛 **Known Limitations / Future Features**
 
 ### Not Yet Implemented:
-- ❌ Card clearing at quarter breaks (Phase 4.5)
-- ❌ Host controls for turn-in timing (Phase 4.5)
 - ❌ Quarter system (Phase 4.5)
 - ❌ Scoreboard display (UI polish needed)
 - ❌ Card animations (UI polish needed)

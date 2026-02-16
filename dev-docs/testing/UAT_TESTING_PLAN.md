@@ -21,7 +21,7 @@ This document is the **full User Acceptance Testing (UAT) plan** for FoulPlay. U
 - Authentication (sign-in, sign-up, redirects)
 - Room lifecycle (create, join, lobby, settings)
 - Gameplay (start game, draw, submit, vote, turn flow)
-- Host controls (end game, reset points, show points, allow join in progress, end round, reset round, turn-in control, finalize quarter)
+- Host controls (end game, reset points, show points, allow join in progress, end round, reset round, finalize quarter)
 - End-game flow (winner screen, leaderboard, navigation)
 - Quarter-based card clearing (when enabled for the room)
 - Non-drinking mode (card descriptions, no drink penalty text)
@@ -119,13 +119,12 @@ This document is the **full User Acceptance Testing (UAT) plan** for FoulPlay. U
 | HOST-2 | End game — cancel | 1. As host, click End Game then Cancel. | Game continues; no change. | | |
 | HOST-3 | Reset points | 1. As host, Reset Points; confirm. | All player points = 0; game continues (same round/turn state). | | |
 | HOST-4 | Reset points — cancel | 1. As host, click Reset Points then Cancel. | Points unchanged. | | |
-| HOST-5 | Non-host does not see host controls | 1. As non-host, view game board. | No End Game, Reset Points, End Round, Reset Round, Turn-in control, or Show points (host-only). | | |
+| HOST-5 | Non-host does not see host controls | 1. As non-host, view game board. | No End Game, Reset Points, End Round, Reset Round, or Show points (host-only). | | |
 | HOST-6 | Show points toggle | 1. As host, toggle "Show all players' points" off.<br>2. As non-host, view player list. | Non-host sees only own points (or no points).<br>3. Host toggles on. | All players' points visible. | | |
 | HOST-7 | Allow join in progress toggle | 1. As host, enable "Allow new users to join".<br>2. New user joins with room code. | New user can join active game (see ROOM-9). | | |
 | HOST-8 | End round | 1. As host, click End Round. | Round ends; next round starts (round number increments); turn resets as per rules. | | |
 | HOST-9 | Reset round | 1. As host, click Reset Round (if shown). | Round count resets; next End Round starts Round 1. | | |
-| HOST-10 | Turn-in control | 1. As host, toggle "Allow card turn-in" off.<br>2. As player, try to use quarter discard flow (if visible). | Turn-in disabled.<br>3. Host toggles on. | Turn-in allowed when quarter intermission is active. | | |
-| HOST-11 | Finalize quarter (intermission) | 1. With quarter clearing enabled, host ends quarter so intermission starts.<br>2. Players select cards to turn in (or skip).<br>3. As host, click "End round early" or wait for timer. | Intermission ends; discarded cards processed; new cards drawn; game continues. | | |
+| HOST-10 | Finalize quarter (intermission) | 1. With quarter clearing enabled, host ends quarter so intermission starts.<br>2. Players select cards to turn in (or skip).<br>3. As host, click "End round early" or wait for timer. | Intermission ends; discarded cards processed; new cards drawn; game continues. | | |
 
 ---
 
@@ -146,7 +145,6 @@ This document is the **full User Acceptance Testing (UAT) plan** for FoulPlay. U
 | QTR-1 | Quarter intermission appears | 1. Create room with Football or Basketball; enable quarter clearing; start game.<br>2. Host ends quarter (End Round / end quarter). | Intermission banner appears; countdown (e.g. 5:00); players can select cards to turn in. | | |
 | QTR-2 | Select cards to discard | 1. During intermission, select one or more cards; confirm. | Selection saved; after host finalizes (or timer), cards discarded; drink penalty copy shown per card (unless non-drinking mode). | | |
 | QTR-3 | Host finalize quarter | 1. During intermission, host clicks "End round early". | Intermission ends; discard processing runs; players get new cards; game continues. | | |
-| QTR-4 | Turn-in control off | 1. Host disables "Allow card turn-in".<br>2. Trigger quarter intermission. | Players cannot select cards to turn in (or flow not offered). | | |
 
 ---
 

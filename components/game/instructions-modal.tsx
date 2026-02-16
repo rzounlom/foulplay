@@ -188,7 +188,7 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                     <li><strong>End Game</strong> — End the current game, declare the winner (highest points), and start a new game with the same players; points reset for the new game.</li>
                   </ul>
                   <p className="mt-2">
-                    When the room is set to Football or Basketball, the host can also enable <strong>round-based card clearing</strong> and use End Round, intermission, and turn-in controls (see below).
+                    When the room is set to Football or Basketball, the host can also enable <strong>round-based card clearing</strong> and use End Round, intermission, and quarter discard flow (see below).
                   </p>
                 </div>
 

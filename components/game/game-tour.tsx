@@ -60,7 +60,7 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     {
       target: '[data-tour="host-controls"]',
       title: "Host Controls (host only)",
-      content: "If you're the host, you can show/hide points, reset everyone's points, or end the game and start a new one. For Football/Basketball rooms you may also see round and turn-in controls here.",
+      content: "If you're the host, you can show/hide points, reset everyone's points, or end the game and start a new one. For Football/Basketball rooms you may also see round controls (End Round, Reset Round, Finalize quarter) here.",
       position: "right",
     },
     {
