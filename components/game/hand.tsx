@@ -258,7 +258,7 @@ export function Hand({
       )}
       {isQuarterIntermission && (
         <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm shrink-0">
-          Select cards from your hand and click Submit for discard. Highlighted cards are in Cards to Discard below. Remove any to keep them. When the timer ends, cards in Cards to Discard are discarded and replaced.{roomMode !== "non-drinking" && " Drink penalty applies."}
+          Select cards from your hand and click Submit for discard. Highlighted cards are in Cards to Discard above. Remove any to keep them. When the timer ends, cards in Cards to Discard are discarded and replaced.{roomMode !== "non-drinking" && " Drink penalty applies."}
         </div>
       )}
 
@@ -385,71 +385,6 @@ export function Hand({
           );
         })}
       </div>
-
-      {/* Cards to Discard — below grid during intermission, like Pending Submissions */}
-      {isQuarterIntermission &&
-        onQuarterDiscardSelection &&
-        myQuarterSelectionIds.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-border shrink-0">
-            <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3 flex items-center gap-2">
-              Cards to Discard
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-medium">
-                {myQuarterSelectionIds.length} selected
-              </span>
-            </h4>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-3">
-              These will be discarded when the round ends. Click Remove to keep a card.
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
-              {cardsInHand
-                .filter((c) => myQuarterSelectionIds.includes(c.id))
-                .map((cardInstance) => (
-                  <div
-                    key={cardInstance.id}
-                    className="p-3 rounded-lg border-2 border-amber-500/50 bg-amber-500/5 relative"
-                  >
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onQuarterDiscardSelection(
-                          myQuarterSelectionIds.filter((id) => id !== cardInstance.id),
-                        );
-                      }}
-                      className="absolute top-2 right-2 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 rounded transition-colors"
-                    >
-                      Remove
-                    </button>
-                    <h5 className="font-semibold text-sm leading-tight truncate pr-14 mb-1">
-                      {cardInstance.card.title}
-                    </h5>
-                    <div className="flex flex-wrap gap-1.5 mb-1">
-                      <span
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          cardInstance.card.severity === "severe"
-                            ? "bg-red-500/20 text-red-600 dark:text-red-400"
-                            : cardInstance.card.severity === "moderate"
-                              ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
-                              : "bg-green-500/20 text-green-600 dark:text-green-400"
-                        }`}
-                      >
-                        {cardInstance.card.severity}
-                      </span>
-                      <span className="px-1.5 py-0.5 bg-accent/20 text-accent rounded text-[10px] font-medium">
-                        {cardInstance.card.points} pts
-                      </span>
-                    </div>
-                    <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">
-                      {getCardDescriptionForDisplay(
-                        cardInstance.card.description,
-                        roomMode,
-                      )}
-                    </p>
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
     </div>
   );
 }

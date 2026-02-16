@@ -116,19 +116,8 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Only deal enough new cards to fill hand up to handSize (never exceed max)
-        const handSize = room.handSize ?? 5;
-        const drawnCountAfterDiscard = await prisma.cardInstance.count({
-          where: {
-            roomId: room!.id,
-            drawnById: playerId,
-            status: "drawn",
-          },
-        });
-        const cardsToDeal = Math.min(
-          cardInstances.length,
-          Math.max(0, handSize - drawnCountAfterDiscard)
-        );
+        // Replace exactly the number of cards discarded — never add more than that
+        const cardsToDeal = cardInstances.length;
 
         const gs = await prisma.gameState.findUnique({
           where: { roomId: room!.id },

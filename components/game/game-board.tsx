@@ -14,6 +14,7 @@ import { Hand } from "./hand";
 import { InstructionsModal } from "./instructions-modal";
 import { PlayerList } from "./player-list";
 import { SubmitterPendingBadge } from "./submitter-pending-badge";
+import { CardsToDiscardSection } from "./cards-to-discard-section";
 import { VotingPanel } from "./voting-panel";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
 
@@ -231,8 +232,11 @@ export function GameBoard({
     ? new Date(room.quarterIntermissionEndsAt).getTime()
     : null;
   const isQuarterIntermission = !!endsAt && endsAt > Date.now();
+  const isHost = room.players.some(
+    (p) => p.user.id === currentUserId && p.isHost,
+  );
 
-  // Countdown timer for quarter intermission; when it hits 0, finalize quarter
+  // Countdown timer for quarter intermission; when it hits 0, only host calls finalize-quarter (avoids duplicate calls from all clients)
   useEffect(() => {
     if (!endsAt || endsAt <= Date.now()) {
       setIntermissionSecondsLeft(null);
@@ -242,7 +246,7 @@ export function GameBoard({
     const update = () => {
       const left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
       setIntermissionSecondsLeft(left);
-      if (left <= 0 && !finalized) {
+      if (left <= 0 && !finalized && isHost) {
         finalized = true;
         fetch("/api/game/finalize-quarter", {
           method: "POST",
@@ -256,8 +260,8 @@ export function GameBoard({
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when endsAt or roomCode changes; fetchRoom called when timer ends
-  }, [endsAt, roomCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when endsAt, roomCode, isHost change; fetchRoom called when timer ends
+  }, [endsAt, roomCode, isHost]);
 
   // Subscribe to game events; fall back to polling when Ably is disconnected
   const { isConnected } = useRoomChannel(
@@ -403,9 +407,6 @@ export function GameBoard({
   ]);
 
   const currentPlayer = room.players.find((p) => p.user.id === currentUserId);
-  const isHost = room.players.some(
-    (p) => p.user.id === currentUserId && p.isHost,
-  );
   const activeCard = room.gameState?.activeCardInstance;
   const chatUnreadCount = chatOpen
     ? 0
@@ -1073,52 +1074,6 @@ export function GameBoard({
                             )}
                           </div>
                         </div>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <Checkbox
-                            checked={room.canTurnInCards}
-                            onChange={async (e) => {
-                              try {
-                                const response = await fetch(
-                                  "/api/game/turn-in-control",
-                                  {
-                                    method: "PATCH",
-                                    headers: {
-                                      "Content-Type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                      roomCode,
-                                      canTurnInCards: e.target.checked,
-                                    }),
-                                  },
-                                );
-                                if (!response.ok) {
-                                  const data = await response.json();
-                                  toast.addToast(
-                                    data.error ||
-                                      "Failed to update turn-in control",
-                                    "error",
-                                  );
-                                } else {
-                                  const updatedRoom = await response.json();
-                                  setRoom(updatedRoom);
-                                }
-                              } catch (error) {
-                                if (process.env.NODE_ENV === "development")
-                                  console.error(
-                                    "Failed to update turn-in control:",
-                                    error,
-                                  );
-                                toast.addToast(
-                                  "Failed to update turn-in control",
-                                  "error",
-                                );
-                              }
-                            }}
-                          />
-                          <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                            Allow card turn-in
-                          </span>
-                        </label>
                       </>
                     )}
                     <div className="pt-2 border-t border-border space-y-2">
@@ -1300,45 +1255,6 @@ export function GameBoard({
                             )}
                           </div>
                         </div>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <Checkbox
-                            checked={room.canTurnInCards}
-                            onChange={async (e) => {
-                              try {
-                                const response = await fetch(
-                                  "/api/game/turn-in-control",
-                                  {
-                                    method: "PATCH",
-                                    headers: {
-                                      "Content-Type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                      roomCode,
-                                      canTurnInCards: e.target.checked,
-                                    }),
-                                  },
-                                );
-                                if (!response.ok) {
-                                  const data = await response.json();
-                                  alert(
-                                    data.error ||
-                                      "Failed to update turn-in control",
-                                  );
-                                }
-                              } catch (error) {
-                                if (process.env.NODE_ENV === "development")
-                                  console.error(
-                                    "Failed to update turn-in control:",
-                                    error,
-                                  );
-                                alert("Failed to update turn-in control");
-                              }
-                            }}
-                          />
-                          <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                            Allow card turn-in
-                          </span>
-                        </label>
                       </>
                     )}
                     <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700 space-y-2">
@@ -1411,7 +1327,34 @@ export function GameBoard({
             </div>
           )}
 
-          {/* Your hand first — front and center */}
+          {/* Cards to Discard — above Your Hand, separate container (like SubmitterPendingBadge) */}
+          {currentPlayer &&
+            isQuarterIntermission &&
+            showQuarterControls &&
+            ((room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? [])
+              .length > 0 && (
+              <CardsToDiscardSection
+                cardInstances={hand.filter((c) =>
+                  (
+                    (room.pendingQuarterDiscardSelections ?? null)?.[
+                      currentPlayer.id
+                    ] ?? []
+                  ).includes(c.id),
+                )}
+                onRemove={(cardInstanceId) => {
+                  const current =
+                    (room.pendingQuarterDiscardSelections ?? null)?.[
+                      currentPlayer.id
+                    ] ?? [];
+                  handleQuarterDiscardSelection(
+                    current.filter((id) => id !== cardInstanceId),
+                  );
+                }}
+                roomMode={room.mode}
+              />
+            )}
+
+          {/* Your hand — front and center */}
           {currentPlayer && (
             <div
               data-tour="your-cards"
