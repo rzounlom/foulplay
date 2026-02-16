@@ -1210,7 +1210,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 roomMode={room.mode}
                 currentUserPoints={currentPlayer.points}
                 submissionDisabled={
-                  (showEndRoundModal || showEndRoundEarlyModal || isEndingRound || isEndingRoundEarly) && isHost
+                  /* Only show "Submissions paused" banner after host confirms in modal, not while modal is open */
+                  (isEndingRound || isEndingRoundEarly) && isHost
                 }
               />
               )}
