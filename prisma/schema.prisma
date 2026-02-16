@@ -34,6 +34,7 @@ model Room {
   allowJoinInProgress Boolean  @default(false) // Host can allow new players to join while game is active
   handSize            Int      @default(5) // Number of cards dealt to each player
   allowQuarterClearing Boolean @default(false) // Enable quarter-based card clearing (football/basketball only)
+  canTurnInCards       Boolean @default(true) // Always true; legacy field (host toggle removed)
   currentQuarter      String?  // "Q1" | "Q2" | "Q3" | "Q4" | null
   quarterIntermissionEndsAt DateTime? // When the 5-min quarter-ending intermission ends (UTC)
   pendingQuarterDiscardSelections Json? // { [playerId]: cardInstanceId[] } — processed when intermission ends
