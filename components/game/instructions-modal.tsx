@@ -101,10 +101,10 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                     The host selects a mode when creating the room. Mode affects the <strong>mix of card severities</strong> (mild, moderate, severe) in the deck:
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-2 mt-2">
-                    <li><strong>Casual</strong> — Milder cards (~70% mild)</li>
-                    <li><strong>Party</strong> — Balanced mix (~50% mild)</li>
-                    <li><strong>Lit</strong> — More intense (~40% mild, more severe)</li>
-                    <li><strong>Non-drinking</strong> — Same mix as Casual</li>
+                    <li><strong>Casual</strong> — Milder cards (~70% mild); penalties shown as-is</li>
+                    <li><strong>Party</strong> — Balanced mix (~50% mild); &quot;Take x drinks&quot; penalties +1</li>
+                    <li><strong>Lit</strong> — More intense (~40% mild, more severe); &quot;Take x drinks&quot; penalties ×2</li>
+                    <li><strong>Non-drinking</strong> — Same mix as Casual; no drink penalties (generic text)</li>
                   </ul>
                 </div>
 
@@ -216,10 +216,10 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                       A <strong>5-minute intermission</strong> starts. Everyone sees a notification and a countdown timer. <strong>Submissions and voting are paused</strong> during this time.
                     </li>
                     <li>
-                      During the 5 minutes, <strong>select cards from your hand</strong> and click <strong>&quot;Submit X card(s) for discard&quot;</strong> — just like submitting for vote. They move to the <strong>Pending Discard</strong> section (above Your Cards), same pattern as Pending Submissions. Remove any card from Pending Discard to keep it. Add and remove as often as you like until the timer ends.
+                      During the 5 minutes, <strong>select cards from your hand</strong> and click <strong>&quot;Submit X card(s) for discard&quot;</strong> — just like submitting for vote. They move to the <strong>Cards to Discard</strong> section (above Your Cards). Click <strong>Remove</strong> on a card to keep it. Add and remove as often as you like until the timer ends.
                     </li>
                     <li>
-                      <strong>When the intermission ends</strong> (timer reaches zero or host ends early), all cards still in Pending Discard are discarded: you receive points for them, get new cards to replace them, and must perform the drink penalty per card.
+                      <strong>When the intermission ends</strong> (timer reaches zero or host ends early), all cards still in Cards to Discard are processed: you receive points for them, get new cards to replace them, and must perform the drink penalty per card.
                     </li>
                     <li>
                       After processing, the round number advances and normal play resumes. The host can click <strong>&quot;Reset round&quot;</strong> to set the count back so the next &quot;End round&quot; starts Round 1 again.

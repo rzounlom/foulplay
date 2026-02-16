@@ -227,6 +227,33 @@ export function GameBoard({
     fetchSubmissions();
   }, [fetchHand, fetchSubmissions]);
 
+  // Trigger tour on mount when user lands on game board (e.g. from lobby after game starts) — if they haven't opted out and haven't seen tour for this game
+  const gameStateId = room.gameState?.id;
+  useEffect(() => {
+    if (!gameStateId) return;
+    const storageKey = `foulplay_tour_${roomCode}`;
+    const storedGameStateId =
+      typeof window !== "undefined" ? sessionStorage.getItem(storageKey) : null;
+    if (storedGameStateId === gameStateId) return; // Already shown for this game
+
+    const checkAndStartTour = async () => {
+      try {
+        const response = await fetch("/api/user/profile");
+        if (response.ok) {
+          const data = await response.json();
+          if (!data.profile?.skipTour) {
+            setStartTour(true);
+          }
+        } else {
+          setStartTour(true);
+        }
+      } catch {
+        setStartTour(true);
+      }
+    };
+    void checkAndStartTour();
+  }, [roomCode, gameStateId]);
+
   // Derive intermission countdown from room.quarterIntermissionEndsAt
   const endsAt = room.quarterIntermissionEndsAt
     ? new Date(room.quarterIntermissionEndsAt).getTime()
@@ -475,7 +502,6 @@ export function GameBoard({
   };
 
   const handleStartTour = () => {
-    localStorage.removeItem("foulplay-tour-completed");
     setStartTour(true);
     setTimeout(() => setStartTour(false), 100);
   };
@@ -688,7 +714,18 @@ export function GameBoard({
 
   return (
     <div className="container mx-auto px-2 py-4 md:p-6 lg:p-4 max-w-6xl min-h-screen bg-background overflow-x-hidden">
-      <GameTour startTour={startTour} onTourStart={() => setStartTour(false)} />
+      <GameTour
+        startTour={startTour}
+        onTourStart={() => setStartTour(false)}
+        onComplete={() => {
+          if (typeof window !== "undefined" && room.gameState?.id) {
+            sessionStorage.setItem(
+              `foulplay_tour_${roomCode}`,
+              room.gameState.id,
+            );
+          }
+        }}
+      />
 
       <div className="mb-6">
         <div className="flex items-center justify-center md:justify-start gap-2 mb-2 min-w-0">

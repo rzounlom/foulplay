@@ -31,13 +31,13 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
       target: '[data-tour="game-info"]',
       title: "Game Room Info",
       content: "Here you see the room's Mode and Sport. Mode affects the mix of card severities (mild / moderate / severe). You'll also find the How to Play and Chat buttons here.",
-      position: "bottom",
+      position: "top",
     },
     {
       target: '[data-tour="player-list"]',
       title: "Player List",
       content: "See all players in the game. The host can toggle whether everyone sees each other's scores. You need at least 2 players to start.",
-      position: "right",
+      position: "top",
     },
     {
       target: '[data-tour="your-cards"]',
@@ -49,25 +49,25 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
       target: '[data-tour="pending-submissions"]',
       title: "Pending Submissions",
       content: "Cards waiting for votes appear here. You can't vote on your own submission. Vote Approve or Reject per card; a card is approved or rejected when a majority of other players have voted. Approved cards earn points; rejected cards return to the submitter's hand.",
-      position: "bottom",
+      position: "top",
     },
     {
       target: '[data-tour="chat-button"]',
       title: "Chat",
       content: "Open the room chat to send messages to all players. The badge shows unread message count when you have new messages.",
-      position: "bottom",
+      position: "top",
     },
     {
       target: '[data-tour="host-controls"]',
       title: "Host Controls (host only)",
       content: "If you're the host, you can show/hide points, reset everyone's points, or end the game and start a new one. For Football/Basketball rooms you may also see round controls (End Round, Reset Round, Finalize quarter) here.",
-      position: "right",
+      position: "top",
     },
     {
       target: '[data-tour="instructions"]',
       title: "How to Play",
       content: "Click 'How to Play' anytime for full rules: game mode, voting, host controls, chat, and round-based clearing (if enabled).",
-      position: "left",
+      position: "top",
     },
   ], []);
 
@@ -80,15 +80,14 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     if (!targetElement || !spotlightRef.current || !overlayRef.current) return;
 
     const rect = targetElement.getBoundingClientRect();
-    const scrollY = window.scrollY;
-    const scrollX = window.scrollX;
+    const padding = 12;
 
-    // Create spotlight effect
+    // Spotlight uses position: fixed — use viewport coordinates (getBoundingClientRect)
     const spotlight = spotlightRef.current;
-    spotlight.style.width = `${rect.width + 20}px`;
-    spotlight.style.height = `${rect.height + 20}px`;
-    spotlight.style.left = `${rect.left + scrollX - 10}px`;
-    spotlight.style.top = `${rect.top + scrollY - 10}px`;
+    spotlight.style.width = `${rect.width + padding * 2}px`;
+    spotlight.style.height = `${rect.height + padding * 2}px`;
+    spotlight.style.left = `${rect.left - padding}px`;
+    spotlight.style.top = `${rect.top - padding}px`;
 
     // Scroll element into view if needed
     targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -116,7 +115,11 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     if (isActive && currentStep < steps.length) {
       updateSpotlight();
       window.addEventListener("resize", updateSpotlight);
-      return () => window.removeEventListener("resize", updateSpotlight);
+      window.addEventListener("scroll", updateSpotlight, true); // capture phase to catch scroll in any container
+      return () => {
+        window.removeEventListener("resize", updateSpotlight);
+        window.removeEventListener("scroll", updateSpotlight, true);
+      };
     }
   }, [isActive, currentStep, steps.length, updateSpotlight]);
 
@@ -162,15 +165,19 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     onComplete?.();
   }, [onComplete, dontShowAgain, saveTourPreference]);
 
-  // Handle missing elements
+  // Handle missing or hidden elements (e.g. host-controls hidden on mobile)
   useEffect(() => {
     if (!isActive || currentStep >= steps.length) return;
 
     const step = steps[currentStep];
     const targetElement = document.querySelector(step.target) as HTMLElement;
 
-    if (!targetElement) {
-      // If target not found, skip to next step
+    const shouldSkip =
+      !targetElement ||
+      targetElement.offsetParent === null ||
+      targetElement.getBoundingClientRect().width === 0;
+
+    if (shouldSkip) {
       const timer = setTimeout(() => {
         if (currentStep < steps.length - 1) {
           setCurrentStep(currentStep + 1);
@@ -204,12 +211,13 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
         onClick={handleSkip}
       />
 
-      {/* Spotlight */}
+      {/* Spotlight — bright highlight with primary-color border and glow */}
       <div
         ref={spotlightRef}
-        className="fixed z-[9999] pointer-events-none transition-all duration-300 ease-out rounded-lg"
+        className="fixed z-[9999] pointer-events-none transition-all duration-300 ease-out rounded-lg bg-white/10 dark:bg-white/5"
         style={{
-          boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 20px rgba(59, 130, 246, 0.3)",
+          boxShadow:
+            "0 0 0 9999px rgba(0, 0, 0, 0.65), 0 0 0 4px rgb(255, 102, 0), 0 0 24px 4px rgba(255, 102, 0, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.15)",
         }}
       />
 
@@ -330,84 +338,46 @@ function getTooltipPosition(
   position: "top" | "bottom" | "left" | "right" | "center",
   rect: DOMRect
 ): { left: number; top: number; adjustedPosition?: "top" | "bottom" | "left" | "right" | "center" } {
-  const padding = 20;
+  const padding = 16;
   const tooltipWidth = 384; // max-w-sm = 384px
-  const tooltipHeight = 300; // approximate height
+  const tooltipHeight = 340; // approximate max height with content
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const scrollY = window.scrollY;
-  const scrollX = window.scrollX;
 
+  // Tooltip uses position: fixed — use viewport coordinates only
   let left: number;
   let top: number;
-  let adjustedPosition = position;
+  let adjustedPosition: "top" | "bottom" | "left" | "right" | "center" =
+    position === "center" ? "center" : "top";
 
-  switch (position) {
-    case "top": {
-      left = rect.left + rect.width / 2 - tooltipWidth / 2;
-      top = rect.top - tooltipHeight - padding;
-      
-      // If tooltip goes above viewport, try bottom instead
-      if (top < scrollY + padding) {
-        top = rect.bottom + padding;
-        adjustedPosition = "bottom";
-      }
-      break;
-    }
-    case "bottom": {
-      left = rect.left + rect.width / 2 - tooltipWidth / 2;
-      top = rect.bottom + padding;
-      
-      // If tooltip goes below viewport, try top instead
-      if (top + tooltipHeight > scrollY + viewportHeight - padding) {
-        top = rect.top - tooltipHeight - padding;
-        adjustedPosition = "top";
-      }
-      break;
-    }
-    case "left": {
-      left = rect.left - tooltipWidth - padding;
-      top = rect.top + rect.height / 2 - tooltipHeight / 2;
-      
-      // If tooltip goes left of viewport, try right instead
-      if (left < scrollX + padding) {
-        left = rect.right + padding;
-        adjustedPosition = "right";
-      }
-      break;
-    }
-    case "right": {
-      left = rect.right + padding;
-      top = rect.top + rect.height / 2 - tooltipHeight / 2;
-      
-      // If tooltip goes right of viewport, try left instead
-      if (left + tooltipWidth > scrollX + viewportWidth - padding) {
-        left = rect.left - tooltipWidth - padding;
-        adjustedPosition = "left";
-      }
-      break;
-    }
-    case "center":
-    default: {
-      left = viewportWidth / 2 - tooltipWidth / 2;
-      top = viewportHeight / 2 - tooltipHeight / 2;
-      break;
-    }
+  // Prefer placing tooltip ABOVE the highlighted element (user requested)
+  const preferTop = position === "top" || position === "bottom" || position === "left" || position === "right";
+  const topSpace = rect.top;
+  const bottomSpace = viewportHeight - rect.bottom;
+
+  if (preferTop && topSpace >= tooltipHeight + padding) {
+    // Place above
+    left = rect.left + rect.width / 2 - tooltipWidth / 2;
+    top = rect.top - tooltipHeight - padding;
+    adjustedPosition = "top";
+  } else if (preferTop && bottomSpace >= tooltipHeight + padding) {
+    // Not enough space above, place below
+    left = rect.left + rect.width / 2 - tooltipWidth / 2;
+    top = rect.bottom + padding;
+    adjustedPosition = "bottom";
+  } else if (position === "center") {
+    left = viewportWidth / 2 - tooltipWidth / 2;
+    top = viewportHeight / 2 - tooltipHeight / 2;
+  } else {
+    // Default: above, will clamp to viewport
+    left = rect.left + rect.width / 2 - tooltipWidth / 2;
+    top = Math.max(padding, rect.top - tooltipHeight - padding);
+    adjustedPosition = "top";
   }
 
-  // Ensure tooltip stays within horizontal bounds
-  if (left < scrollX + padding) {
-    left = scrollX + padding;
-  } else if (left + tooltipWidth > scrollX + viewportWidth - padding) {
-    left = scrollX + viewportWidth - tooltipWidth - padding;
-  }
-
-  // Ensure tooltip stays within vertical bounds
-  if (top < scrollY + padding) {
-    top = scrollY + padding;
-  } else if (top + tooltipHeight > scrollY + viewportHeight - padding) {
-    top = scrollY + viewportHeight - tooltipHeight - padding;
-  }
+  // Clamp to viewport (fixed positioning = viewport bounds)
+  left = Math.max(padding, Math.min(left, viewportWidth - tooltipWidth - padding));
+  top = Math.max(padding, Math.min(top, viewportHeight - tooltipHeight - padding));
 
   return { left, top, adjustedPosition };
 }
@@ -415,34 +385,35 @@ function getTooltipPosition(
 function getArrowPosition(
   position: "top" | "bottom" | "left" | "right" | "center"
 ): React.CSSProperties {
+  const primaryColor = "rgb(255, 102, 0)";
   switch (position) {
     case "top":
       return {
         bottom: "-16px",
         left: "50%",
         transform: "translateX(-50%)",
-        borderTopColor: "rgb(59, 130, 246)",
+        borderTopColor: primaryColor,
       };
     case "bottom":
       return {
         top: "-16px",
         left: "50%",
         transform: "translateX(-50%)",
-        borderBottomColor: "rgb(59, 130, 246)",
+        borderBottomColor: primaryColor,
       };
     case "left":
       return {
         right: "-16px",
         top: "50%",
         transform: "translateY(-50%)",
-        borderLeftColor: "rgb(59, 130, 246)",
+        borderLeftColor: primaryColor,
       };
     case "right":
       return {
         left: "-16px",
         top: "50%",
         transform: "translateY(-50%)",
-        borderRightColor: "rgb(59, 130, 246)",
+        borderRightColor: primaryColor,
       };
     default:
       return {};
