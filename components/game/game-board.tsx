@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/toast";
 import { ChatPanel, type ChatMessage } from "./chat-panel";
-import { DiscardPanel } from "./discard-panel";
 import { GameTour } from "./game-tour";
 import { Hand } from "./hand";
 import { InstructionsModal } from "./instructions-modal";
@@ -121,7 +120,11 @@ interface Submission {
   }>;
 }
 
-export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardProps) {
+export function GameBoard({
+  roomCode,
+  currentUserId,
+  initialRoom,
+}: GameBoardProps) {
   const [room, setRoom] = useState<Room>(initialRoom);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hand, setHand] = useState<HandCard[]>([]);
@@ -137,17 +140,22 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const [isResettingPoints, setIsResettingPoints] = useState(false);
   const [isEndingRound, setIsEndingRound] = useState(false);
   const [isEndingRoundEarly, setIsEndingRoundEarly] = useState(false);
-  const [intermissionSecondsLeft, setIntermissionSecondsLeft] = useState<number | null>(null);
+  const [intermissionSecondsLeft, setIntermissionSecondsLeft] = useState<
+    number | null
+  >(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showMoreHostControls, setShowMoreHostControls] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [lastSeenMessageCount, setLastSeenMessageCount] = useState<number | null>(null);
+  const [lastSeenMessageCount, setLastSeenMessageCount] = useState<
+    number | null
+  >(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [pointsAwardedPopup, setPointsAwardedPopup] = useState<{ points: number } | null>(null);
+  const [pointsAwardedPopup, setPointsAwardedPopup] = useState<{
+    points: number;
+  } | null>(null);
   const [playersPanelOpen, setPlayersPanelOpen] = useState(false);
   const [votingPanelOpen, setVotingPanelOpen] = useState(false);
   const [votingDismissed, setVotingDismissed] = useState(false);
-  const [discardPanelOpen, setDiscardPanelOpen] = useState(false);
   const prevSubmissionsToVoteCount = useRef(0);
 
   const router = useRouter();
@@ -163,7 +171,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         return roomData;
       }
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to fetch room:", error);
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to fetch room:", error);
     }
     return null;
   }, [roomCode]);
@@ -176,7 +185,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         setMessages(data.messages ?? []);
       }
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to fetch messages:", error);
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to fetch messages:", error);
     }
   }, [roomCode]);
 
@@ -188,7 +198,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         setHand(data.cards || []);
       }
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to fetch hand:", error);
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to fetch hand:", error);
     } finally {
       setHandLoading(false);
     }
@@ -196,13 +207,16 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
 
   const fetchSubmissions = useCallback(async () => {
     try {
-      const response = await fetch(`/api/game/submissions?roomCode=${roomCode}`);
+      const response = await fetch(
+        `/api/game/submissions?roomCode=${roomCode}`,
+      );
       if (response.ok) {
         const data = await response.json();
         setSubmissions(data.submissions || []);
       }
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to fetch submissions:", error);
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to fetch submissions:", error);
     }
   }, [roomCode]);
 
@@ -216,8 +230,7 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const endsAt = room.quarterIntermissionEndsAt
     ? new Date(room.quarterIntermissionEndsAt).getTime()
     : null;
-  const isQuarterIntermission =
-    !!endsAt && endsAt > Date.now();
+  const isQuarterIntermission = !!endsAt && endsAt > Date.now();
 
   // Countdown timer for quarter intermission; when it hits 0, finalize quarter
   useEffect(() => {
@@ -243,95 +256,118 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when endsAt or roomCode changes; fetchRoom called when timer ends
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when endsAt or roomCode changes; fetchRoom called when timer ends
   }, [endsAt, roomCode]);
 
   // Subscribe to game events; fall back to polling when Ably is disconnected
-  const { isConnected } = useRoomChannel(roomCode, (event: RoomEvent, data: Record<string, unknown>) => {
-    // If we're redirecting to end-game, ignore all further events (don't start tour, don't fetch)
-    if (isRedirectingToEndGame.current) return;
-    // When game ends, redirect all players to end-game page (no alert, no tour)
-    if (event === "game_ended") {
-      isRedirectingToEndGame.current = true;
-      router.push(`/game/${roomCode}/end-game`);
-      return;
-    }
-    if (event === "message_sent" && data) {
-      const msg = data as {
-        id: string;
-        message: string;
-        createdAt: string;
-        sender: { id: string; nickname?: string | null; user: { id: string; name: string } };
-      };
-      setMessages((prev) => [...prev, { id: msg.id, message: msg.message, createdAt: msg.createdAt, sender: msg.sender }]);
-      return;
-    }
-    if (event === "card_approved" && data) {
-      const payload = data as { pointsAwarded?: number; submittedBy?: { id: string } };
-      const points = payload.pointsAwarded ?? 0;
-      const submitterPlayerId = payload.submittedBy?.id;
-      const currentPlayerId = room.players.find((p) => p.user.id === currentUserId)?.id;
-      const isRecipient = submitterPlayerId && currentPlayerId && submitterPlayerId === currentPlayerId;
-      if (points > 0 && isRecipient) {
-        setPointsAwardedPopup({ points });
-        import("canvas-confetti").then(({ default: confetti }) => {
-          confetti({
-            particleCount: 50,
-            spread: 70,
-            origin: { y: 0.75 },
-            colors: ["#22c55e", "#16a34a", "#f59e0b", "#eab308"],
-          });
-        });
-        setTimeout(() => setPointsAwardedPopup(null), 2200);
+  const { isConnected } = useRoomChannel(
+    roomCode,
+    (event: RoomEvent, data: Record<string, unknown>) => {
+      // If we're redirecting to end-game, ignore all further events (don't start tour, don't fetch)
+      if (isRedirectingToEndGame.current) return;
+      // When game ends, redirect all players to end-game page (no alert, no tour)
+      if (event === "game_ended") {
+        isRedirectingToEndGame.current = true;
+        router.push(`/game/${roomCode}/end-game`);
+        return;
       }
-    }
-    if (
-      event === "game_started" ||
-      event === "card_drawn" ||
-      event === "card_submitted" ||
-      event === "vote_cast" ||
-      event === "card_approved" ||
-      event === "card_rejected" ||
-      event === "submission_approved" ||
-      event === "submission_rejected" ||
-      event === "turn_changed" ||
-      event === "room_settings_updated" ||
-      event === "points_reset" ||
-      event === "card_discarded" ||
-      event === "quarter_advanced" ||
-      event === "quarter_ending" ||
-      event === "quarter_intermission_ended" ||
-      event === "quarter_discard_selection_updated" ||
-      event === "round_reset" ||
-      event === "turn_in_control_changed"
-    ) {
-      fetchRoom();
-      fetchHand();
-      fetchSubmissions();
-      
-      // Start tour when a new game starts (if user hasn't opted out)
-      if (event === "game_started") {
-        const checkAndStartTour = async () => {
-          try {
-            const response = await fetch("/api/user/profile");
-            if (response.ok) {
-              const data = await response.json();
-              if (!data.profile?.skipTour) {
+      if (event === "message_sent" && data) {
+        const msg = data as {
+          id: string;
+          message: string;
+          createdAt: string;
+          sender: {
+            id: string;
+            nickname?: string | null;
+            user: { id: string; name: string };
+          };
+        };
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: msg.id,
+            message: msg.message,
+            createdAt: msg.createdAt,
+            sender: msg.sender,
+          },
+        ]);
+        return;
+      }
+      if (event === "card_approved" && data) {
+        const payload = data as {
+          pointsAwarded?: number;
+          submittedBy?: { id: string };
+        };
+        const points = payload.pointsAwarded ?? 0;
+        const submitterPlayerId = payload.submittedBy?.id;
+        const currentPlayerId = room.players.find(
+          (p) => p.user.id === currentUserId,
+        )?.id;
+        const isRecipient =
+          submitterPlayerId &&
+          currentPlayerId &&
+          submitterPlayerId === currentPlayerId;
+        if (points > 0 && isRecipient) {
+          setPointsAwardedPopup({ points });
+          import("canvas-confetti").then(({ default: confetti }) => {
+            confetti({
+              particleCount: 50,
+              spread: 70,
+              origin: { y: 0.75 },
+              colors: ["#22c55e", "#16a34a", "#f59e0b", "#eab308"],
+            });
+          });
+          setTimeout(() => setPointsAwardedPopup(null), 2200);
+        }
+      }
+      if (
+        event === "game_started" ||
+        event === "card_drawn" ||
+        event === "card_submitted" ||
+        event === "vote_cast" ||
+        event === "card_approved" ||
+        event === "card_rejected" ||
+        event === "submission_approved" ||
+        event === "submission_rejected" ||
+        event === "turn_changed" ||
+        event === "room_settings_updated" ||
+        event === "points_reset" ||
+        event === "card_discarded" ||
+        event === "quarter_advanced" ||
+        event === "quarter_ending" ||
+        event === "quarter_intermission_ended" ||
+        event === "quarter_discard_selection_updated" ||
+        event === "round_reset"
+      ) {
+        fetchRoom();
+        fetchHand();
+        fetchSubmissions();
+
+        // Start tour when a new game starts (if user hasn't opted out)
+        if (event === "game_started") {
+          const checkAndStartTour = async () => {
+            try {
+              const response = await fetch("/api/user/profile");
+              if (response.ok) {
+                const data = await response.json();
+                if (!data.profile?.skipTour) {
+                  setStartTour(true);
+                }
+              } else {
+                // If profile fetch fails, start tour anyway (default behavior)
                 setStartTour(true);
               }
-            } else {
-              // If profile fetch fails, start tour anyway (default behavior)
+            } catch (error) {
+              if (process.env.NODE_ENV === "development")
+                console.error("Failed to check tour preference:", error);
               setStartTour(true);
             }
-          } catch (error) {
-            if (process.env.NODE_ENV === "development") console.error("Failed to check tour preference:", error);
-            setStartTour(true);
-          }
-        };
-        checkAndStartTour();
+          };
+          checkAndStartTour();
+        }
       }
-    }
-  });
+    },
+  );
 
   // Polling fallback when Ably is disconnected — start after 2s grace, poll every 3s
   useEffect(() => {
@@ -356,11 +392,19 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       clearTimeout(graceTimer);
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [isConnected, fetchRoom, fetchHand, fetchSubmissions, fetchMessages, roomCode, router]);
+  }, [
+    isConnected,
+    fetchRoom,
+    fetchHand,
+    fetchSubmissions,
+    fetchMessages,
+    roomCode,
+    router,
+  ]);
 
   const currentPlayer = room.players.find((p) => p.user.id === currentUserId);
   const isHost = room.players.some(
-    (p) => p.user.id === currentUserId && p.isHost
+    (p) => p.user.id === currentUserId && p.isHost,
   );
   const activeCard = room.gameState?.activeCardInstance;
   const chatUnreadCount = chatOpen
@@ -373,8 +417,10 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
     setIsSubmitting(true);
     try {
       // Convert single ID to array if needed
-      const ids = Array.isArray(cardInstanceIds) ? cardInstanceIds : [cardInstanceIds];
-      
+      const ids = Array.isArray(cardInstanceIds)
+        ? cardInstanceIds
+        : [cardInstanceIds];
+
       const response = await fetch("/api/game/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -391,14 +437,19 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         fetchSubmissions();
       }
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to submit card:", error);
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to submit card:", error);
       toast.addToast("Failed to submit card", "error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleVote = async (submissionId: string, cardInstanceIds: string[], vote: boolean) => {
+  const handleVote = async (
+    submissionId: string,
+    cardInstanceIds: string[],
+    vote: boolean,
+  ) => {
     try {
       const response = await fetch("/api/game/vote", {
         method: "POST",
@@ -416,7 +467,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         fetchHand();
       }
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to vote:", error);
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to vote:", error);
       toast.addToast("Failed to vote", "error");
     }
   };
@@ -444,8 +496,12 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       setShowEndGameModal(false);
       router.push(`/game/${roomCode}/end-game`);
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to end game:", error);
-      toast.addToast(error instanceof Error ? error.message : "Failed to end game", "error");
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to end game:", error);
+      toast.addToast(
+        error instanceof Error ? error.message : "Failed to end game",
+        "error",
+      );
     } finally {
       setIsEndingGame(false);
     }
@@ -468,8 +524,12 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       setShowResetPointsModal(false);
       // Data will be refreshed via Ably events
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to reset points:", error);
-      toast.addToast(error instanceof Error ? error.message : "Failed to reset points", "error");
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to reset points:", error);
+      toast.addToast(
+        error instanceof Error ? error.message : "Failed to reset points",
+        "error",
+      );
     } finally {
       setIsResettingPoints(false);
     }
@@ -490,8 +550,12 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       setShowEndRoundModal(false);
       fetchRoom();
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to end round:", error);
-      toast.addToast(error instanceof Error ? error.message : "Failed to end round", "error");
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to end round:", error);
+      toast.addToast(
+        error instanceof Error ? error.message : "Failed to end round",
+        "error",
+      );
     } finally {
       setIsEndingRound(false);
     }
@@ -512,8 +576,12 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       setShowEndRoundEarlyModal(false);
       fetchRoom();
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to end intermission:", error);
-      toast.addToast(error instanceof Error ? error.message : "Failed to end intermission", "error");
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to end intermission:", error);
+      toast.addToast(
+        error instanceof Error ? error.message : "Failed to end intermission",
+        "error",
+      );
     } finally {
       setIsEndingRoundEarly(false);
     }
@@ -535,7 +603,8 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       setSelectedCardIds([]);
       fetchHand();
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to discard cards:", error);
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to discard cards:", error);
       alert(error instanceof Error ? error.message : "Failed to discard cards");
     }
   };
@@ -556,9 +625,10 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       setSelectedCardIds([]);
       fetchRoom();
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("Failed to save quarter discard selection:", error);
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to save quarter discard selection:", error);
       alert(
-        error instanceof Error ? error.message : "Failed to save selection"
+        error instanceof Error ? error.message : "Failed to save selection",
       );
     }
   };
@@ -584,17 +654,15 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
   const showQuarterControls =
     room.allowQuarterClearing && isFootballOrBasketball;
 
-  const roundLabel =
-    room.currentQuarter?.replace(/^Q/, "") ?? null;
+  const roundLabel = room.currentQuarter?.replace(/^Q/, "") ?? null;
 
   const submissionsToVote = useMemo(
     () =>
       submissions.filter(
         (s) =>
-          s.status === "pending" &&
-          s.submittedBy.user.id !== currentUserId
+          s.status === "pending" && s.submittedBy.user.id !== currentUserId,
       ),
-    [submissions, currentUserId]
+    [submissions, currentUserId],
   );
 
   useEffect(() => {
@@ -611,19 +679,22 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
 
   const myPendingDiscardCount =
     currentPlayer && showQuarterControls && isQuarterIntermission
-      ? ((room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? []).length
+      ? (
+          (room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ??
+          []
+        ).length
       : 0;
 
   return (
     <div className="container mx-auto px-2 py-4 md:p-6 lg:p-4 max-w-6xl min-h-screen bg-background overflow-x-hidden">
-      <GameTour 
-        startTour={startTour}
-        onTourStart={() => setStartTour(false)}
-      />
+      <GameTour startTour={startTour} onTourStart={() => setStartTour(false)} />
 
       <div className="mb-6">
         <div className="flex items-center justify-center md:justify-start gap-2 mb-2 min-w-0">
-          <h1 className="text-lg sm:text-page-title text-foreground truncate min-w-0" title={`Game Room ${room.code}`}>
+          <h1
+            className="text-lg sm:text-page-title text-foreground truncate min-w-0"
+            title={`Game Room ${room.code}`}
+          >
             Game Room {room.code}
           </h1>
           <button
@@ -649,12 +720,34 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             aria-label="Copy invite link"
           >
             {linkCopied ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-green-600 dark:text-green-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                />
               </svg>
             )}
           </button>
@@ -664,7 +757,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           className="flex flex-wrap items-center justify-between gap-y-4 gap-x-4 text-sm text-neutral-600 dark:text-neutral-400"
         >
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 min-w-0 w-full md:w-auto">
-            <span title="Game mode affects the mix of card severities (mild / moderate / severe) in the deck.">Mode: {room.mode || "N/A"}</span>
+            <span title="Game mode affects the mix of card severities (mild / moderate / severe) in the deck.">
+              Mode: {room.mode || "N/A"}
+            </span>
             <span>Sport: {room.sport || "N/A"}</span>
             {showQuarterControls && (
               <span>Round: {roundLabel ?? "Not started"}</span>
@@ -697,12 +792,30 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 size="sm"
                 onClick={() => setPlayersPanelOpen(true)}
                 className="relative inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 dark:shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 dark:hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] dark:[text-shadow:0_0_8px_rgba(255,102,0,0.6)] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary shadow-sm hover:shadow-md whitespace-nowrap"
-                aria-label={room.players.length > 0 ? `Open players (${room.players.length})` : "Open players"}
+                aria-label={
+                  room.players.length > 0
+                    ? `Open players (${room.players.length})`
+                    : "Open players"
+                }
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 shrink-0 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                  />
                 </svg>
-                <span className="hidden sm:inline">Players {room.players.length > 0 && `(${room.players.length})`}</span>
+                <span className="hidden sm:inline">
+                  Players{" "}
+                  {room.players.length > 0 && `(${room.players.length})`}
+                </span>
               </Button>
             </span>
             <span data-tour="chat-button">
@@ -711,23 +824,38 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 variant="secondary"
                 size="sm"
                 onClick={() => {
-                setChatOpen(true);
-                setLastSeenMessageCount(messages.length);
-                fetchMessages();
-              }}
-              aria-label={chatUnreadCount > 0 ? `Open chat (${chatUnreadCount} new)` : "Open chat"}
-              className="relative inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 dark:shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 dark:hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] dark:[text-shadow:0_0_8px_rgba(255,102,0,0.6)] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary shadow-sm hover:shadow-md whitespace-nowrap"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span className="hidden sm:inline">Chat</span>
-              {chatUnreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white px-1.5">
-                  {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
-                </span>
-              )}
-            </Button>
+                  setChatOpen(true);
+                  setLastSeenMessageCount(messages.length);
+                  fetchMessages();
+                }}
+                aria-label={
+                  chatUnreadCount > 0
+                    ? `Open chat (${chatUnreadCount} new)`
+                    : "Open chat"
+                }
+                className="relative inline-flex items-center gap-1.5 border-2 border-primary text-primary bg-primary/5 dark:shadow-[0_0_14px_rgba(255,102,0,0.5)] hover:bg-primary/10 dark:hover:shadow-[0_0_18px_rgba(255,102,0,0.6)] dark:[text-shadow:0_0_8px_rgba(255,102,0,0.6)] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary shadow-sm hover:shadow-md whitespace-nowrap"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 shrink-0 [filter:drop-shadow(0_0_4px_rgba(255,102,0,0.8))]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Chat</span>
+                {chatUnreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white px-1.5">
+                    {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+                  </span>
+                )}
+              </Button>
             </span>
           </div>
         </div>
@@ -757,37 +885,18 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       />
 
       {/* Voting panel - blocking slide-out (mobile) / modal (desktop) */}
-      {votingPanelOpen &&
-        submissionsToVote.length > 0 &&
-        !votingDismissed && (
-          <VotingPanel
-            submissions={submissions}
-            currentUserId={currentUserId}
-            totalPlayers={room.players.length}
-            onVote={handleVote}
-            onClose={() => {
-              setVotingPanelOpen(false);
-              setVotingDismissed(true);
-            }}
-            votingPaused={isQuarterIntermission}
-            roomMode={room.mode}
-          />
-        )}
-
-      {/* Discard panel - slide-out (mobile) / modal (desktop) during intermission */}
-      {currentPlayer && isQuarterIntermission && showQuarterControls && (
-        <DiscardPanel
-          cardInstances={hand.filter((c) =>
-            ((room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? []).includes(c.id)
-          )}
-          onRemove={(cardInstanceId) => {
-            const current = (room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? [];
-            handleQuarterDiscardSelection(current.filter((id) => id !== cardInstanceId));
+      {votingPanelOpen && submissionsToVote.length > 0 && !votingDismissed && (
+        <VotingPanel
+          submissions={submissions}
+          currentUserId={currentUserId}
+          totalPlayers={room.players.length}
+          onVote={handleVote}
+          onClose={() => {
+            setVotingPanelOpen(false);
+            setVotingDismissed(true);
           }}
-          onClose={() => setDiscardPanelOpen(false)}
-          intermissionSecondsLeft={intermissionSecondsLeft}
+          votingPaused={isQuarterIntermission}
           roomMode={room.mode}
-          isOpen={discardPanelOpen}
         />
       )}
 
@@ -812,57 +921,92 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 className="p-2 rounded-md text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 aria-label="Close players"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
               {isHost && (
                 <div className="p-4 bg-surface-muted rounded-lg border border-border">
-                  <h4 className="text-section-title mb-3 text-neutral-700 dark:text-neutral-300">Host Controls</h4>
+                  <h4 className="text-section-title mb-3 text-neutral-700 dark:text-neutral-300">
+                    Host Controls
+                  </h4>
                   <div className="space-y-3">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <Checkbox
                         checked={room.showPoints}
                         onChange={async (e) => {
                           try {
-                            const response = await fetch(`/api/rooms/${roomCode}`, {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ showPoints: e.target.checked }),
-                            });
+                            const response = await fetch(
+                              `/api/rooms/${roomCode}`,
+                              {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  showPoints: e.target.checked,
+                                }),
+                              },
+                            );
                             if (response.ok) {
                               const updatedRoom = await response.json();
                               setRoom(updatedRoom);
                             }
                           } catch (err) {
-                            if (process.env.NODE_ENV === "development") console.error("Failed to update showPoints:", err);
+                            if (process.env.NODE_ENV === "development")
+                              console.error(
+                                "Failed to update showPoints:",
+                                err,
+                              );
                           }
                         }}
                       />
-                      <span className="text-sm text-neutral-700 dark:text-neutral-300">Show all players&apos; points</span>
+                      <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                        Show all players&apos; points
+                      </span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <Checkbox
                         checked={room.allowJoinInProgress ?? false}
                         onChange={async (e) => {
                           try {
-                            const response = await fetch(`/api/rooms/${roomCode}`, {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ allowJoinInProgress: e.target.checked }),
-                            });
+                            const response = await fetch(
+                              `/api/rooms/${roomCode}`,
+                              {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  allowJoinInProgress: e.target.checked,
+                                }),
+                              },
+                            );
                             if (response.ok) {
                               const updatedRoom = await response.json();
                               setRoom(updatedRoom);
                             }
                           } catch (err) {
-                            if (process.env.NODE_ENV === "development") console.error("Failed to update allowJoinInProgress:", err);
+                            if (process.env.NODE_ENV === "development")
+                              console.error(
+                                "Failed to update allowJoinInProgress:",
+                                err,
+                              );
                           }
                         }}
                       />
-                      <span className="text-sm text-neutral-700 dark:text-neutral-300">Allow new users to join</span>
+                      <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                        Allow new users to join
+                      </span>
                     </label>
                     {showQuarterControls && (
                       <>
@@ -890,18 +1034,35 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                   size="sm"
                                   onClick={async () => {
                                     try {
-                                      const response = await fetch("/api/game/reset-round", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ roomCode }),
-                                      });
+                                      const response = await fetch(
+                                        "/api/game/reset-round",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({ roomCode }),
+                                        },
+                                      );
                                       if (!response.ok) {
                                         const data = await response.json();
-                                        toast.addToast(data.error || "Failed to reset round", "error");
+                                        toast.addToast(
+                                          data.error || "Failed to reset round",
+                                          "error",
+                                        );
                                       }
                                     } catch (error) {
-                                      if (process.env.NODE_ENV === "development") console.error("Failed to reset round:", error);
-                                      toast.addToast("Failed to reset round", "error");
+                                      if (
+                                        process.env.NODE_ENV === "development"
+                                      )
+                                        console.error(
+                                          "Failed to reset round:",
+                                          error,
+                                        );
+                                      toast.addToast(
+                                        "Failed to reset round",
+                                        "error",
+                                      );
                                     }
                                   }}
                                   title="Reset round count. Next End Round will start Round 1."
@@ -917,21 +1078,40 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                             checked={room.canTurnInCards}
                             onChange={async (e) => {
                               try {
-                                const response = await fetch("/api/game/turn-in-control", {
-                                  method: "PATCH",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ roomCode, canTurnInCards: e.target.checked }),
-                                });
+                                const response = await fetch(
+                                  "/api/game/turn-in-control",
+                                  {
+                                    method: "PATCH",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      roomCode,
+                                      canTurnInCards: e.target.checked,
+                                    }),
+                                  },
+                                );
                                 if (!response.ok) {
                                   const data = await response.json();
-                                  toast.addToast(data.error || "Failed to update turn-in control", "error");
+                                  toast.addToast(
+                                    data.error ||
+                                      "Failed to update turn-in control",
+                                    "error",
+                                  );
                                 } else {
                                   const updatedRoom = await response.json();
                                   setRoom(updatedRoom);
                                 }
                               } catch (error) {
-                                if (process.env.NODE_ENV === "development") console.error("Failed to update turn-in control:", error);
-                                toast.addToast("Failed to update turn-in control", "error");
+                                if (process.env.NODE_ENV === "development")
+                                  console.error(
+                                    "Failed to update turn-in control:",
+                                    error,
+                                  );
+                                toast.addToast(
+                                  "Failed to update turn-in control",
+                                  "error",
+                                );
                               }
                             }}
                           />
@@ -942,10 +1122,20 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                       </>
                     )}
                     <div className="pt-2 border-t border-border space-y-2">
-                      <Button variant="outline-primary" fullWidth size="sm" onClick={() => setShowResetPointsModal(true)}>
+                      <Button
+                        variant="outline-primary"
+                        fullWidth
+                        size="sm"
+                        onClick={() => setShowResetPointsModal(true)}
+                      >
                         Reset Points
                       </Button>
-                      <Button variant="outline-destructive" fullWidth size="sm" onClick={() => setShowEndGameModal(true)}>
+                      <Button
+                        variant="outline-destructive"
+                        fullWidth
+                        size="sm"
+                        onClick={() => setShowEndGameModal(true)}
+                      >
                         End Game
                       </Button>
                     </div>
@@ -953,7 +1143,11 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 </div>
               )}
               <div className="bg-surface rounded-lg p-4 border border-border">
-                <PlayerList players={room.players} currentUserId={currentUserId} showPoints={room.showPoints} />
+                <PlayerList
+                  players={room.players}
+                  currentUserId={currentUserId}
+                  showPoints={room.showPoints}
+                />
               </div>
             </div>
           </div>
@@ -965,7 +1159,10 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
         <div className="hidden lg:block lg:min-w-0 space-y-6">
           {/* Host Controls - at top so always visible with many players */}
           {isHost && (
-            <div data-tour="host-controls" className="p-4 lg:p-3 bg-surface-muted rounded-lg border border-border shadow-sm dark:shadow-none">
+            <div
+              data-tour="host-controls"
+              className="p-4 lg:p-3 bg-surface-muted rounded-lg border border-border shadow-sm dark:shadow-none"
+            >
               <h4 className="text-section-title mb-3 text-neutral-700 dark:text-neutral-300">
                 Host Controls
               </h4>
@@ -978,14 +1175,17 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                         const response = await fetch(`/api/rooms/${roomCode}`, {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ showPoints: e.target.checked }),
+                          body: JSON.stringify({
+                            showPoints: e.target.checked,
+                          }),
                         });
                         if (response.ok) {
                           const updatedRoom = await response.json();
                           setRoom(updatedRoom);
                         }
                       } catch (error) {
-                        if (process.env.NODE_ENV === "development") console.error("Failed to update showPoints:", error);
+                        if (process.env.NODE_ENV === "development")
+                          console.error("Failed to update showPoints:", error);
                       }
                     }}
                   />
@@ -1010,7 +1210,11 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                           setRoom(updatedRoom);
                         }
                       } catch (error) {
-                        if (process.env.NODE_ENV === "development") console.error("Failed to update allowJoinInProgress:", error);
+                        if (process.env.NODE_ENV === "development")
+                          console.error(
+                            "Failed to update allowJoinInProgress:",
+                            error,
+                          );
                       }
                     }}
                   />
@@ -1025,7 +1229,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                   onClick={() => setShowMoreHostControls((prev) => !prev)}
                   className="text-primary hover:text-primary/90"
                 >
-                  {showMoreHostControls ? "Hide controls" : "Show more controls"}
+                  {showMoreHostControls
+                    ? "Hide controls"
+                    : "Show more controls"}
                 </Button>
                 {showMoreHostControls && (
                   <>
@@ -1055,21 +1261,38 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                                   size="sm"
                                   onClick={async () => {
                                     try {
-                                      const response = await fetch("/api/game/reset-round", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ roomCode }),
-                                      });
+                                      const response = await fetch(
+                                        "/api/game/reset-round",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({ roomCode }),
+                                        },
+                                      );
                                       if (!response.ok) {
                                         const data = await response.json();
-                                        toast.addToast(data.error || "Failed to reset round", "error");
+                                        toast.addToast(
+                                          data.error || "Failed to reset round",
+                                          "error",
+                                        );
                                       }
                                     } catch (error) {
-                                      if (process.env.NODE_ENV === "development") console.error("Failed to reset round:", error);
-                                      toast.addToast("Failed to reset round", "error");
+                                      if (
+                                        process.env.NODE_ENV === "development"
+                                      )
+                                        console.error(
+                                          "Failed to reset round:",
+                                          error,
+                                        );
+                                      toast.addToast(
+                                        "Failed to reset round",
+                                        "error",
+                                      );
                                     }
                                   }}
-                                  title="Reset round count. Next &quot;End Round&quot; will start Round 1."
+                                  title='Reset round count. Next "End Round" will start Round 1.'
                                 >
                                   Reset Round
                                 </Button>
@@ -1082,17 +1305,32 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                             checked={room.canTurnInCards}
                             onChange={async (e) => {
                               try {
-                                const response = await fetch("/api/game/turn-in-control", {
-                                  method: "PATCH",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ roomCode, canTurnInCards: e.target.checked }),
-                                });
+                                const response = await fetch(
+                                  "/api/game/turn-in-control",
+                                  {
+                                    method: "PATCH",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      roomCode,
+                                      canTurnInCards: e.target.checked,
+                                    }),
+                                  },
+                                );
                                 if (!response.ok) {
                                   const data = await response.json();
-                                  alert(data.error || "Failed to update turn-in control");
+                                  alert(
+                                    data.error ||
+                                      "Failed to update turn-in control",
+                                  );
                                 }
                               } catch (error) {
-                                if (process.env.NODE_ENV === "development") console.error("Failed to update turn-in control:", error);
+                                if (process.env.NODE_ENV === "development")
+                                  console.error(
+                                    "Failed to update turn-in control:",
+                                    error,
+                                  );
                                 alert("Failed to update turn-in control");
                               }
                             }}
@@ -1129,7 +1367,11 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             data-tour="player-list"
             className="bg-surface rounded-lg p-6 lg:p-4 border border-border shadow-sm dark:shadow-none sticky top-6"
           >
-            <PlayerList players={room.players} currentUserId={currentUserId} showPoints={room.showPoints} />
+            <PlayerList
+              players={room.players}
+              currentUserId={currentUserId}
+              showPoints={room.showPoints}
+            />
           </div>
         </div>
 
@@ -1142,15 +1384,11 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
                 Round ending — select cards to turn in
               </span>
               <div className="flex items-center gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setDiscardPanelOpen(true)}
-                  className="border-amber-500/50"
-                >
-                  Pending Discard {myPendingDiscardCount > 0 && `(${myPendingDiscardCount})`}
-                </Button>
+                {myPendingDiscardCount > 0 && (
+                  <span className="text-sm text-amber-800 dark:text-amber-200">
+                    {myPendingDiscardCount} card{myPendingDiscardCount !== 1 ? "s" : ""} to discard
+                  </span>
+                )}
                 <span
                   className="text-xl font-mono font-bold tabular-nums text-amber-800 dark:text-amber-200 min-w-20 text-center"
                   aria-label="Time remaining"
@@ -1175,97 +1413,132 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
 
           {/* Your hand first — front and center */}
           {currentPlayer && (
-            <div data-tour="your-cards" className="space-y-4 min-w-0 overflow-x-hidden">
+            <div
+              data-tour="your-cards"
+              className="space-y-4 min-w-0 overflow-x-hidden"
+            >
               {handLoading ? (
                 <div className="bg-surface rounded-lg p-3 md:p-6 lg:p-5 border border-border shadow-sm dark:shadow-none flex flex-col min-h-0 max-h-[calc(100vh-12rem)]">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4 overflow-y-auto min-h-0 flex-1">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="h-[150px] md:h-[120px] lg:h-[220px] rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" aria-hidden />
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div
+                        key={i}
+                        className="h-[150px] md:h-[120px] lg:h-[220px] rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse"
+                        aria-hidden
+                      />
                     ))}
                   </div>
                 </div>
               ) : (
-              <Hand
-                cards={hand}
-                onCardSelect={(cardId) => {
-                  setSelectedCardIds((prev) =>
-                    prev.includes(cardId)
-                      ? prev.filter((id) => id !== cardId)
-                      : [...prev, cardId]
-                  );
-                }}
-                onCardSubmit={handleSubmitCard}
-                onCardDiscard={handleDiscardCards}
-                onQuarterDiscardSelection={handleQuarterDiscardSelection}
-                selectedCardIds={selectedCardIds}
-                handSize={room.handSize || 5}
-                allowQuarterClearing={room.allowQuarterClearing}
-                currentQuarter={room.currentQuarter}
-                canTurnInCards={room.canTurnInCards}
-                isQuarterIntermission={isQuarterIntermission}
-                intermissionSecondsLeft={intermissionSecondsLeft}
-                myQuarterSelectionIds={
-                  (room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer?.id] ?? []
-                }
-                roomMode={room.mode}
-                currentUserPoints={currentPlayer.points}
-                submissionDisabled={
-                  /* Only show "Submissions paused" banner after host confirms in modal, not while modal is open */
-                  (isEndingRound || isEndingRoundEarly) && isHost
-                }
-              />
+                <Hand
+                  cards={hand}
+                  onCardSelect={(cardId) => {
+                    setSelectedCardIds((prev) =>
+                      prev.includes(cardId)
+                        ? prev.filter((id) => id !== cardId)
+                        : [...prev, cardId],
+                    );
+                  }}
+                  onCardSubmit={handleSubmitCard}
+                  onCardDiscard={handleDiscardCards}
+                  onQuarterDiscardSelection={handleQuarterDiscardSelection}
+                  selectedCardIds={selectedCardIds}
+                  handSize={room.handSize || 5}
+                  allowQuarterClearing={room.allowQuarterClearing}
+                  currentQuarter={room.currentQuarter}
+                  canTurnInCards={room.canTurnInCards}
+                  isQuarterIntermission={isQuarterIntermission}
+                  intermissionSecondsLeft={intermissionSecondsLeft}
+                  myQuarterSelectionIds={
+                    (room.pendingQuarterDiscardSelections ?? null)?.[
+                      currentPlayer?.id
+                    ] ?? []
+                  }
+                  roomMode={room.mode}
+                  currentUserPoints={currentPlayer.points}
+                  submissionDisabled={
+                    /* Only show "Submissions paused" banner after host confirms in modal, not while modal is open */
+                    (isEndingRound || isEndingRoundEarly) && isHost
+                  }
+                />
               )}
             </div>
           )}
 
           {/* Active Card Display */}
-          <div 
+          <div
             data-tour="active-card"
-            className={activeCard ? "bg-surface rounded-lg p-4 md:p-6 border border-border shadow-sm dark:shadow-none" : "hidden"}
+            className={
+              activeCard
+                ? "bg-surface rounded-lg p-4 md:p-6 border border-border shadow-sm dark:shadow-none"
+                : "hidden"
+            }
           >
             {activeCard ? (
               <>
                 <h2 className="text-section-title mb-4">Active Card</h2>
-              <div className="p-4 md:p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border-2 border-primary/30">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-2">{activeCard.card.title}</h3>
-                    <p className="text-neutral-600 dark:text-neutral-400">
-                      Drawn by: {activeCard.drawnBy.nickname || activeCard.drawnBy.user.name}
-                    </p>
+                <div className="p-4 md:p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border-2 border-primary/30">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-2xl font-bold mb-2">
+                        {activeCard.card.title}
+                      </h3>
+                      <p className="text-neutral-600 dark:text-neutral-400">
+                        Drawn by:{" "}
+                        {activeCard.drawnBy.nickname ||
+                          activeCard.drawnBy.user.name}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          activeCard.card.severity === "severe"
+                            ? "bg-red-500/20 text-red-600 dark:text-red-400"
+                            : activeCard.card.severity === "moderate"
+                              ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                              : "bg-green-500/20 text-green-600 dark:text-green-400"
+                        }`}
+                      >
+                        {activeCard.card.severity}
+                      </span>
+                      <span className="px-3 py-1 bg-accent/20 text-accent rounded-full text-xs font-medium">
+                        {activeCard.card.points} pts
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      activeCard.card.severity === "severe"
-                        ? "bg-red-500/20 text-red-600 dark:text-red-400"
-                        : activeCard.card.severity === "moderate"
-                        ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
-                        : "bg-green-500/20 text-green-600 dark:text-green-400"
-                    }`}>
-                      {activeCard.card.severity}
-                    </span>
-                    <span className="px-3 py-1 bg-accent/20 text-accent rounded-full text-xs font-medium">
-                      {activeCard.card.points} pts
-                    </span>
-                  </div>
+                  <p className="text-lg mb-4">
+                    {getCardDescriptionForDisplay(
+                      activeCard.card.description,
+                      room.mode,
+                    )}
+                  </p>
+                  {activeCard.drawnBy.id === currentPlayer?.id && (
+                    <Button
+                      variant="outline-primary"
+                      fullWidth
+                      onClick={() => handleSubmitCard(activeCard.id)}
+                      disabled={
+                        isQuarterIntermission ||
+                        (isHost &&
+                          (showEndRoundModal ||
+                            showEndRoundEarlyModal ||
+                            isEndingRound ||
+                            isEndingRoundEarly))
+                      }
+                      isLoading={isSubmitting}
+                    >
+                      {isQuarterIntermission
+                        ? "Submissions paused (round intermission)"
+                        : isHost &&
+                            (showEndRoundModal ||
+                              showEndRoundEarlyModal ||
+                              isEndingRound ||
+                              isEndingRoundEarly)
+                          ? "Submissions paused (round ending)"
+                          : "Submit Card"}
+                    </Button>
+                  )}
                 </div>
-                <p className="text-lg mb-4">{getCardDescriptionForDisplay(activeCard.card.description, room.mode)}</p>
-                {activeCard.drawnBy.id === currentPlayer?.id && (
-                  <Button
-                    variant="outline-primary"
-                    fullWidth
-                    onClick={() => handleSubmitCard(activeCard.id)}
-                    disabled={isQuarterIntermission || (isHost && (showEndRoundModal || showEndRoundEarlyModal || isEndingRound || isEndingRoundEarly))}
-                    isLoading={isSubmitting}
-                  >
-                    {isQuarterIntermission
-                      ? "Submissions paused (round intermission)"
-                      : isHost && (showEndRoundModal || showEndRoundEarlyModal || isEndingRound || isEndingRoundEarly)
-                      ? "Submissions paused (round ending)"
-                      : "Submit Card"}
-                  </Button>
-                )}
-              </div>
               </>
             ) : (
               <div className="bg-surface rounded-lg p-6 border border-border shadow-sm dark:shadow-none">
@@ -1279,15 +1552,15 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
             )}
           </div>
 
-
           {/* Submitter: compact "Vote pending" badge for own submissions */}
           {!isQuarterIntermission && (
             <SubmitterPendingBadge
-              submissions={submissions.filter((s) => s.submittedBy.user.id === currentUserId)}
+              submissions={submissions.filter(
+                (s) => s.submittedBy.user.id === currentUserId,
+              )}
               roomMode={room.mode}
             />
           )}
-
         </div>
       </div>
 
@@ -1297,7 +1570,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           <div className="bg-surface rounded-lg p-6 max-w-md w-full border border-border shadow-lg dark:shadow-none">
             <h3 className="text-section-title font-bold mb-4">End Game?</h3>
             <p className="text-body-muted mb-6">
-              This will end the current game, declare a winner (highest points), and start a new game with the same players. All points will be reset.
+              This will end the current game, declare a winner (highest points),
+              and start a new game with the same players. All points will be
+              reset.
             </p>
             <div className="flex gap-3">
               <Button
@@ -1324,9 +1599,13 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       {showResetPointsModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-surface rounded-lg p-6 max-w-md w-full border border-border shadow-lg dark:shadow-none">
-            <h3 className="text-section-title font-bold mb-4">Reset All Points?</h3>
+            <h3 className="text-section-title font-bold mb-4">
+              Reset All Points?
+            </h3>
             <p className="text-body-muted mb-6">
-              This will reset all player points to 0. The game will continue with the same state. This is useful if players join late and you want to reset for fairness.
+              This will reset all player points to 0. The game will continue
+              with the same state. This is useful if players join late and you
+              want to reset for fairness.
             </p>
             <div className="flex gap-3">
               <Button
@@ -1355,7 +1634,9 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
           <div className="bg-surface rounded-lg p-6 max-w-md w-full border border-border shadow-lg dark:shadow-none">
             <h3 className="text-section-title font-bold mb-4">End Round?</h3>
             <p className="text-body-muted mb-6">
-              This will end the current round and start the quarter intermission. Players will have time to turn in unwanted cards before the next round begins.
+              This will end the current round and start the quarter
+              intermission. Players will have time to turn in unwanted cards
+              before the next round begins.
             </p>
             <div className="flex gap-3">
               <Button
@@ -1382,9 +1663,14 @@ export function GameBoard({ roomCode, currentUserId, initialRoom }: GameBoardPro
       {showEndRoundEarlyModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-surface rounded-lg p-6 max-w-md w-full border border-border shadow-lg dark:shadow-none">
-            <h3 className="text-section-title font-bold mb-4">End Round Early?</h3>
+            <h3 className="text-section-title font-bold mb-4">
+              End Round Early?
+            </h3>
             <p className="text-body-muted mb-6">
-              This will end the intermission now. All pending card turn-ins will be processed and players will receive new cards. Players who haven&apos;t selected cards to turn in will keep their current hand.
+              This will end the intermission now. All pending card turn-ins will
+              be processed and players will receive new cards. Players who
+              haven&apos;t selected cards to turn in will keep their current
+              hand.
             </p>
             <div className="flex gap-3">
               <Button

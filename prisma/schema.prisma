@@ -37,7 +37,6 @@ model Room {
   currentQuarter      String?  // "Q1" | "Q2" | "Q3" | "Q4" | null
   quarterIntermissionEndsAt DateTime? // When the 5-min quarter-ending intermission ends (UTC)
   pendingQuarterDiscardSelections Json? // { [playerId]: cardInstanceId[] } — processed when intermission ends
-  canTurnInCards      Boolean  @default(true) // Host can control when players can turn in cards
   lastGameEndResult   Json?    // { winnerId, winnerName, leaderboard: [{ playerId, name, nickname, points }] } — shown on end-game page
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt

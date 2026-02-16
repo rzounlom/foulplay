@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+
+import { generateRoomCode } from "@/lib/rooms/utils";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
-import { generateRoomCode } from "@/lib/rooms/utils";
 import { z } from "zod";
 
 const createRoomSchema = z.object({
@@ -19,7 +20,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { mode, sport, handSize, allowQuarterClearing } = createRoomSchema.parse(body);
+    const { mode, sport, handSize, allowQuarterClearing } =
+      createRoomSchema.parse(body);
 
     // Generate unique room code
     let code: string;
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
     if (exists) {
       return NextResponse.json(
         { error: "Failed to generate unique room code" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -85,14 +87,14 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request body", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     console.error("Error creating room:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

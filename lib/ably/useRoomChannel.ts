@@ -21,7 +21,6 @@ export type RoomEvent =
   | "room_settings_updated"
   | "points_reset"
   | "quarter_advanced"
-  | "turn_in_control_changed"
   | "quarter_ending"
   | "quarter_intermission_ended"
   | "quarter_discard_selection_updated"

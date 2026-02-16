@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
-import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
+import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 
 const submitCardSchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
-  cardInstanceIds: z.array(z.string()).min(1, "At least one card must be submitted"),
+  cardInstanceIds: z
+    .array(z.string())
+    .min(1, "At least one card must be submitted"),
 });
 
 export async function POST(request: NextRequest) {
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
     if (room.status !== "active") {
       return NextResponse.json(
         { error: "Game is not active" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
     if (!room.canTurnInCards) {
       return NextResponse.json(
         { error: "Card turn-in is currently disabled by the host" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -60,19 +63,17 @@ export async function POST(request: NextRequest) {
             error:
               "Submissions are paused during the quarter-ending intermission. Use “Turn in unwanted cards” to discard (drink penalty applies).",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
 
     // Verify user is a player in the room
-    const submittingPlayer = room.players.find(
-      (p) => p.userId === user.id
-    );
+    const submittingPlayer = room.players.find((p) => p.userId === user.id);
     if (!submittingPlayer) {
       return NextResponse.json(
         { error: "You are not a player in this room" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
     if (cardInstances.length !== cardInstanceIds.length) {
       return NextResponse.json(
         { error: "One or more card instances not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -104,13 +105,15 @@ export async function POST(request: NextRequest) {
       if (cardInstance.drawnById !== submittingPlayer.id) {
         return NextResponse.json(
           { error: "You can only submit cards you drew" },
-          { status: 403 }
+          { status: 403 },
         );
       }
       if (cardInstance.status !== "drawn") {
         return NextResponse.json(
-          { error: "One or more cards have already been submitted or resolved" },
-          { status: 400 }
+          {
+            error: "One or more cards have already been submitted or resolved",
+          },
+          { status: 400 },
         );
       }
     }
@@ -126,7 +129,7 @@ export async function POST(request: NextRequest) {
     if (cardsAlreadySubmitted.length > 0) {
       return NextResponse.json(
         { error: "One or more cards have already been submitted" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -209,14 +212,14 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request body", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     console.error("Error submitting card:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

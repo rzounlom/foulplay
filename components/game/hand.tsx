@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
 
@@ -31,7 +32,9 @@ function useHandLayout() {
 
 function useIsSmallViewport() {
   const [isSmall, setIsSmall] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 820px)").matches : false
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 820px)").matches
+      : false,
   );
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 820px)");
@@ -98,21 +101,24 @@ export function Hand({
   const isSmallViewport = useIsSmallViewport();
   const isMultiSelect = !!(onCardSubmit || onQuarterDiscardSelection);
   const selectedIds = useMemo(
-    () => (isMultiSelect ? selectedCardIds : selectedCardId ? [selectedCardId] : []),
-    [isMultiSelect, selectedCardIds, selectedCardId]
+    () =>
+      isMultiSelect ? selectedCardIds : selectedCardId ? [selectedCardId] : [],
+    [isMultiSelect, selectedCardIds, selectedCardId],
   );
   // During normal play, only submit-for-vote is allowed. Discard with penalty is only during round intermission.
-  const canSubmitCards = canTurnInCards && !isQuarterIntermission && !submissionDisabled;
+  const canSubmitCards =
+    canTurnInCards && !isQuarterIntermission && !submissionDisabled;
   const cardsInHand = cards.filter((c) => c.status === "drawn");
 
-  const cardsStaying =
-    myQuarterSelectionIds.length > 0
-      ? cardsInHand.filter((c) => !myQuarterSelectionIds.includes(c.id))
-      : cardsInHand;
+  // During intermission: show all cards in grid; highlight those in discard selection
+  const cardsToDisplay = cardsInHand;
 
   const canSubmitWithEnter =
     (canSubmitCards && selectedIds.length > 0) ||
-    (isQuarterIntermission && !!onQuarterDiscardSelection && selectedIds.length > 0 && !submissionDisabled);
+    (isQuarterIntermission &&
+      !!onQuarterDiscardSelection &&
+      selectedIds.length > 0 &&
+      !submissionDisabled);
 
   useEffect(() => {
     if (!canSubmitWithEnter) return;
@@ -124,9 +130,16 @@ export function Hand({
       e.preventDefault();
       if (canSubmitCards && selectedIds.length > 0) {
         onCardSubmit?.(selectedIds);
-      } else if (isQuarterIntermission && onQuarterDiscardSelection && selectedIds.length > 0) {
-        const toAdd = selectedIds.filter((id) => !myQuarterSelectionIds.includes(id));
-        if (toAdd.length > 0) onQuarterDiscardSelection([...myQuarterSelectionIds, ...toAdd]);
+      } else if (
+        isQuarterIntermission &&
+        onQuarterDiscardSelection &&
+        selectedIds.length > 0
+      ) {
+        const toAdd = selectedIds.filter(
+          (id) => !myQuarterSelectionIds.includes(id),
+        );
+        if (toAdd.length > 0)
+          onQuarterDiscardSelection([...myQuarterSelectionIds, ...toAdd]);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -145,21 +158,41 @@ export function Hand({
   if (cardsInHand.length === 0) {
     return (
       <div className="bg-surface rounded-lg p-3 md:p-6 lg:min-h-[480px] lg:p-5 border border-border shadow-sm dark:shadow-none text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 mb-3" aria-hidden>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
+        <div
+          className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 mb-3"
+          aria-hidden
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 6h16M4 12h16m-7 6h7"
+            />
           </svg>
         </div>
         <div className="flex items-center justify-between gap-2 mb-1">
-          <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300">Your Hand</h3>
+          <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300">
+            Your Hand
+          </h3>
           {currentUserPoints !== undefined && (
-            <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400 lg:hidden" aria-label="Your points">
+            <span
+              className="text-sm font-medium text-neutral-600 dark:text-neutral-400 lg:hidden"
+              aria-label="Your points"
+            >
               {currentUserPoints} pts
             </span>
           )}
         </div>
         <p className="text-sm text-neutral-500 dark:text-neutral-400">
-          No cards right now. New cards will appear after the next draw or when your submissions are resolved.
+          No cards right now. New cards will appear after the next draw or when
+          your submissions are resolved.
         </p>
       </div>
     );
@@ -169,16 +202,23 @@ export function Hand({
     <div className="bg-surface rounded-lg p-3 md:p-6 lg:p-5 border border-border shadow-sm dark:shadow-none flex flex-col min-h-0 min-w-0 max-h-[calc(100vh-12rem)] overflow-x-hidden">
       <div className="flex items-center justify-between gap-2 mb-4 lg:mb-6 flex-wrap shrink-0">
         <h3 className="text-lg font-semibold lg:text-xl">
-          Your Hand ({cardsStaying.length}/{handSize})
+          Your Hand ({cardsToDisplay.length}/{handSize})
         </h3>
         <div className="flex items-center gap-1">
           {currentUserPoints !== undefined && (
-            <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400 min-[821px]:hidden" aria-label="Your points">
+            <span
+              className="text-sm font-medium text-neutral-600 dark:text-neutral-400 min-[821px]:hidden"
+              aria-label="Your points"
+            >
               {currentUserPoints} pts
             </span>
           )}
           {isSmallViewport && (
-            <div className="flex items-center gap-1 ml-2" role="group" aria-label="Card layout">
+            <div
+              className="flex items-center gap-1 ml-2"
+              role="group"
+              aria-label="Card layout"
+            >
               {(
                 [
                   ["1v", "1 col, scroll down", "↓"],
@@ -218,11 +258,14 @@ export function Hand({
       )}
       {isQuarterIntermission && (
         <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm shrink-0">
-          Select cards from your hand and click Submit for discard. They will move to Pending Discard above. Remove from Pending Discard to keep them. When the timer ends, cards in Pending Discard are discarded and replaced.{roomMode !== "non-drinking" && " Drink penalty applies."}
+          Select cards from your hand and click Submit for discard. Highlighted cards are in Cards to Discard below. Remove any to keep them. When the timer ends, cards in Cards to Discard are discarded and replaced.{roomMode !== "non-drinking" && " Drink penalty applies."}
         </div>
       )}
 
-      {(canSubmitCards && selectedIds.length > 0) || (isQuarterIntermission && onQuarterDiscardSelection && selectedIds.length > 0) ? (
+      {(canSubmitCards && selectedIds.length > 0) ||
+      (isQuarterIntermission &&
+        onQuarterDiscardSelection &&
+        selectedIds.length > 0) ? (
         <div className="mb-4 lg:mb-6 flex gap-2 shrink-0">
           {canSubmitCards && selectedIds.length > 0 && (
             <Button
@@ -231,22 +274,32 @@ export function Hand({
               className="flex-1"
               onClick={() => onCardSubmit?.(selectedIds)}
             >
-              Submit {selectedIds.length} Card{selectedIds.length !== 1 ? "s" : ""}
+              Submit {selectedIds.length} Card
+              {selectedIds.length !== 1 ? "s" : ""}
             </Button>
           )}
-          {isQuarterIntermission && onQuarterDiscardSelection && selectedIds.length > 0 && (
-            <Button
-              variant="outline-primary"
-              size="md"
-              className="flex-1"
-              onClick={() => {
-                const toAdd = selectedIds.filter((id) => !myQuarterSelectionIds.includes(id));
-                if (toAdd.length > 0) onQuarterDiscardSelection([...myQuarterSelectionIds, ...toAdd]);
-              }}
-            >
-              Submit {selectedIds.length} Card{selectedIds.length !== 1 ? "s" : ""} for discard
-            </Button>
-          )}
+          {isQuarterIntermission &&
+            onQuarterDiscardSelection &&
+            selectedIds.length > 0 && (
+              <Button
+                variant="outline-primary"
+                size="md"
+                className="flex-1"
+                onClick={() => {
+                  const toAdd = selectedIds.filter(
+                    (id) => !myQuarterSelectionIds.includes(id),
+                  );
+                  if (toAdd.length > 0)
+                    onQuarterDiscardSelection([
+                      ...myQuarterSelectionIds,
+                      ...toAdd,
+                    ]);
+                }}
+              >
+                Submit {selectedIds.length} Card
+                {selectedIds.length !== 1 ? "s" : ""} for discard
+              </Button>
+            )}
         </div>
       ) : null}
       <div
@@ -262,10 +315,11 @@ export function Hand({
             : "grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 lg:gap-5 p-2 overflow-y-auto min-h-0 flex-1"
         }
       >
-        {cardsStaying.map((cardInstance, index) => {
-          const isSelected = isMultiSelect 
+        {cardsToDisplay.map((cardInstance, index) => {
+          const isSelected = isMultiSelect
             ? selectedIds.includes(cardInstance.id)
             : selectedCardId === cardInstance.id;
+          const isInDiscardSelection = myQuarterSelectionIds.includes(cardInstance.id);
           const cardClasses = isSmallViewport
             ? handLayout === "1v"
               ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[280px] flex-shrink-0 w-full hover:scale-[1.01] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
@@ -284,38 +338,118 @@ export function Hand({
                   ? isSmallViewport
                     ? "border-primary bg-primary/10 shadow-md"
                     : "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.02] shadow-md"
-                  : "border-neutral-200 dark:border-neutral-800 hover:border-primary/50"
+                  : isInDiscardSelection
+                    ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/30 shadow-md"
+                    : "border-neutral-200 dark:border-neutral-800 hover:border-primary/50"
               }`}
               style={{ animationDelay: `${index * 40}ms` }}
             >
-              <h4 className={`font-semibold leading-tight break-words ${isSmallViewport ? "text-base mb-2" : "text-base md:text-sm lg:text-xl mb-2 md:mb-1.5 lg:mb-3"}`}>
+              <h4
+                className={`font-semibold leading-tight break-words ${isSmallViewport ? "text-base mb-2" : "text-base md:text-sm lg:text-xl mb-2 md:mb-1.5 lg:mb-3"}`}
+              >
                 {cardInstance.card.title}
               </h4>
-              <div className={`flex flex-wrap items-center gap-2 ${isSmallViewport ? "mb-2" : "md:gap-1.5 lg:gap-3 mb-2 md:mb-1.5 lg:mb-3"}`}>
+              <div
+                className={`flex flex-wrap items-center gap-2 ${isSmallViewport ? "mb-2" : "md:gap-1.5 lg:gap-3 mb-2 md:mb-1.5 lg:mb-3"}`}
+              >
                 <span
                   className={`px-2 py-0.5 rounded font-medium whitespace-nowrap ${
-                    isSmallViewport ? "text-xs" : "text-xs md:text-[11px] lg:text-sm lg:px-3 lg:py-1"
+                    isSmallViewport
+                      ? "text-xs"
+                      : "text-xs md:text-[11px] lg:text-sm lg:px-3 lg:py-1"
                   } ${
                     cardInstance.card.severity === "severe"
                       ? "bg-red-500/20 text-red-600 dark:text-red-400"
                       : cardInstance.card.severity === "moderate"
-                      ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
-                      : "bg-green-500/20 text-green-600 dark:text-green-400"
+                        ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                        : "bg-green-500/20 text-green-600 dark:text-green-400"
                   }`}
                 >
                   {cardInstance.card.severity}
                 </span>
-                <span className={`px-2 py-0.5 bg-accent/20 text-accent rounded font-medium whitespace-nowrap ${isSmallViewport ? "text-xs" : "text-xs md:text-[11px] lg:text-sm lg:px-3 lg:py-1"}`}>
+                <span
+                  className={`px-2 py-0.5 bg-accent/20 text-accent rounded font-medium whitespace-nowrap ${isSmallViewport ? "text-xs" : "text-xs md:text-[11px] lg:text-sm lg:px-3 lg:py-1"}`}
+                >
                   {cardInstance.card.points} pts
                 </span>
               </div>
-              <p className={`text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight ${isSmallViewport ? "text-sm" : "text-sm md:text-xs lg:text-base"}`}>
-                {getCardDescriptionForDisplay(cardInstance.card.description, roomMode)}
+              <p
+                className={`text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-tight ${isSmallViewport ? "text-sm" : "text-sm md:text-xs lg:text-base"}`}
+              >
+                {getCardDescriptionForDisplay(
+                  cardInstance.card.description,
+                  roomMode,
+                )}
               </p>
             </div>
           );
         })}
       </div>
+
+      {/* Cards to Discard — below grid during intermission, like Pending Submissions */}
+      {isQuarterIntermission &&
+        onQuarterDiscardSelection &&
+        myQuarterSelectionIds.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-border shrink-0">
+            <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3 flex items-center gap-2">
+              Cards to Discard
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-medium">
+                {myQuarterSelectionIds.length} selected
+              </span>
+            </h4>
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-3">
+              These will be discarded when the round ends. Click Remove to keep a card.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+              {cardsInHand
+                .filter((c) => myQuarterSelectionIds.includes(c.id))
+                .map((cardInstance) => (
+                  <div
+                    key={cardInstance.id}
+                    className="p-3 rounded-lg border-2 border-amber-500/50 bg-amber-500/5 relative"
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onQuarterDiscardSelection(
+                          myQuarterSelectionIds.filter((id) => id !== cardInstance.id),
+                        );
+                      }}
+                      className="absolute top-2 right-2 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 rounded transition-colors"
+                    >
+                      Remove
+                    </button>
+                    <h5 className="font-semibold text-sm leading-tight truncate pr-14 mb-1">
+                      {cardInstance.card.title}
+                    </h5>
+                    <div className="flex flex-wrap gap-1.5 mb-1">
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          cardInstance.card.severity === "severe"
+                            ? "bg-red-500/20 text-red-600 dark:text-red-400"
+                            : cardInstance.card.severity === "moderate"
+                              ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                              : "bg-green-500/20 text-green-600 dark:text-green-400"
+                        }`}
+                      >
+                        {cardInstance.card.severity}
+                      </span>
+                      <span className="px-1.5 py-0.5 bg-accent/20 text-accent rounded text-[10px] font-medium">
+                        {cardInstance.card.points} pts
+                      </span>
+                    </div>
+                    <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">
+                      {getCardDescriptionForDisplay(
+                        cardInstance.card.description,
+                        roomMode,
+                      )}
+                    </p>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
     </div>
   );
 }

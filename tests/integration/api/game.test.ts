@@ -33,14 +33,23 @@ jest.mock("next/server", () => ({
   },
 }));
 
+import {
+  mockCard,
+  mockCardInstance,
+  mockPlayer,
+  mockRoom,
+  mockUser,
+} from "@/tests/helpers/mocks";
+
 import { NextRequest } from "next/server";
-import { POST as startGame } from "@/app/api/game/start/route";
-import { POST as drawCard } from "@/app/api/game/draw/route";
-import { POST as submitCard } from "@/app/api/game/submit/route";
 import { POST as castVote } from "@/app/api/game/vote/route";
+import { POST as drawCard } from "@/app/api/game/draw/route";
+import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { GET as getHand } from "@/app/api/game/hand/route";
 import { GET as getSubmissions } from "@/app/api/game/submissions/route";
-import { mockUser, mockPlayer, mockRoom, mockCard, mockCardInstance } from "@/tests/helpers/mocks";
+import { prisma } from "@/lib/db/prisma";
+import { POST as startGame } from "@/app/api/game/start/route";
+import { POST as submitCard } from "@/app/api/game/submit/route";
 
 // Mock dependencies
 jest.mock("@/lib/auth/clerk", () => ({
@@ -96,14 +105,25 @@ jest.mock("@/lib/ably/client", () => ({
   })),
 }));
 
-import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
-import { prisma } from "@/lib/db/prisma";
-
-const mockGetCurrentUserFromRequest = getCurrentUserFromRequest as jest.MockedFunction<typeof getCurrentUserFromRequest>;
+const mockGetCurrentUserFromRequest =
+  getCurrentUserFromRequest as jest.MockedFunction<
+    typeof getCurrentUserFromRequest
+  >;
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
 /** Build mock cards for football (equal probability draws, any mix allowed) */
-function mockCardsForSport(count: number = 55): Array<{ id: string; sport: string; title: string; description: string; severity: string; type: string; points: number; createdAt: Date }> {
+function mockCardsForSport(
+  count: number = 55,
+): Array<{
+  id: string;
+  sport: string;
+  title: string;
+  description: string;
+  severity: string;
+  type: string;
+  points: number;
+  createdAt: Date;
+}> {
   return Array(count)
     .fill(null)
     .map((_, i) => ({
@@ -135,7 +155,12 @@ describe("Game API Routes", () => {
       };
 
       // Need at least 2 players to start a game
-      const mockPlayer2 = { ...mockPlayer, id: "player_456", userId: "user_456", isHost: false };
+      const mockPlayer2 = {
+        ...mockPlayer,
+        id: "player_456",
+        userId: "user_456",
+        isHost: false,
+      };
       mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
         ...mockRoom,
         status: "lobby",
@@ -147,7 +172,9 @@ describe("Game API Routes", () => {
       const mockCards = mockCardsForSport(55);
       mockPrisma.card.findMany = jest.fn().mockResolvedValue(mockCards);
       mockPrisma.gameState.create = jest.fn().mockResolvedValue(gameState);
-      mockPrisma.cardInstance.createMany = jest.fn().mockResolvedValue({ count: 10 });
+      mockPrisma.cardInstance.createMany = jest
+        .fn()
+        .mockResolvedValue({ count: 10 });
       mockPrisma.gameState.update = jest.fn().mockResolvedValue(gameState);
       mockPrisma.room.update = jest.fn().mockResolvedValue({
         ...mockRoom,
@@ -201,7 +228,12 @@ describe("Game API Routes", () => {
     });
 
     it("deals cards with equal probability (any mix allowed, duplicates possible)", async () => {
-      const mockPlayer2 = { ...mockPlayer, id: "player_456", userId: "user_456", isHost: false };
+      const mockPlayer2 = {
+        ...mockPlayer,
+        id: "player_456",
+        userId: "user_456",
+        isHost: false,
+      };
       const mockCards = mockCardsForSport(55);
       const gameState = {
         id: "gamestate_123",
@@ -224,8 +256,12 @@ describe("Game API Routes", () => {
       });
       mockPrisma.card.findMany = jest.fn().mockResolvedValue(mockCards);
       mockPrisma.gameState.create = jest.fn().mockResolvedValue(gameState);
-      mockPrisma.cardInstance.createMany = jest.fn().mockResolvedValue({ count: 10 });
-      mockPrisma.room.update = jest.fn().mockResolvedValue({ ...mockRoom, status: "active" });
+      mockPrisma.cardInstance.createMany = jest
+        .fn()
+        .mockResolvedValue({ count: 10 });
+      mockPrisma.room.update = jest
+        .fn()
+        .mockResolvedValue({ ...mockRoom, status: "active" });
 
       const request = new NextRequest("http://localhost:3000/api/game/start", {
         method: "POST",
@@ -234,7 +270,8 @@ describe("Game API Routes", () => {
       const response = await startGame(request);
       expect(response.status).toBe(200);
 
-      const createManyCalls = (mockPrisma.cardInstance.createMany as jest.Mock).mock.calls;
+      const createManyCalls = (mockPrisma.cardInstance.createMany as jest.Mock)
+        .mock.calls;
       expect(createManyCalls.length).toBeGreaterThanOrEqual(1);
       const data = createManyCalls[0][0].data as Array<{ cardId: string }>;
       expect(data).toHaveLength(10); // 2 players × 5 cards
@@ -265,7 +302,9 @@ describe("Game API Routes", () => {
       mockPrisma.card.findMany = jest.fn().mockResolvedValue(mockCards);
       mockPrisma.cardInstance.findMany = jest.fn().mockResolvedValue([]);
       mockPrisma.cardInstance.count = jest.fn().mockResolvedValue(0);
-      mockPrisma.cardInstance.create = jest.fn().mockResolvedValue(mockCardInstance);
+      mockPrisma.cardInstance.create = jest
+        .fn()
+        .mockResolvedValue(mockCardInstance);
       mockPrisma.gameState.update = jest.fn().mockResolvedValue(gameState);
 
       const request = new NextRequest("http://localhost:3000/api/game/draw", {
@@ -299,7 +338,9 @@ describe("Game API Routes", () => {
         handSize: 5,
       });
       mockPrisma.player.findFirst = jest.fn().mockResolvedValue(mockPlayer);
-      mockPrisma.cardInstance.findMany = jest.fn().mockResolvedValue(cardsInHand);
+      mockPrisma.cardInstance.findMany = jest
+        .fn()
+        .mockResolvedValue(cardsInHand);
 
       const request = new NextRequest("http://localhost:3000/api/game/draw", {
         method: "POST",
@@ -336,7 +377,9 @@ describe("Game API Routes", () => {
       mockPrisma.card.findMany = jest.fn().mockResolvedValue(mockCards);
       mockPrisma.cardInstance.findMany = jest.fn().mockResolvedValue([]);
       mockPrisma.cardInstance.count = jest.fn().mockResolvedValue(0);
-      mockPrisma.cardInstance.create = jest.fn().mockResolvedValue(mockCardInstance);
+      mockPrisma.cardInstance.create = jest
+        .fn()
+        .mockResolvedValue(mockCardInstance);
       mockPrisma.gameState.update = jest.fn().mockResolvedValue(gameState);
 
       const request = new NextRequest("http://localhost:3000/api/game/draw", {
@@ -389,8 +432,12 @@ describe("Game API Routes", () => {
         .mockResolvedValueOnce([{ ...mockCardInstance, status: "drawn" }]) // First call: get cards to submit (must have status "drawn")
         .mockResolvedValueOnce([]); // Second call: check for already submitted cards
       mockPrisma.cardSubmission.findFirst = jest.fn().mockResolvedValue(null);
-      mockPrisma.cardSubmission.create = jest.fn().mockResolvedValue(submission);
-      mockPrisma.cardInstance.updateMany = jest.fn().mockResolvedValue({ count: 1 });
+      mockPrisma.cardSubmission.create = jest
+        .fn()
+        .mockResolvedValue(submission);
+      mockPrisma.cardInstance.updateMany = jest
+        .fn()
+        .mockResolvedValue({ count: 1 });
 
       const request = new NextRequest("http://localhost:3000/api/game/submit", {
         method: "POST",
@@ -409,9 +456,13 @@ describe("Game API Routes", () => {
     it("should return player's hand", async () => {
       mockPrisma.room.findUnique = jest.fn().mockResolvedValue(mockRoom);
       mockPrisma.player.findFirst = jest.fn().mockResolvedValue(mockPlayer);
-      mockPrisma.cardInstance.findMany = jest.fn().mockResolvedValue([mockCardInstance]);
+      mockPrisma.cardInstance.findMany = jest
+        .fn()
+        .mockResolvedValue([mockCardInstance]);
 
-      const request = new NextRequest("http://localhost:3000/api/game/hand?roomCode=ABC123");
+      const request = new NextRequest(
+        "http://localhost:3000/api/game/hand?roomCode=ABC123",
+      );
       const response = await getHand(request);
       const data = await response.json();
 
@@ -439,9 +490,13 @@ describe("Game API Routes", () => {
         ...mockRoom,
         players: [mockPlayer],
       });
-      mockPrisma.cardSubmission.findMany = jest.fn().mockResolvedValue([submission]);
+      mockPrisma.cardSubmission.findMany = jest
+        .fn()
+        .mockResolvedValue([submission]);
 
-      const request = new NextRequest("http://localhost:3000/api/game/submissions?roomCode=ABC123");
+      const request = new NextRequest(
+        "http://localhost:3000/api/game/submissions?roomCode=ABC123",
+      );
       const response = await getSubmissions(request);
       const data = await response.json();
 
@@ -461,12 +516,30 @@ describe("Game API Routes", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    const submitterPlayer = { ...mockPlayer, id: "player_123", userId: mockUser.id, isHost: true };
-    const voterPlayer = { ...mockPlayer, id: "player_456", userId: "user_456", isHost: false };
-    const thirdPlayer = { ...mockPlayer, id: "player_789", userId: "user_789", isHost: false };
+    const submitterPlayer = {
+      ...mockPlayer,
+      id: "player_123",
+      userId: mockUser.id,
+      isHost: true,
+    };
+    const voterPlayer = {
+      ...mockPlayer,
+      id: "player_456",
+      userId: "user_456",
+      isHost: false,
+    };
+    const thirdPlayer = {
+      ...mockPlayer,
+      id: "player_789",
+      userId: "user_789",
+      isHost: false,
+    };
 
     it("should cast a vote successfully (pending resolution)", async () => {
-      mockGetCurrentUserFromRequest.mockResolvedValue({ ...mockUser, id: "user_456" });
+      mockGetCurrentUserFromRequest.mockResolvedValue({
+        ...mockUser,
+        id: "user_456",
+      });
 
       const submission = {
         id: "submission_123",
@@ -628,8 +701,13 @@ describe("Game API Routes", () => {
         quarterIntermissionEndsAt: null,
         players: [submitterPlayer, voterPlayer],
       });
-      mockPrisma.cardSubmission.findUnique = jest.fn().mockResolvedValue(submission);
-      mockGetCurrentUserFromRequest.mockResolvedValue({ ...mockUser, id: mockUser.id });
+      mockPrisma.cardSubmission.findUnique = jest
+        .fn()
+        .mockResolvedValue(submission);
+      mockGetCurrentUserFromRequest.mockResolvedValue({
+        ...mockUser,
+        id: mockUser.id,
+      });
 
       const request = new NextRequest("http://localhost:3000/api/game/vote", {
         method: "POST",
@@ -665,8 +743,13 @@ describe("Game API Routes", () => {
         quarterIntermissionEndsAt: null,
         players: [submitterPlayer, voterPlayer],
       });
-      mockPrisma.cardSubmission.findUnique = jest.fn().mockResolvedValue(submission);
-      mockGetCurrentUserFromRequest.mockResolvedValue({ ...mockUser, id: "user_other" });
+      mockPrisma.cardSubmission.findUnique = jest
+        .fn()
+        .mockResolvedValue(submission);
+      mockGetCurrentUserFromRequest.mockResolvedValue({
+        ...mockUser,
+        id: "user_other",
+      });
 
       const request = new NextRequest("http://localhost:3000/api/game/vote", {
         method: "POST",
@@ -700,7 +783,9 @@ describe("Game API Routes", () => {
         quarterIntermissionEndsAt: null,
         players: [submitterPlayer, voterPlayer],
       });
-      mockPrisma.cardSubmission.findUnique = jest.fn().mockResolvedValue(submission);
+      mockPrisma.cardSubmission.findUnique = jest
+        .fn()
+        .mockResolvedValue(submission);
 
       const request = new NextRequest("http://localhost:3000/api/game/vote", {
         method: "POST",
