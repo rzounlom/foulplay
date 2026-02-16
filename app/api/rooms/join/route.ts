@@ -3,7 +3,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 import { getRoomChannel } from "@/lib/ably/client";
-import { drawMultipleCards } from "@/lib/game/engine";
+import { drawRandomCardIndices } from "@/lib/game/engine";
 
 const joinRoomSchema = z.object({
   code: z.string().length(6, "Room code must be 6 characters"),
@@ -80,50 +80,25 @@ export async function POST(request: NextRequest) {
     // If game is active, deal the new player a hand
     const gameState = room.gameState;
     if (room.status === "active" && gameState && room.sport) {
-        const cards = await prisma.card.findMany({
-          where: { sport: room.sport },
-          orderBy: { id: "asc" },
-        });
-        if (cards.length > 0) {
-          const drawnInstances = await prisma.cardInstance.findMany({
-            where: { roomId: room.id },
-            include: { card: true },
-          });
-          const cardIdToIndex = new Map(
-            cards.map((card, index) => [card.id, index])
-          );
-          const drawnCardIndices = drawnInstances
-            .map((instance) => cardIdToIndex.get(instance.cardId))
-            .filter((index): index is number => index !== undefined);
-          const engineState = {
-            roomId: room.id,
-            currentTurnPlayerId: gameState.currentTurnPlayerId,
-            activeCardInstanceId: gameState.activeCardInstanceId || null,
-            deckSeed: gameState.deckSeed,
-            deck: Array.from({ length: cards.length }, (_, i) => i),
-            drawnCards: drawnCardIndices,
-          };
-          const handSize = room.handSize ?? 5;
-          const { cardIndices, newState } = drawMultipleCards(
-            engineState,
-            handSize
-          );
-          const cardInstancesToCreate = cardIndices.map((cardIndex) => ({
-            roomId: room.id,
-            cardId: cards[cardIndex].id,
-            drawnById: newPlayer.id,
-            status: "drawn",
-          }));
-          if (cardInstancesToCreate.length > 0) {
-            await prisma.cardInstance.createMany({
-              data: cardInstancesToCreate,
-            });
-          }
-      await prisma.gameState.update({
-        where: { id: gameState.id },
-        data: { deckSeed: newState.deckSeed },
+      const cards = await prisma.card.findMany({
+        where: { sport: room.sport },
+        orderBy: { id: "asc" },
       });
-    }
+      if (cards.length > 0) {
+        const handSize = room.handSize ?? 5;
+        const cardIndices = drawRandomCardIndices(cards.length, handSize);
+        const cardInstancesToCreate = cardIndices.map((cardIndex) => ({
+          roomId: room.id,
+          cardId: cards[cardIndex].id,
+          drawnById: newPlayer.id,
+          status: "drawn",
+        }));
+        if (cardInstancesToCreate.length > 0) {
+          await prisma.cardInstance.createMany({
+            data: cardInstancesToCreate,
+          });
+        }
+      }
     }
 
     // Fetch updated room with all players (and gameState for active games)

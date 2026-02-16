@@ -4,11 +4,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
-import {
-  drawMultipleCards,
-  generateDeckForMode,
-  type GameMode,
-} from "@/lib/game/engine";
+import { drawRandomCardIndices } from "@/lib/game/engine";
 
 const finalizeQuarterSchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
@@ -139,36 +135,7 @@ export async function POST(request: NextRequest) {
         });
         if (!gs || cards.length === 0 || cardsToDeal <= 0) continue;
 
-        const drawnInstances = await prisma.cardInstance.findMany({
-          where: { roomId: room!.id },
-          include: { card: true },
-        });
-        const cardIdToIndex = new Map(
-          cards.map((card, index) => [card.id, index])
-        );
-        const drawnCardIndices = drawnInstances
-          .map((instance) => cardIdToIndex.get(instance.cardId))
-          .filter((index): index is number => index !== undefined);
-
-        const mode = (room!.mode || "party") as GameMode;
-        const severities = cards.map(
-          (c) => c.severity as "mild" | "moderate" | "severe"
-        );
-        const deck = generateDeckForMode(gs.deckSeed, severities, mode);
-
-        const engineState = {
-          roomId: room!.id,
-          currentTurnPlayerId: gs.currentTurnPlayerId,
-          activeCardInstanceId: gs.activeCardInstanceId || null,
-          deckSeed: gs.deckSeed,
-          deck,
-          drawnCards: drawnCardIndices,
-        };
-
-        const { cardIndices, newState } = drawMultipleCards(
-          engineState,
-          cardsToDeal
-        );
+        const cardIndices = drawRandomCardIndices(cards.length, cardsToDeal);
         const newCardInstances = cardIndices.map((cardIndex) => ({
           roomId: room!.id,
           cardId: cards[cardIndex].id,
@@ -180,10 +147,6 @@ export async function POST(request: NextRequest) {
             data: newCardInstances,
           });
         }
-        await prisma.gameState.update({
-          where: { id: gs.id },
-          data: { deckSeed: newState.deckSeed },
-        });
       }
     }
 

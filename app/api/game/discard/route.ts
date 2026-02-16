@@ -3,11 +3,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
-import {
-  drawMultipleCards,
-  generateDeckForMode,
-  type GameMode,
-} from "@/lib/game/engine";
+import { drawRandomCardIndices } from "@/lib/game/engine";
 
 const discardCardSchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
@@ -146,61 +142,19 @@ export async function POST(request: NextRequest) {
         });
 
         if (cards.length > 0) {
-          // Get all drawn card instances to determine which cards have been used
-          const drawnInstances = await prisma.cardInstance.findMany({
-            where: { roomId: room.id },
-            include: { card: true },
-          });
-
-          // Map card IDs to their indices in the sorted cards array
-          const cardIdToIndex = new Map(cards.map((card, index) => [card.id, index]));
-          const drawnCardIndices = drawnInstances
-            .map((instance) => cardIdToIndex.get(instance.cardId))
-            .filter((index): index is number => index !== undefined);
-
-          const mode = (room.mode || "party") as GameMode;
-          const severities = cards.map(
-            (c) => c.severity as "mild" | "moderate" | "severe"
-          );
-          const deck = generateDeckForMode(
-            room.gameState.deckSeed,
-            severities,
-            mode
-          );
-
-          const gameState = {
+          const cardIndices = drawRandomCardIndices(cards.length, cardsToDeal);
+          const newCardInstances = cardIndices.map((cardIndex) => ({
             roomId: room.id,
-            currentTurnPlayerId: room.gameState.currentTurnPlayerId,
-            activeCardInstanceId: room.gameState.activeCardInstanceId || null,
-            deckSeed: room.gameState.deckSeed,
-            deck,
-            drawnCards: drawnCardIndices,
-          };
+            cardId: cards[cardIndex].id,
+            drawnById: currentPlayer.id,
+            status: "drawn",
+          }));
 
-          // Draw new cards (only up to handSize)
-          const { cardIndices, newState } = drawMultipleCards(gameState, cardsToDeal);
-
-        // Create new card instances
-        const newCardInstances = cardIndices.map((cardIndex) => ({
-          roomId: room.id,
-          cardId: cards[cardIndex].id,
-          drawnById: currentPlayer.id,
-          status: "drawn",
-        }));
-
-        if (newCardInstances.length > 0) {
-          await prisma.cardInstance.createMany({
-            data: newCardInstances,
-          });
-        }
-
-        // Update game state
-        await prisma.gameState.update({
-          where: { id: room.gameState.id },
-          data: {
-            deckSeed: newState.deckSeed,
-          },
-        });
+          if (newCardInstances.length > 0) {
+            await prisma.cardInstance.createMany({
+              data: newCardInstances,
+            });
+          }
         }
       }
     }

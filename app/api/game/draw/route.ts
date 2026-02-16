@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
-import {
-  drawNextCard,
-  generateDeckForMode,
-  type GameMode,
-} from "@/lib/game/engine";
+import { drawRandomCardIndex } from "@/lib/game/engine";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 
@@ -109,48 +105,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get all drawn card instances to determine which cards have been used
-    const drawnInstances = await prisma.cardInstance.findMany({
-      where: { roomId: room.id },
-      include: { card: true },
-    });
-
-    // Map card IDs to their indices in the sorted cards array
-    const cardIdToIndex = new Map(cards.map((card, index) => [card.id, index]));
-    const drawnCardIndices = drawnInstances
-      .map((instance) => cardIdToIndex.get(instance.cardId))
-      .filter((index): index is number => index !== undefined);
-
-    // Rebuild deck with same seed + mode so draw order matches game start
-    const mode = (room.mode || "party") as GameMode;
-    const severities = cards.map(
-      (c) => c.severity as "mild" | "moderate" | "severe"
-    );
-    const deck = generateDeckForMode(
-      room.gameState.deckSeed,
-      severities,
-      mode
-    );
-
-    const gameState = {
-      roomId: room.id,
-      currentTurnPlayerId: room.gameState.currentTurnPlayerId,
-      activeCardInstanceId: room.gameState.activeCardInstanceId || null,
-      deckSeed: room.gameState.deckSeed,
-      deck,
-      drawnCards: drawnCardIndices,
-    };
-
-    // Draw next card
-    const { cardIndex } = drawNextCard(gameState);
-
-    if (cardIndex === null) {
-      return NextResponse.json(
-        { error: "Failed to draw card" },
-        { status: 500 }
-      );
-    }
-
+    // Draw random card (equal probability, duplicates allowed)
+    const cardIndex = drawRandomCardIndex(cards.length);
     const selectedCard = cards[cardIndex];
 
     // Create card instance

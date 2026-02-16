@@ -3,9 +3,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import {
   initializeGameState,
-  drawMultipleCards,
-  generateDeckForMode,
-  type GameMode,
+  drawRandomCardIndices,
 } from "@/lib/game/engine";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
@@ -91,17 +89,12 @@ export async function POST(request: NextRequest) {
     }
 
     const deckSeed = `${room.id}-${Date.now()}`;
-    const mode = (room.mode || "party") as GameMode;
-    const severities = cards.map((c) => c.severity as "mild" | "moderate" | "severe");
-    const deck = generateDeckForMode(deckSeed, severities, mode);
-
     const playerIds = room.players.map((p) => p.id);
     const gameState = initializeGameState(
       room.id,
       playerIds,
       room.sport as "football" | "basketball",
-      deckSeed,
-      deck
+      deckSeed
     );
 
     // Create game state in database
@@ -116,7 +109,6 @@ export async function POST(request: NextRequest) {
 
     // Deal cards to each player based on room handSize
     const handSize = room.handSize || 5;
-    let currentGameState = gameState;
     const cardInstancesToCreate: Array<{
       roomId: string;
       cardId: string;
@@ -125,11 +117,7 @@ export async function POST(request: NextRequest) {
     }> = [];
 
     for (const player of room.players) {
-      // Draw cards for this player
-      const { cardIndices, newState } = drawMultipleCards(currentGameState, handSize);
-      currentGameState = newState;
-
-      // Create card instances for each drawn card
+      const cardIndices = drawRandomCardIndices(cards.length, handSize);
       for (const cardIndex of cardIndices) {
         const selectedCard = cards[cardIndex];
         cardInstancesToCreate.push({

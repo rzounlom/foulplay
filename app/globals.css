@@ -7,22 +7,22 @@
 :root,
 [data-theme="light"] {
   /* Light mode: warm off-white background so cards pop */
-  --background: #F5F4F2;
+  --background: #f5f4f2;
   --foreground: #171717;
-  --primary: #FF6600;
-  --accent: #00B2FF;
-  --neutral: #F7F7F9;
+  --primary: #ff6600;
+  --accent: #00b2ff;
+  --neutral: #f7f7f9;
   --surface: #ffffff;
-  --surface-muted: #EFEEEC;
-  --border: #E5E4E2;
+  --surface-muted: #efeeec;
+  --border: #e5e4e2;
 }
 :root {
   /* Typography scale */
-  --text-page-title: 1.875rem;   /* 30px / text-3xl */
+  --text-page-title: 1.875rem; /* 30px / text-3xl */
   --text-section-title: 1.25rem; /* 20px / text-xl */
-  --text-body: 1rem;             /* 16px / text-base */
-  --text-body-sm: 0.875rem;      /* 14px / text-sm */
-  --text-caption: 0.75rem;       /* 12px / text-xs */
+  --text-body: 1rem; /* 16px / text-base */
+  --text-body-sm: 0.875rem; /* 14px / text-sm */
+  --text-caption: 0.75rem; /* 12px / text-xs */
   /* Spacing: section = 1.5rem (24px), block = 1rem (16px), inline = 0.5rem (8px) */
   --space-section: 1.5rem;
   --space-block: 1rem;
@@ -46,11 +46,11 @@
 }
 
 [data-theme="dark"] {
-  --background: #0A0A0A;
-  --foreground: #F7F7F9;
-  --primary: #FF6600;
-  --accent: #00B2FF;
-  --neutral: #1A1A1A;
+  --background: #0a0a0a;
+  --foreground: #f7f7f9;
+  --primary: #ff6600;
+  --accent: #00b2ff;
+  --neutral: #1a1a1a;
   --surface: #171717;
   --surface-muted: #262626;
   --border: #262626;
@@ -226,7 +226,8 @@ textarea:focus-visible {
 }
 
 @keyframes reaction-emoji-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -261,7 +262,9 @@ textarea:focus-visible {
 .reaction-exit {
   opacity: 0;
   transform: scale(0.85) translateY(-16px);
-  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  transition:
+    opacity 0.3s ease-out,
+    transform 0.3s ease-out;
 }
 
 /* Vote card approval/rejection flash (one-time when resolution appears) */

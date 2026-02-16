@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
-import { initializeGameState, drawMultipleCards } from "@/lib/game/engine";
+import {
+  initializeGameState,
+  drawRandomCardIndices,
+} from "@/lib/game/engine";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 
@@ -160,7 +163,6 @@ export async function POST(request: NextRequest) {
 
     // Deal cards to each player based on room handSize
     const handSize = room.handSize || 5;
-    let currentGameState = gameState;
     const cardInstancesToCreate: Array<{
       roomId: string;
       cardId: string;
@@ -169,11 +171,7 @@ export async function POST(request: NextRequest) {
     }> = [];
 
     for (const player of room.players) {
-      // Draw cards for this player
-      const { cardIndices, newState } = drawMultipleCards(currentGameState, handSize);
-      currentGameState = newState;
-
-      // Create card instances for each drawn card
+      const cardIndices = drawRandomCardIndices(cards.length, handSize);
       for (const cardIndex of cardIndices) {
         const selectedCard = cards[cardIndex];
         cardInstancesToCreate.push({

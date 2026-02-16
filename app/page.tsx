@@ -18,7 +18,10 @@ export default function Home() {
         style={{ backgroundImage: `url(${LANDING_BG})` }}
         aria-hidden
       />
-      <div className="absolute inset-0 bg-black/65 dark:bg-black/75" aria-hidden />
+      <div
+        className="absolute inset-0 bg-black/65 dark:bg-black/75"
+        aria-hidden
+      />
 
       <main className="relative z-10 flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-3 md:gap-5 px-4 py-4 md:px-6 md:py-6 min-h-0">
         <div className="text-center space-y-2 md:space-y-3 shrink-0">
@@ -47,7 +50,8 @@ export default function Home() {
 
         <div className="mt-2 md:mt-4 text-center px-2 shrink-0">
           <p className="text-sm md:text-base text-neutral-300">
-            Create a room, share the code, and start playing—no downloads required
+            Create a room, share the code, and start playing—no downloads
+            required
           </p>
         </div>
       </main>

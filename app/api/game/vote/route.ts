@@ -4,11 +4,7 @@ import {
   getVoteCounts,
 } from "@/lib/game/approval";
 
-import {
-  drawNextCard,
-  generateDeckForMode,
-  type GameMode,
-} from "@/lib/game/engine";
+import { drawRandomCardIndex } from "@/lib/game/engine";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { getRoomChannel } from "@/lib/ably/client";
 import { prisma } from "@/lib/db/prisma";
@@ -347,115 +343,70 @@ export async function POST(request: NextRequest) {
 
         // Draw new cards to replace approved cards, up to the hand size limit
         if (room.gameState && room.sport && cardsApproved > 0) {
-          // Draw exactly the number of approved cards, but don't exceed hand size limit
           const cardsNeeded = Math.min(handSizeLimit - cardsInHand, cardsApproved);
 
-            // Get all cards for the sport
-            const cards = await prisma.card.findMany({
-              where: { sport: room.sport },
-              orderBy: { id: "asc" },
-            });
+          const cards = await prisma.card.findMany({
+            where: { sport: room.sport },
+            orderBy: { id: "asc" },
+          });
 
-            if (cards.length > 0) {
-              // Get all drawn card instances to determine which cards have been used
-              const drawnInstances = await prisma.cardInstance.findMany({
-                where: { roomId: room.id },
-                include: { card: true },
+          if (cards.length > 0 && cardsNeeded > 0) {
+            for (let i = 0; i < cardsNeeded; i++) {
+              const cardIndex = drawRandomCardIndex(cards.length);
+              const selectedCard = cards[cardIndex];
+
+              const cardInstance = await prisma.cardInstance.create({
+                data: {
+                  roomId: room.id,
+                  cardId: selectedCard.id,
+                  drawnById: submittingPlayer.id,
+                  status: "drawn",
+                },
+                include: {
+                  card: true,
+                },
               });
 
-              // Map card IDs to their indices in the sorted cards array
-              const cardIdToIndex = new Map(
-                cards.map((card, index) => [card.id, index])
-              );
-              const drawnCardIndices = drawnInstances
-                .map((instance) => cardIdToIndex.get(instance.cardId))
-                .filter((index): index is number => index !== undefined);
+              autoDrawnCards.push({
+                id: cardInstance.id,
+                card: {
+                  id: selectedCard.id,
+                  title: selectedCard.title,
+                  description: selectedCard.description,
+                  severity: selectedCard.severity,
+                  type: selectedCard.type,
+                  points: selectedCard.points,
+                },
+              });
 
-              const mode = (room.mode || "party") as GameMode;
-              const severities = cards.map(
-                (c) => c.severity as "mild" | "moderate" | "severe"
-              );
-              const deck = generateDeckForMode(
-                room.gameState.deckSeed,
-                severities,
-                mode
-              );
-
-              const gameState = {
-                roomId: room.id,
-                currentTurnPlayerId: room.gameState.currentTurnPlayerId,
-                activeCardInstanceId: room.gameState.activeCardInstanceId || null,
-                deckSeed: room.gameState.deckSeed,
-                deck,
-                drawnCards: drawnCardIndices,
-              };
-
-              // Draw cards needed to fill hand
-              for (let i = 0; i < cardsNeeded; i++) {
-                const { cardIndex, newState } = drawNextCard(gameState);
-                if (cardIndex !== null) {
-                  const selectedCard = cards[cardIndex];
-
-                  // Create card instance
-                  const cardInstance = await prisma.cardInstance.create({
-                    data: {
-                      roomId: room.id,
-                      cardId: selectedCard.id,
-                      drawnById: submittingPlayer.id,
-                      status: "drawn",
-                    },
-                    include: {
-                      card: true,
-                    },
-                  });
-
-                  autoDrawnCards.push({
-                    id: cardInstance.id,
-                    card: {
-                      id: selectedCard.id,
-                      title: selectedCard.title,
-                      description: selectedCard.description,
-                      severity: selectedCard.severity,
-                      type: selectedCard.type,
-                      points: selectedCard.points,
-                    },
-                  });
-
-                  // Update game state for next draw
-                  Object.assign(gameState, newState);
-
-                  // Emit card_drawn event
-                  try {
-                    const channel = getRoomChannel(room.code);
-                    await channel.publish("card_drawn", {
-                      roomCode: room.code,
-                      cardInstanceId: cardInstance.id,
-                      card: {
-                        id: selectedCard.id,
-                        title: selectedCard.title,
-                        description: selectedCard.description,
-                        severity: selectedCard.severity,
-                        type: selectedCard.type,
-                      },
-                      drawnBy: {
-                        id: submittingPlayer.id,
-                        name: submittingPlayer.user.name,
-                        nickname: submittingPlayer.nickname,
-                      },
-                      autoDrawn: true,
-                      timestamp: new Date().toISOString(),
-                    });
-                  } catch (ablyError) {
-                    console.error("Failed to publish Ably event:", ablyError);
-                  }
-                } else {
-                  break; // Deck exhausted
-                }
+              try {
+                const channel = getRoomChannel(room.code);
+                await channel.publish("card_drawn", {
+                  roomCode: room.code,
+                  cardInstanceId: cardInstance.id,
+                  card: {
+                    id: selectedCard.id,
+                    title: selectedCard.title,
+                    description: selectedCard.description,
+                    severity: selectedCard.severity,
+                    type: selectedCard.type,
+                  },
+                  drawnBy: {
+                    id: submittingPlayer.id,
+                    name: submittingPlayer.user.name,
+                    nickname: submittingPlayer.nickname,
+                  },
+                  autoDrawn: true,
+                  timestamp: new Date().toISOString(),
+                });
+              } catch (ablyError) {
+                console.error("Failed to publish Ably event:", ablyError);
               }
             }
           }
         }
       }
+    }
 
     // Emit events for resolved cards
     try {

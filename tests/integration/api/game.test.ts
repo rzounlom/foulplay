@@ -102,21 +102,18 @@ import { prisma } from "@/lib/db/prisma";
 const mockGetCurrentUserFromRequest = getCurrentUserFromRequest as jest.MockedFunction<typeof getCurrentUserFromRequest>;
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
-/** Build mock cards with deterministic id order and severity mix: 50 mild (0-49), 30 moderate (50-79), 20 severe (80-99) */
-function mockCardsWithSeverity(): Array<{ id: string; sport: string; title: string; description: string; severity: string; type: string; points: number; createdAt: Date }> {
-  const severities: Array<"mild" | "moderate" | "severe"> = [
-    ...Array(50).fill("mild"),
-    ...Array(30).fill("moderate"),
-    ...Array(20).fill("severe"),
-  ];
-  return severities.map((severity, i) => ({
-    ...mockCard,
-    id: `card_${String(i).padStart(2, "0")}`,
-    sport: "football",
-    severity,
-    title: `Card ${i}`,
-    points: severity === "mild" ? 1 : severity === "moderate" ? 3 : 6,
-  }));
+/** Build mock cards for football (equal probability draws, any mix allowed) */
+function mockCardsForSport(count: number = 55): Array<{ id: string; sport: string; title: string; description: string; severity: string; type: string; points: number; createdAt: Date }> {
+  return Array(count)
+    .fill(null)
+    .map((_, i) => ({
+      ...mockCard,
+      id: `card_${String(i).padStart(2, "0")}`,
+      sport: "football",
+      severity: ["mild", "moderate", "severe"][i % 3],
+      title: `Card ${i}`,
+      points: (i % 3) + 1,
+    }));
 }
 
 describe("Game API Routes", () => {
@@ -146,13 +143,8 @@ describe("Game API Routes", () => {
         sport: "football",
         handSize: 5,
       });
-      // Need to return enough cards for both players (handSize * 2 = 10 cards minimum)
-      // But the deck generation uses all cards, so we need at least 100 cards for football
-      const mockCards = Array(100).fill(null).map((_, i) => ({
-        ...mockCard,
-        id: `card_${i}`,
-        sport: "football",
-      }));
+      // Random draws: need cards for the sport (football ~55)
+      const mockCards = mockCardsForSport(55);
       mockPrisma.card.findMany = jest.fn().mockResolvedValue(mockCards);
       mockPrisma.gameState.create = jest.fn().mockResolvedValue(gameState);
       mockPrisma.cardInstance.createMany = jest.fn().mockResolvedValue({ count: 10 });
@@ -208,9 +200,9 @@ describe("Game API Routes", () => {
       expect(response.status).toBe(403);
     });
 
-    describe("mode-based severity distribution", () => {
-      const cardsWithSeverity = mockCardsWithSeverity();
-      const cardById = new Map(cardsWithSeverity.map((c) => [c.id, c]));
+    it("deals cards with equal probability (any mix allowed, duplicates possible)", async () => {
+      const mockPlayer2 = { ...mockPlayer, id: "player_456", userId: "user_456", isHost: false };
+      const mockCards = mockCardsForSport(55);
       const gameState = {
         id: "gamestate_123",
         roomId: "room_123",
@@ -220,107 +212,32 @@ describe("Game API Routes", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      const mockPlayer2 = { ...mockPlayer, id: "player_456", userId: "user_456", isHost: false };
-      let dateNowSpy: jest.SpyInstance;
 
-      beforeEach(() => {
-        dateNowSpy = jest.spyOn(Date, "now").mockReturnValue(1700000000000);
-        mockPrisma.card.findMany = jest.fn().mockResolvedValue(cardsWithSeverity);
-        mockPrisma.gameState.create = jest.fn().mockResolvedValue(gameState);
-        mockPrisma.cardInstance.createMany = jest.fn().mockResolvedValue({ count: 10 });
-        mockPrisma.room.update = jest.fn().mockResolvedValue({ ...mockRoom, status: "active" });
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        id: "room_123",
+        status: "lobby",
+        mode: "party",
+        sport: "football",
+        handSize: 5,
+        players: [mockPlayer, mockPlayer2],
       });
+      mockPrisma.card.findMany = jest.fn().mockResolvedValue(mockCards);
+      mockPrisma.gameState.create = jest.fn().mockResolvedValue(gameState);
+      mockPrisma.cardInstance.createMany = jest.fn().mockResolvedValue({ count: 10 });
+      mockPrisma.room.update = jest.fn().mockResolvedValue({ ...mockRoom, status: "active" });
 
-      afterEach(() => {
-        dateNowSpy?.mockRestore();
+      const request = new NextRequest("http://localhost:3000/api/game/start", {
+        method: "POST",
+        body: JSON.stringify({ roomCode: "ABC123" }),
       });
+      const response = await startGame(request);
+      expect(response.status).toBe(200);
 
-      it("Casual mode: dealt cards should have predominantly mild (mode-based mix, then shuffled)", async () => {
-        mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
-          ...mockRoom,
-          id: "room_123",
-          status: "lobby",
-          mode: "casual",
-          sport: "football",
-          handSize: 5,
-          players: [mockPlayer, mockPlayer2],
-        });
-
-        const request = new NextRequest("http://localhost:3000/api/game/start", {
-          method: "POST",
-          body: JSON.stringify({ roomCode: "ABC123" }),
-        });
-        const response = await startGame(request);
-        expect(response.status).toBe(200);
-
-        const createManyCalls = (mockPrisma.cardInstance.createMany as jest.Mock).mock.calls;
-        expect(createManyCalls.length).toBeGreaterThanOrEqual(1);
-        const data = createManyCalls[0][0].data as Array<{ cardId: string }>;
-        expect(data).toHaveLength(10);
-
-        const severities = data.map((d) => cardById.get(d.cardId)?.severity);
-        const mildCount = severities.filter((s) => s === "mild").length;
-        expect(mildCount).toBeGreaterThanOrEqual(3);
-      });
-
-      it("Lit mode: dealt cards should include severe and moderate (mode-based mix, then shuffled)", async () => {
-        mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
-          ...mockRoom,
-          id: "room_123",
-          status: "lobby",
-          mode: "lit",
-          sport: "football",
-          handSize: 5,
-          players: [mockPlayer, mockPlayer2],
-        });
-
-        const request = new NextRequest("http://localhost:3000/api/game/start", {
-          method: "POST",
-          body: JSON.stringify({ roomCode: "ABC123" }),
-        });
-        const response = await startGame(request);
-        expect(response.status).toBe(200);
-
-        const createManyCalls = (mockPrisma.cardInstance.createMany as jest.Mock).mock.calls;
-        expect(createManyCalls.length).toBeGreaterThanOrEqual(1);
-        const data = createManyCalls[0][0].data as Array<{ cardId: string }>;
-        expect(data).toHaveLength(10);
-
-        const severities = data.map((d) => cardById.get(d.cardId)?.severity);
-        const severeCount = severities.filter((s) => s === "severe").length;
-        const moderateCount = severities.filter((s) => s === "moderate").length;
-        expect(severeCount + moderateCount).toBeGreaterThanOrEqual(2);
-      });
-
-      it("Party mode: game starts and deals cards (shuffled mix)", async () => {
-        mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
-          ...mockRoom,
-          id: "room_123",
-          status: "lobby",
-          mode: "party",
-          sport: "football",
-          handSize: 5,
-          players: [mockPlayer, mockPlayer2],
-        });
-
-        const request = new NextRequest("http://localhost:3000/api/game/start", {
-          method: "POST",
-          body: JSON.stringify({ roomCode: "ABC123" }),
-        });
-        const response = await startGame(request);
-        expect(response.status).toBe(200);
-
-        const createManyCalls = (mockPrisma.cardInstance.createMany as jest.Mock).mock.calls;
-        expect(createManyCalls.length).toBeGreaterThanOrEqual(1);
-        const data = createManyCalls[0][0].data as Array<{ cardId: string }>;
-        expect(data).toHaveLength(10);
-
-        const severities = data.map((d) => cardById.get(d.cardId)?.severity);
-        const mildCount = severities.filter((s) => s === "mild").length;
-        const severeCount = severities.filter((s) => s === "severe").length;
-        expect(mildCount + severeCount).toBeLessThanOrEqual(10);
-        expect(severities.every((s) => ["mild", "moderate", "severe"].includes(s!))).toBe(true);
-      });
+      const createManyCalls = (mockPrisma.cardInstance.createMany as jest.Mock).mock.calls;
+      expect(createManyCalls.length).toBeGreaterThanOrEqual(1);
+      const data = createManyCalls[0][0].data as Array<{ cardId: string }>;
+      expect(data).toHaveLength(10); // 2 players × 5 cards
     });
   });
 
@@ -336,7 +253,7 @@ describe("Game API Routes", () => {
         updatedAt: new Date(),
       };
 
-      const mockCards = Array(100).fill(null).map((_, i) => ({ ...mockCard, id: `card_${i}`, sport: "football" }));
+      const mockCards = mockCardsForSport(55);
       mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
         ...mockRoom,
         status: "active",
@@ -395,7 +312,7 @@ describe("Game API Routes", () => {
       expect(response.status).toBe(400);
     });
 
-    it("should use room mode when rebuilding deck for draw (mode-based distribution)", async () => {
+    it("should draw a random card (equal probability)", async () => {
       const gameState = {
         id: "gamestate_123",
         roomId: "room_123",
@@ -406,11 +323,10 @@ describe("Game API Routes", () => {
         updatedAt: new Date(),
       };
 
-      const mockCards = Array(100).fill(null).map((_, i) => ({ ...mockCard, id: `card_${i}`, sport: "football" }));
+      const mockCards = mockCardsForSport(55);
       mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
         ...mockRoom,
         status: "active",
-        mode: "casual",
         sport: "football",
         gameState,
         handSize: 5,

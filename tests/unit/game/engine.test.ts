@@ -1,225 +1,66 @@
 import {
-  generateDeck,
-  generateDeckForMode,
-  drawNextCard,
-  drawMultipleCards,
+  drawRandomCardIndex,
+  drawRandomCardIndices,
   initializeGameState,
   advanceTurn,
   type GameState,
 } from "@/lib/game/engine";
 
 describe("Game Engine", () => {
-  describe("generateDeck", () => {
-    it("should generate a deck with the correct number of cards", () => {
-      const deck = generateDeck("test-seed", 100);
-      expect(deck).toHaveLength(100);
+  describe("drawRandomCardIndex", () => {
+    it("should return an index in valid range", () => {
+      const cardCount = 50;
+      for (let i = 0; i < 100; i++) {
+        const index = drawRandomCardIndex(cardCount);
+        expect(index).toBeGreaterThanOrEqual(0);
+        expect(index).toBeLessThan(cardCount);
+      }
     });
 
-    it("should generate a deck with unique indices", () => {
-      const deck = generateDeck("test-seed", 100);
-      const uniqueIndices = new Set(deck);
-      expect(uniqueIndices.size).toBe(100);
+    it("should throw when cardCount is 0", () => {
+      expect(() => drawRandomCardIndex(0)).toThrow("cardCount must be positive");
     });
 
-    it("should generate the same deck for the same seed", () => {
-      const deck1 = generateDeck("test-seed", 100);
-      const deck2 = generateDeck("test-seed", 100);
-      expect(deck1).toEqual(deck2);
+    it("should throw when cardCount is negative", () => {
+      expect(() => drawRandomCardIndex(-1)).toThrow("cardCount must be positive");
     });
 
-    it("should generate different decks for different seeds", () => {
-      const deck1 = generateDeck("seed1", 100);
-      const deck2 = generateDeck("seed2", 100);
-      expect(deck1).not.toEqual(deck2);
+    it("should return 0 when cardCount is 1", () => {
+      const index = drawRandomCardIndex(1);
+      expect(index).toBe(0);
+    });
+  });
+
+  describe("drawRandomCardIndices", () => {
+    it("should return the requested number of indices", () => {
+      const indices = drawRandomCardIndices(50, 5);
+      expect(indices).toHaveLength(5);
     });
 
-    it("should generate indices from 0 to cardCount-1", () => {
-      const deck = generateDeck("test-seed", 50);
-      deck.forEach((index) => {
+    it("should return indices in valid range", () => {
+      const indices = drawRandomCardIndices(50, 20);
+      indices.forEach((index) => {
         expect(index).toBeGreaterThanOrEqual(0);
         expect(index).toBeLessThan(50);
       });
     });
-  });
 
-  describe("generateDeckForMode", () => {
-    // Indices 0,1 = mild, 2 = moderate, 3 = severe
-    const severities = [
-      "mild",
-      "mild",
-      "moderate",
-      "severe",
-    ] as const;
-
-    const countBySeverity = (deck: number[]) => ({
-      mild: deck.filter((i) => i <= 1).length,
-      moderate: deck.filter((i) => i === 2).length,
-      severe: deck.filter((i) => i === 3).length,
+    it("should allow duplicates (equal probability, cards never run out)", () => {
+      const indices = drawRandomCardIndices(5, 100);
+      expect(indices).toHaveLength(100);
+      const uniqueCount = new Set(indices).size;
+      expect(uniqueCount).toBeLessThanOrEqual(5);
+      // With 100 draws from 5 cards, we expect many duplicates
     });
 
-    it("should return same length as card count", () => {
-      const deck = generateDeckForMode("seed", severities, "casual");
-      expect(deck).toHaveLength(severities.length);
+    it("should return empty array when count is 0", () => {
+      const indices = drawRandomCardIndices(50, 0);
+      expect(indices).toEqual([]);
     });
 
-    it("should be deterministic for same seed and mode", () => {
-      const deck1 = generateDeckForMode("seed", severities, "casual");
-      const deck2 = generateDeckForMode("seed", severities, "casual");
-      expect(deck1).toEqual(deck2);
-    });
-
-    it("casual mode should have ~70% mild, ~25% moderate, ~5% severe", () => {
-      const deck = generateDeckForMode("seed", severities, "casual");
-      const counts = countBySeverity(deck);
-      // 4 cards: 70% = 2.8 → 2 mild, 25% = 1 mod, 5% = 0.2 → 0 severe, remainder → 1 severe
-      expect(counts.mild).toBeGreaterThanOrEqual(2);
-      expect(counts.moderate).toBe(1);
-      expect(counts.severe).toBeLessThanOrEqual(1);
-    });
-
-    it("lit mode should have more severe than casual (or cap when pool is small)", () => {
-      const deck = generateDeckForMode("seed", severities, "lit");
-      const counts = countBySeverity(deck);
-      // 4 cards: target 1 mild, 1 mod, 2 severe but severe pool has only 1 card → remainder goes to mild
-      expect(deck).toHaveLength(severities.length);
-      expect(counts.moderate).toBe(1);
-      expect(counts.severe).toBe(1); // only one severe index in pool
-      expect(counts.mild + counts.moderate + counts.severe).toBe(4);
-    });
-
-    it("party mode should have ~50% mild, ~35% moderate, ~15% severe", () => {
-      const deck = generateDeckForMode("seed", severities, "party");
-      expect(deck).toHaveLength(severities.length);
-      const counts = countBySeverity(deck);
-      // 4 cards: 2 mild, 1 mod, 1 severe
-      expect(counts.mild).toBe(2);
-      expect(counts.moderate).toBe(1);
-      expect(counts.severe).toBe(1);
-    });
-
-    it("non-drinking mode should use casual mix", () => {
-      const deck = generateDeckForMode("seed", severities, "non-drinking");
-      const counts = countBySeverity(deck);
-      expect(counts.mild).toBeGreaterThanOrEqual(2);
-      expect(counts.moderate).toBe(1);
-    });
-
-    it("unknown mode should fall back to party mix", () => {
-      const deck = generateDeckForMode("seed", severities, "custom-mode");
-      expect(deck).toHaveLength(severities.length);
-      const counts = countBySeverity(deck);
-      expect(counts.mild + counts.moderate + counts.severe).toBe(severities.length);
-    });
-  });
-
-  describe("drawNextCard", () => {
-    it("should draw a card from the deck", () => {
-      const state: GameState = {
-        roomId: "room1",
-        currentTurnPlayerId: "player1",
-        activeCardInstanceId: null,
-        deckSeed: "test-seed",
-        deck: [0, 1, 2, 3, 4],
-        drawnCards: [],
-      };
-
-      const result = drawNextCard(state);
-      expect(result.cardIndex).toBeDefined();
-      expect(result.cardIndex).toBeGreaterThanOrEqual(0);
-      expect(result.newState.drawnCards).toContain(result.cardIndex);
-    });
-
-    it("should not draw the same card twice", () => {
-      const state: GameState = {
-        roomId: "room1",
-        currentTurnPlayerId: "player1",
-        activeCardInstanceId: null,
-        deckSeed: "test-seed",
-        deck: [0, 1, 2, 3, 4],
-        drawnCards: [0, 1],
-      };
-
-      const result = drawNextCard(state);
-      expect(result.cardIndex).not.toBe(0);
-      expect(result.cardIndex).not.toBe(1);
-    });
-
-    it("should reshuffle when deck is exhausted", () => {
-      const state: GameState = {
-        roomId: "room1",
-        currentTurnPlayerId: "player1",
-        activeCardInstanceId: null,
-        deckSeed: "test-seed",
-        deck: [0, 1, 2],
-        drawnCards: [0, 1, 2],
-      };
-
-      const result = drawNextCard(state);
-      expect(result.cardIndex).toBeDefined();
-      expect(result.newState.drawnCards).toHaveLength(1);
-    });
-
-    it("should update drawnCards in new state", () => {
-      const state: GameState = {
-        roomId: "room1",
-        currentTurnPlayerId: "player1",
-        activeCardInstanceId: null,
-        deckSeed: "test-seed",
-        deck: [0, 1, 2, 3, 4],
-        drawnCards: [0],
-      };
-
-      const result = drawNextCard(state);
-      expect(result.newState.drawnCards.length).toBe(2);
-      expect(result.newState.drawnCards).toContain(0);
-      expect(result.newState.drawnCards).toContain(result.cardIndex);
-    });
-  });
-
-  describe("drawMultipleCards", () => {
-    it("should draw multiple cards", () => {
-      const state: GameState = {
-        roomId: "room1",
-        currentTurnPlayerId: "player1",
-        activeCardInstanceId: null,
-        deckSeed: "test-seed",
-        deck: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-        drawnCards: [],
-      };
-
-      const result = drawMultipleCards(state, 5);
-      expect(result.cardIndices).toHaveLength(5);
-      expect(result.newState.drawnCards).toHaveLength(5);
-    });
-
-    it("should draw unique cards", () => {
-      const state: GameState = {
-        roomId: "room1",
-        currentTurnPlayerId: "player1",
-        activeCardInstanceId: null,
-        deckSeed: "test-seed",
-        deck: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-        drawnCards: [],
-      };
-
-      const result = drawMultipleCards(state, 5);
-      const uniqueIndices = new Set(result.cardIndices);
-      expect(uniqueIndices.size).toBe(5);
-    });
-
-    it("should handle drawing more cards than available", () => {
-      const state: GameState = {
-        roomId: "room1",
-        currentTurnPlayerId: "player1",
-        activeCardInstanceId: null,
-        deckSeed: "test-seed",
-        deck: [0, 1, 2],
-        drawnCards: [],
-      };
-
-      const result = drawMultipleCards(state, 10);
-      expect(result.cardIndices.length).toBeGreaterThan(0);
-      expect(result.cardIndices.length).toBeLessThanOrEqual(10);
+    it("should return empty array when cardCount is 0", () => {
+      const indices = drawRandomCardIndices(0, 5);
+      expect(indices).toEqual([]);
     });
   });
 
@@ -234,7 +75,7 @@ describe("Game Engine", () => {
       expect(state.roomId).toBe("room1");
       expect(state.currentTurnPlayerId).toBe("player1");
       expect(state.deckSeed).toBeDefined();
-      expect(state.deck).toBeDefined();
+      expect(state.deck).toEqual([]);
       expect(state.drawnCards).toEqual([]);
       expect(state.activeCardInstanceId).toBeNull();
     });
@@ -250,10 +91,10 @@ describe("Game Engine", () => {
       expect(state.deckSeed).toBe("custom-seed");
     });
 
-    it("should generate deck with correct card count for sport", () => {
+    it("should not populate deck (cards drawn via random indices)", () => {
       const state = initializeGameState("room1", ["player1"], "football");
-      // Football should have 100 cards
-      expect(state.deck).toHaveLength(100);
+      expect(state.deck).toEqual([]);
+      expect(state.drawnCards).toEqual([]);
     });
 
     it("should throw error when no players provided", () => {
@@ -270,7 +111,7 @@ describe("Game Engine", () => {
         currentTurnPlayerId: "player1",
         activeCardInstanceId: null,
         deckSeed: "test-seed",
-        deck: [0, 1, 2],
+        deck: [],
         drawnCards: [],
       };
 
@@ -284,7 +125,7 @@ describe("Game Engine", () => {
         currentTurnPlayerId: "player3",
         activeCardInstanceId: null,
         deckSeed: "test-seed",
-        deck: [0, 1, 2],
+        deck: [],
         drawnCards: [],
       };
 
@@ -298,7 +139,7 @@ describe("Game Engine", () => {
         currentTurnPlayerId: "player1",
         activeCardInstanceId: null,
         deckSeed: "test-seed",
-        deck: [0, 1, 2],
+        deck: [],
         drawnCards: [],
       };
 
@@ -312,7 +153,7 @@ describe("Game Engine", () => {
         currentTurnPlayerId: "player1",
         activeCardInstanceId: null,
         deckSeed: "test-seed",
-        deck: [0, 1, 2],
+        deck: [],
         drawnCards: [],
       };
 
