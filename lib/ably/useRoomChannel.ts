@@ -23,7 +23,9 @@ export type RoomEvent =
   | "quarter_advanced"
   | "quarter_ending"
   | "quarter_intermission_ended"
+  | "quarter_discard_points_awarded"
   | "quarter_discard_selection_updated"
+  | "quarter_discard_done_updated"
   | "round_reset"
   | "message_sent"
   | "reaction_sent";

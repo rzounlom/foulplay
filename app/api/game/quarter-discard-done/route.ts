@@ -4,9 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 
-const INTERMISSION_MINUTES = 5;
-
-const endQuarterSchema = z.object({
+const quarterDiscardDoneSchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
 });
 
@@ -18,13 +16,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { roomCode } = endQuarterSchema.parse(body);
+    const { roomCode } = quarterDiscardDoneSchema.parse(body);
 
     const room = await prisma.room.findUnique({
       where: { code: roomCode.toUpperCase() },
       include: {
         players: {
-          where: { userId: user.id, isHost: true },
+          include: { user: true },
         },
       },
     });
@@ -33,56 +31,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
-    if (room.players.length === 0) {
+    const isInIntermission =
+      room.quarterIntermissionEndsAt &&
+      new Date(room.quarterIntermissionEndsAt) > new Date();
+
+    if (!isInIntermission) {
       return NextResponse.json(
-        { error: "Only the host can end the quarter" },
+        { error: "Quarter intermission is not active" },
+        { status: 400 }
+      );
+    }
+
+    const currentPlayer = room.players.find((p) => p.userId === user.id);
+    if (!currentPlayer) {
+      return NextResponse.json(
+        { error: "You are not a player in this room" },
         { status: 403 }
       );
     }
 
-    if (!room.allowQuarterClearing) {
-      return NextResponse.json(
-        { error: "Quarter clearing is not enabled for this room" },
-        { status: 400 }
-      );
-    }
+    const doneIds = (room.quarterDiscardDonePlayerIds as string[]) ?? [];
+    const isDone = doneIds.includes(currentPlayer.id);
 
-    const isFootballOrBasketball =
-      room.sport === "football" || room.sport === "basketball";
-    if (!isFootballOrBasketball) {
-      return NextResponse.json(
-        { error: "Quarter system is only available for football and basketball" },
-        { status: 400 }
-      );
-    }
+    const updated = isDone
+      ? doneIds.filter((id) => id !== currentPlayer.id)
+      : [...doneIds, currentPlayer.id];
 
-    // If intermission already in progress, do not start another
-    if (room.quarterIntermissionEndsAt) {
-      const endsAt = new Date(room.quarterIntermissionEndsAt);
-      if (endsAt > new Date()) {
-        return NextResponse.json(
-          { error: "Quarter intermission is already in progress" },
-          { status: 400 }
-        );
-      }
-    }
-
-    const endsAt = new Date(Date.now() + INTERMISSION_MINUTES * 60 * 1000);
-
-    const updatedRoom = await prisma.room.update({
+    await prisma.room.update({
       where: { id: room.id },
-      data: {
-        quarterIntermissionEndsAt: endsAt,
-        quarterDiscardDonePlayerIds: [],
-      },
+      data: { quarterDiscardDonePlayerIds: updated },
     });
 
     try {
       const channel = getRoomChannel(room.code);
-      await channel.publish("quarter_ending", {
+      await channel.publish("quarter_discard_done_updated", {
         roomCode: room.code,
-        endsAt: endsAt.toISOString(),
-        currentQuarter: room.currentQuarter,
+        playerId: currentPlayer.id,
+        done: !isDone,
+        doneCount: updated.length,
+        totalPlayers: room.players.length,
         timestamp: new Date().toISOString(),
       });
     } catch (ablyError) {
@@ -91,7 +78,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      endsAt: updatedRoom.quarterIntermissionEndsAt?.toISOString(),
+      done: !isDone,
+      doneCount: updated.length,
+      totalPlayers: room.players.length,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -100,11 +89,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.error("Error starting quarter end:", error);
+    console.error("Error saving quarter discard done:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to start quarter end", message: errorMessage },
+      { error: "Failed to save", message: errorMessage },
       { status: 500 }
     );
   }

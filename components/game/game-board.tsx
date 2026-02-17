@@ -79,6 +79,7 @@ export interface Room {
   currentQuarter: string | null;
   quarterIntermissionEndsAt: string | Date | null;
   pendingQuarterDiscardSelections?: Record<string, string[]> | null;
+  quarterDiscardDonePlayerIds?: string[] | null;
   canTurnInCards: boolean;
   players: Player[];
   gameState: GameState | null;
@@ -147,6 +148,8 @@ export function GameBoard({
   const [intermissionSecondsLeft, setIntermissionSecondsLeft] = useState<
     number | null
   >(null);
+  const [allDoneCountdown, setAllDoneCountdown] = useState<number | null>(null);
+  const [isMarkingDone, setIsMarkingDone] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showMoreHostControls, setShowMoreHostControls] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -264,33 +267,6 @@ export function GameBoard({
     (p) => p.user.id === currentUserId && p.isHost,
   );
 
-  // Countdown timer for quarter intermission; when it hits 0, only host calls finalize-quarter (avoids duplicate calls from all clients)
-  useEffect(() => {
-    if (!endsAt || endsAt <= Date.now()) {
-      setIntermissionSecondsLeft(null);
-      return;
-    }
-    let finalized = false;
-    const update = () => {
-      const left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
-      setIntermissionSecondsLeft(left);
-      if (left <= 0 && !finalized && isHost) {
-        finalized = true;
-        fetch("/api/game/finalize-quarter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roomCode }),
-        }).then(() => {
-          fetchRoom();
-        });
-      }
-    };
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when endsAt, roomCode, isHost change; fetchRoom called when timer ends
-  }, [endsAt, roomCode, isHost]);
-
   // Subscribe to game events; fall back to polling when Ably is disconnected
   const { isConnected } = useRoomChannel(
     roomCode,
@@ -352,6 +328,33 @@ export function GameBoard({
           setTimeout(() => setPointsAwardedPopup(null), 2200);
         }
       }
+      if (event === "quarter_discard_points_awarded" && data) {
+        const payload = data as {
+          pointsAwarded?: number;
+          submittedBy?: { id: string };
+        };
+        const points = payload.pointsAwarded ?? 0;
+        const recipientPlayerId = payload.submittedBy?.id;
+        const currentPlayerId = room.players.find(
+          (p) => p.user.id === currentUserId,
+        )?.id;
+        const isRecipient =
+          recipientPlayerId &&
+          currentPlayerId &&
+          recipientPlayerId === currentPlayerId;
+        if (points > 0 && isRecipient) {
+          setPointsAwardedPopup({ points });
+          import("canvas-confetti").then(({ default: confetti }) => {
+            confetti({
+              particleCount: 50,
+              spread: 70,
+              origin: { y: 0.75 },
+              colors: ["#22c55e", "#16a34a", "#f59e0b", "#eab308"],
+            });
+          });
+          setTimeout(() => setPointsAwardedPopup(null), 2200);
+        }
+      }
       if (
         event === "game_started" ||
         event === "card_drawn" ||
@@ -368,7 +371,9 @@ export function GameBoard({
         event === "quarter_advanced" ||
         event === "quarter_ending" ||
         event === "quarter_intermission_ended" ||
+        event === "quarter_discard_points_awarded" ||
         event === "quarter_discard_selection_updated" ||
+        event === "quarter_discard_done_updated" ||
         event === "round_reset"
       ) {
         fetchRoom();
@@ -435,7 +440,68 @@ export function GameBoard({
   ]);
 
   const currentPlayer = room.players.find((p) => p.user.id === currentUserId);
+  const rawDone = room.quarterDiscardDonePlayerIds;
+  const donePlayerIds = Array.isArray(rawDone)
+    ? rawDone
+    : rawDone && typeof rawDone === "object"
+      ? Object.values(rawDone)
+      : [];
+  const doneCount = donePlayerIds.length;
+  const totalPlayers = room.players.length;
+  const allPlayersDone = totalPlayers > 0 && doneCount >= totalPlayers;
+  const iAmDone = currentPlayer && donePlayerIds.includes(currentPlayer.id);
   const activeCard = room.gameState?.activeCardInstance;
+
+  // When all players click Done, start 5-second countdown. Clear when someone undoes.
+  useEffect(() => {
+    if (!isQuarterIntermission || !allPlayersDone) {
+      setAllDoneCountdown(null);
+      return;
+    }
+    setAllDoneCountdown(5);
+  }, [isQuarterIntermission, allPlayersDone]);
+
+  // All-done countdown: when it hits 0, host calls finalize-quarter
+  useEffect(() => {
+    if (allDoneCountdown == null || allDoneCountdown > 0 || !isHost) return;
+    fetch("/api/game/finalize-quarter", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomCode }),
+    }).then(() => fetchRoom());
+  }, [allDoneCountdown, isHost, roomCode]);
+
+  // Countdown timer for quarter intermission; when it hits 0, only host calls finalize-quarter (avoids duplicate calls from all clients)
+  // Skip when all-done countdown is active (that path handles finalize)
+  useEffect(() => {
+    if (allDoneCountdown != null || !endsAt || endsAt <= Date.now()) {
+      if (allDoneCountdown != null) setIntermissionSecondsLeft(null);
+      return;
+    }
+    let finalized = false;
+    const update = () => {
+      const left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      setIntermissionSecondsLeft(left);
+      if (left <= 0 && !finalized && isHost) {
+        finalized = true;
+        fetch("/api/game/finalize-quarter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ roomCode }),
+        }).then(() => fetchRoom());
+      }
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [endsAt, roomCode, isHost, allDoneCountdown]);
+
+  // All-done 5-second countdown tick
+  useEffect(() => {
+    if (allDoneCountdown == null || allDoneCountdown <= 0) return;
+    const t = setTimeout(() => setAllDoneCountdown((c) => (c != null && c > 0 ? c - 1 : null)), 1000);
+    return () => clearTimeout(t);
+  }, [allDoneCountdown]);
   const chatUnreadCount = chatOpen
     ? 0
     : lastSeenMessageCount == null
@@ -586,6 +652,31 @@ export function GameBoard({
       );
     } finally {
       setIsEndingRound(false);
+    }
+  };
+
+  const handleMarkDone = async () => {
+    setIsMarkingDone(true);
+    try {
+      const response = await fetch("/api/game/quarter-discard-done", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomCode }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to mark done");
+      }
+      fetchRoom();
+    } catch (error) {
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to mark done:", error);
+      toast.addToast(
+        error instanceof Error ? error.message : "Failed to mark done",
+        "error",
+      );
+    } finally {
+      setIsMarkingDone(false);
     }
   };
 
@@ -1324,22 +1415,42 @@ export function GameBoard({
           {showQuarterControls && isQuarterIntermission && (
             <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border-2 border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/30">
               <span className="font-semibold text-amber-800 dark:text-amber-200">
-                Round ending — select cards to turn in
+                {allDoneCountdown != null
+                  ? `All players have submitted cards, ending round in ${allDoneCountdown}`
+                  : "Round ending — select cards to turn in"}
               </span>
-              <div className="flex items-center gap-3">
-                {myPendingDiscardCount > 0 && (
+              <div className="flex items-center gap-3 flex-wrap">
+                {isHost && allDoneCountdown == null && (
+                  <span className="text-sm text-amber-800 dark:text-amber-200">
+                    {doneCount}/{totalPlayers} done
+                  </span>
+                )}
+                {myPendingDiscardCount > 0 && allDoneCountdown == null && (
                   <span className="text-sm text-amber-800 dark:text-amber-200">
                     {myPendingDiscardCount} card{myPendingDiscardCount !== 1 ? "s" : ""} to discard
                   </span>
                 )}
-                <span
-                  className="text-xl font-mono font-bold tabular-nums text-amber-800 dark:text-amber-200 min-w-20 text-center"
-                  aria-label="Time remaining"
-                >
-                  {intermissionSecondsLeft != null
-                    ? `${Math.floor((intermissionSecondsLeft ?? 0) / 60)}:${String((intermissionSecondsLeft ?? 0) % 60).padStart(2, "0")}`
-                    : "5:00"}
-                </span>
+                {allDoneCountdown == null && (
+                  <span
+                    className="text-xl font-mono font-bold tabular-nums text-amber-800 dark:text-amber-200 min-w-20 text-center"
+                    aria-label="Time remaining"
+                  >
+                    {intermissionSecondsLeft != null
+                      ? `${Math.floor((intermissionSecondsLeft ?? 0) / 60)}:${String((intermissionSecondsLeft ?? 0) % 60).padStart(2, "0")}`
+                      : "5:00"}
+                  </span>
+                )}
+                {allDoneCountdown == null && (
+                  <Button
+                    type="button"
+                    variant={iAmDone ? "secondary" : "primary"}
+                    size="sm"
+                    onClick={handleMarkDone}
+                    disabled={isMarkingDone}
+                  >
+                    {iAmDone ? "Undo" : "Done"}
+                  </Button>
+                )}
                 {isHost && (
                   <Button
                     type="button"
@@ -1427,8 +1538,9 @@ export function GameBoard({
                   roomMode={room.mode}
                   currentUserPoints={currentPlayer.points}
                   submissionDisabled={
-                    /* Only show "Submissions paused" banner after host confirms in modal, not while modal is open */
-                    (isEndingRound || isEndingRoundEarly) && isHost
+                    /* Pause during: host ending round, or all-done 5s countdown */
+                    ((isEndingRound || isEndingRoundEarly) && isHost) ||
+                    allDoneCountdown != null
                   }
                 />
               )}

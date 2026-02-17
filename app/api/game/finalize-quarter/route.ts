@@ -74,6 +74,9 @@ export async function POST(request: NextRequest) {
             .map(([playerId]) => playerId)
         : [];
 
+    const channel = getRoomChannel(room.code);
+    const pointsAwardedByPlayer: Array<{ playerId: string; points: number }> = [];
+
     if (room.sport && room.gameState && playerIdsWithSelection.length > 0) {
       const cards = await prisma.card.findMany({
         where: { sport: room.sport },
@@ -113,6 +116,7 @@ export async function POST(request: NextRequest) {
               where: { id: playerId },
               data: { points: player.points + pointsToAdd },
             });
+            pointsAwardedByPlayer.push({ playerId, points: pointsToAdd });
           }
         }
 
@@ -148,12 +152,20 @@ export async function POST(request: NextRequest) {
       data: {
         quarterIntermissionEndsAt: null,
         pendingQuarterDiscardSelections: Prisma.DbNull,
+        quarterDiscardDonePlayerIds: Prisma.DbNull,
         currentQuarter: nextRound,
       },
     });
 
     try {
-      const channel = getRoomChannel(room.code);
+      for (const { playerId, points } of pointsAwardedByPlayer) {
+        await channel.publish("quarter_discard_points_awarded", {
+          roomCode: room.code,
+          pointsAwarded: points,
+          submittedBy: { id: playerId },
+          timestamp: new Date().toISOString(),
+        });
+      }
       await channel.publish("quarter_intermission_ended", {
         roomCode: room.code,
         currentQuarter: nextRound,

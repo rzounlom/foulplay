@@ -280,7 +280,8 @@ export function Hand({
           )}
           {isQuarterIntermission &&
             onQuarterDiscardSelection &&
-            selectedIds.length > 0 && (
+            selectedIds.length > 0 &&
+            !submissionDisabled && (
               <Button
                 variant="outline-primary"
                 size="md"
