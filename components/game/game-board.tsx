@@ -1081,6 +1081,7 @@ export function GameBoard({
                             if (response.ok) {
                               const updatedRoom = await response.json();
                               setRoom(updatedRoom);
+                              setPlayersPanelOpen(false);
                             }
                           } catch (err) {
                             if (process.env.NODE_ENV === "development")
@@ -1113,6 +1114,7 @@ export function GameBoard({
                             if (response.ok) {
                               const updatedRoom = await response.json();
                               setRoom(updatedRoom);
+                              setPlayersPanelOpen(false);
                             }
                           } catch (err) {
                             if (process.env.NODE_ENV === "development")
@@ -1143,7 +1145,10 @@ export function GameBoard({
                                   type="button"
                                   variant="outline-primary"
                                   size="sm"
-                                  onClick={() => setShowEndRoundModal(true)}
+                                  onClick={() => {
+                                    setShowEndRoundModal(true);
+                                    setPlayersPanelOpen(false);
+                                  }}
                                 >
                                   End Round
                                 </Button>
@@ -1169,6 +1174,8 @@ export function GameBoard({
                                           data.error || "Failed to reset round",
                                           "error",
                                         );
+                                      } else {
+                                        setPlayersPanelOpen(false);
                                       }
                                     } catch (error) {
                                       if (
@@ -1199,7 +1206,10 @@ export function GameBoard({
                         variant="outline-primary"
                         fullWidth
                         size="sm"
-                        onClick={() => setShowResetPointsModal(true)}
+                        onClick={() => {
+                          setShowResetPointsModal(true);
+                          setPlayersPanelOpen(false);
+                        }}
                       >
                         Reset Points
                       </Button>
@@ -1207,7 +1217,10 @@ export function GameBoard({
                         variant="outline-destructive"
                         fullWidth
                         size="sm"
-                        onClick={() => setShowEndGameModal(true)}
+                        onClick={() => {
+                          setShowEndGameModal(true);
+                          setPlayersPanelOpen(false);
+                        }}
                       >
                         End Game
                       </Button>
