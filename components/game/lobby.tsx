@@ -88,7 +88,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
     } else if (event === "room_settings_updated") {
       fetchRoom();
     } else if (event === "game_started") {
-      router.refresh();
+      router.push(`/game/${roomCode}?tour=1`);
     }
   });
 
@@ -104,7 +104,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
             const roomData = await response.json();
             setRoom(roomData);
             if (roomData.status === "active") {
-              router.refresh();
+              router.push(`/game/${roomCode}?tour=1`);
             }
           }
         } catch (error) {

@@ -88,6 +88,8 @@ interface GameBoardProps {
   roomCode: string;
   currentUserId: string;
   initialRoom: Room;
+  /** When true, show tour on mount (e.g. coming from lobby after game start). Tour otherwise only triggers on game_started event. */
+  showTourOnMount?: boolean;
 }
 
 interface HandCard {
@@ -125,6 +127,7 @@ export function GameBoard({
   roomCode,
   currentUserId,
   initialRoom,
+  showTourOnMount = false,
 }: GameBoardProps) {
   const [room, setRoom] = useState<Room>(initialRoom);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -227,23 +230,21 @@ export function GameBoard({
     fetchSubmissions();
   }, [fetchHand, fetchSubmissions]);
 
-  // Trigger tour on mount when user lands on game board (e.g. from lobby after game starts) — if they haven't opted out and haven't seen tour for this game
-  const gameStateId = room.gameState?.id;
+  // Tour only on showTourOnMount (from lobby after game start) — never on plain page load/refresh
   useEffect(() => {
-    if (!gameStateId) return;
-    const storageKey = `foulplay_tour_${roomCode}`;
-    const storedGameStateId =
-      typeof window !== "undefined" ? sessionStorage.getItem(storageKey) : null;
-    if (storedGameStateId === gameStateId) return; // Already shown for this game
-
+    if (!showTourOnMount) return;
+    // Clear ?tour=1 from URL so refresh won't trigger again
+    if (typeof window !== "undefined" && window.location.search.includes("tour=1")) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("tour");
+      window.history.replaceState({}, "", url.pathname + (url.search || ""));
+    }
     const checkAndStartTour = async () => {
       try {
         const response = await fetch("/api/user/profile");
         if (response.ok) {
           const data = await response.json();
-          if (!data.profile?.skipTour) {
-            setStartTour(true);
-          }
+          if (!data.profile?.skipTour) setStartTour(true);
         } else {
           setStartTour(true);
         }
@@ -252,7 +253,7 @@ export function GameBoard({
       }
     };
     void checkAndStartTour();
-  }, [roomCode, gameStateId]);
+  }, [showTourOnMount]);
 
   // Derive intermission countdown from room.quarterIntermissionEndsAt
   const endsAt = room.quarterIntermissionEndsAt
@@ -714,18 +715,7 @@ export function GameBoard({
 
   return (
     <div className="container mx-auto px-2 py-4 md:p-6 lg:p-4 max-w-6xl min-h-screen bg-background overflow-x-hidden">
-      <GameTour
-        startTour={startTour}
-        onTourStart={() => setStartTour(false)}
-        onComplete={() => {
-          if (typeof window !== "undefined" && room.gameState?.id) {
-            sessionStorage.setItem(
-              `foulplay_tour_${roomCode}`,
-              room.gameState.id,
-            );
-          }
-        }}
-      />
+      <GameTour startTour={startTour} onTourStart={() => setStartTour(false)} />
 
       <div className="mb-6">
         <div className="flex items-center justify-center md:justify-start gap-2 mb-2 min-w-0">

@@ -6,8 +6,10 @@ import { GameBoard, type Room } from "@/components/game/game-board";
 
 export default async function GameRoomPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ code: string }>;
+  searchParams: Promise<{ tour?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) {
@@ -69,7 +71,15 @@ export default async function GameRoomPage({
 
   if (room.status === "active") {
     const roomForClient = JSON.parse(JSON.stringify(room)) as Room;
-    return <GameBoard roomCode={roomCode} currentUserId={user.id} initialRoom={roomForClient} />;
+    const { tour } = await searchParams;
+    return (
+      <GameBoard
+        roomCode={roomCode}
+        currentUserId={user.id}
+        initialRoom={roomForClient}
+        showTourOnMount={tour === "1"}
+      />
+    );
   }
 
   // Ended game — redirect to end-game page (or lobby if no result)
