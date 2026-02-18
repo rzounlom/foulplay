@@ -80,6 +80,7 @@ export interface Room {
   quarterIntermissionEndsAt: string | Date | null;
   pendingQuarterDiscardSelections?: Record<string, string[]> | null;
   quarterDiscardDonePlayerIds?: string[] | null;
+  suggestEndRoundPlayerIds?: string[] | null;
   canTurnInCards: boolean;
   players: Player[];
   gameState: GameState | null;
@@ -150,6 +151,9 @@ export function GameBoard({
   >(null);
   const [allDoneCountdown, setAllDoneCountdown] = useState<number | null>(null);
   const [isMarkingDone, setIsMarkingDone] = useState(false);
+  const [suggestEndRoundBannerDismissed, setSuggestEndRoundBannerDismissed] =
+    useState(false);
+  const [isSuggestingEndRound, setIsSuggestingEndRound] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showMoreHostControls, setShowMoreHostControls] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -374,6 +378,7 @@ export function GameBoard({
         event === "quarter_discard_points_awarded" ||
         event === "quarter_discard_selection_updated" ||
         event === "quarter_discard_done_updated" ||
+        event === "suggest_end_round_updated" ||
         event === "round_reset"
       ) {
         fetchRoom();
@@ -450,7 +455,28 @@ export function GameBoard({
   const totalPlayers = room.players.length;
   const allPlayersDone = totalPlayers > 0 && doneCount >= totalPlayers;
   const iAmDone = currentPlayer && donePlayerIds.includes(currentPlayer.id);
+
+  const rawSuggestIds = room.suggestEndRoundPlayerIds;
+  const suggestEndRoundIds = Array.isArray(rawSuggestIds)
+    ? rawSuggestIds
+    : rawSuggestIds && typeof rawSuggestIds === "object"
+      ? Object.values(rawSuggestIds)
+      : [];
+  const suggestEndRoundCount = suggestEndRoundIds.length;
+  const nonHostCount = totalPlayers - 1; // exclude host
+  const suggestEndRoundPercent =
+    nonHostCount > 0 ? (suggestEndRoundCount / nonHostCount) * 100 : 0;
+  const iHaveSuggested =
+    currentPlayer && suggestEndRoundIds.includes(currentPlayer.id);
+
   const activeCard = room.gameState?.activeCardInstance;
+
+  // Reset banner dismissed when round ends (intermission starts)
+  useEffect(() => {
+    if (isQuarterIntermission) {
+      setSuggestEndRoundBannerDismissed(false);
+    }
+  }, [isQuarterIntermission]);
 
   // When all players click Done, start 5-second countdown. Clear when someone undoes.
   useEffect(() => {
@@ -652,6 +678,32 @@ export function GameBoard({
       );
     } finally {
       setIsEndingRound(false);
+    }
+  };
+
+  const handleSuggestEndRound = async () => {
+    setIsSuggestingEndRound(true);
+    try {
+      const response = await fetch("/api/game/suggest-end-round", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomCode }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to suggest end round");
+      }
+      fetchRoom();
+      setPlayersPanelOpen(false);
+    } catch (error) {
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to suggest end round:", error);
+      toast.addToast(
+        error instanceof Error ? error.message : "Failed to suggest end round",
+        "error",
+      );
+    } finally {
+      setIsSuggestingEndRound(false);
     }
   };
 
@@ -1225,9 +1277,37 @@ export function GameBoard({
                         End Game
                       </Button>
                     </div>
+                    {showQuarterControls && !isQuarterIntermission && (
+                      <div className="pt-2 border-t border-border">
+                        <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                          {suggestEndRoundCount} player
+                          {suggestEndRoundCount !== 1 ? "s" : ""} want
+                          {suggestEndRoundCount === 1 ? "s" : ""} new cards
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
+              {!isHost &&
+                showQuarterControls &&
+                !isQuarterIntermission &&
+                currentPlayer && (
+                  <div className="p-4 bg-surface-muted rounded-lg border border-border">
+                    <Button
+                      type="button"
+                      variant={iHaveSuggested ? "secondary" : "outline-primary"}
+                      size="sm"
+                      fullWidth
+                      onClick={handleSuggestEndRound}
+                      disabled={isSuggestingEndRound}
+                    >
+                      {iHaveSuggested
+                        ? "Undo suggest end round"
+                        : "Suggest end round"}
+                    </Button>
+                  </div>
+                )}
               <div className="bg-surface rounded-lg p-4 border border-border">
                 <PlayerList
                   players={room.players}
@@ -1308,6 +1388,15 @@ export function GameBoard({
                     Allow new users to join
                   </span>
                 </label>
+                {showQuarterControls && !isQuarterIntermission && (
+                  <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                    <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                      {suggestEndRoundCount} player
+                      {suggestEndRoundCount !== 1 ? "s" : ""} want
+                      {suggestEndRoundCount === 1 ? "s" : ""} new cards
+                    </span>
+                  </div>
+                )}
                 <Button
                   type="button"
                   variant="tertiary"
@@ -1410,6 +1499,25 @@ export function GameBoard({
             </div>
           )}
 
+          {!isHost &&
+            showQuarterControls &&
+            !isQuarterIntermission &&
+            currentPlayer && (
+              <div className="p-4 bg-surface-muted rounded-lg border border-border shadow-sm dark:shadow-none mb-6">
+                <Button
+                  type="button"
+                  variant={iHaveSuggested ? "secondary" : "outline-primary"}
+                  size="sm"
+                  fullWidth
+                  onClick={handleSuggestEndRound}
+                  disabled={isSuggestingEndRound}
+                >
+                  {iHaveSuggested
+                    ? "Undo suggest end round"
+                    : "Suggest end round"}
+                </Button>
+              </div>
+            )}
           <div
             data-tour="player-list"
             className="bg-surface rounded-lg p-6 lg:p-4 border border-border shadow-sm dark:shadow-none sticky top-6"
@@ -1424,6 +1532,39 @@ export function GameBoard({
 
         {/* Center Column - Game Area (full width on mobile/tablet) */}
         <div className="lg:min-w-0 space-y-6 overflow-x-hidden">
+          {/* Dismissable banner when 50%+ of players want new cards */}
+          {isHost &&
+            showQuarterControls &&
+            !isQuarterIntermission &&
+            suggestEndRoundPercent >= 50 &&
+            !suggestEndRoundBannerDismissed && (
+              <div className="flex items-center justify-between gap-3 p-3 rounded-lg border-2 border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/30">
+                <span className="font-semibold text-amber-800 dark:text-amber-200">
+                  50% of players want new cards. Consider ending the round.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSuggestEndRoundBannerDismissed(true)}
+                  className="p-2 rounded-md text-amber-800/80 hover:text-amber-800 hover:bg-amber-200/50 dark:text-amber-200 dark:hover:bg-amber-800/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary shrink-0"
+                  aria-label="Dismiss banner"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
           {/* Round intermission callout — above Pending Submissions/Discard, compact like heading row */}
           {showQuarterControls && isQuarterIntermission && (
             <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border-2 border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/30">

@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
       data: {
         quarterIntermissionEndsAt: endsAt,
         quarterDiscardDonePlayerIds: [],
+        suggestEndRoundPlayerIds: [],
       },
     });
 

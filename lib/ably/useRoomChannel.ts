@@ -26,6 +26,7 @@ export type RoomEvent =
   | "quarter_discard_points_awarded"
   | "quarter_discard_selection_updated"
   | "quarter_discard_done_updated"
+  | "suggest_end_round_updated"
   | "round_reset"
   | "message_sent"
   | "reaction_sent";
