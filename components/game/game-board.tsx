@@ -17,6 +17,7 @@ import { SubmitterPendingBadge } from "./submitter-pending-badge";
 import { CardsToDiscardSection } from "./cards-to-discard-section";
 import { VotingPanel } from "./voting-panel";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
+import { useScreenWakeLock } from "@/lib/hooks/useScreenWakeLock";
 
 interface Player {
   id: string;
@@ -172,6 +173,9 @@ export function GameBoard({
   const router = useRouter();
   const toast = useToast();
   const isRedirectingToEndGame = useRef(false);
+
+  // Keep screen awake during gameplay (mobile-friendly)
+  useScreenWakeLock(true);
 
   const fetchRoom = useCallback(async (): Promise<Room | null> => {
     try {
