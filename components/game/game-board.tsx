@@ -16,6 +16,7 @@ import { PlayerList } from "./player-list";
 import { SubmitterPendingBadge } from "./submitter-pending-badge";
 import { CardsToDiscardSection } from "./cards-to-discard-section";
 import { VotingPanel } from "./voting-panel";
+import { ShareModal } from "./share-modal";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
 import { useScreenWakeLock } from "@/lib/hooks/useScreenWakeLock";
 
@@ -155,7 +156,7 @@ export function GameBoard({
   const [suggestEndRoundBannerDismissed, setSuggestEndRoundBannerDismissed] =
     useState(false);
   const [isSuggestingEndRound, setIsSuggestingEndRound] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [showMoreHostControls, setShowMoreHostControls] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [lastSeenMessageCount, setLastSeenMessageCount] = useState<
@@ -874,58 +875,33 @@ export function GameBoard({
           </h1>
           <button
             type="button"
-            onClick={async () => {
-              const url =
-                typeof window !== "undefined"
-                  ? `${window.location.origin}/join?code=${roomCode}`
-                  : "";
-              try {
-                await navigator.clipboard.writeText(url);
-                setLinkCopied(true);
-                setTimeout(() => setLinkCopied(false), 2000);
-              } catch {
-                // fallback for older browsers
-                if (typeof window !== "undefined") {
-                  window.prompt("Copy this link to invite players:", url);
-                }
-              }
-            }}
+            onClick={() => setShareModalOpen(true)}
             className="p-1.5 shrink-0 rounded-md text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition-colors duration-200 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            title="Copy invite link"
-            aria-label="Copy invite link"
+            title="Share invite link"
+            aria-label="Share invite link"
           >
-            {linkCopied ? (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-green-600 dark:text-green-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                />
-              </svg>
-            )}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+              />
+            </svg>
           </button>
+          <ShareModal
+            isOpen={shareModalOpen}
+            onClose={() => setShareModalOpen(false)}
+            url={`${typeof window !== "undefined" ? window.location.origin : ""}/join?code=${roomCode}`}
+            title="Share invite link"
+            shareText={`Join my FoulPlay game! Room ${roomCode}`}
+          />
         </div>
         <div
           data-tour="game-info"

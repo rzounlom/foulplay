@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlayerList } from "./player-list";
+import { ShareModal } from "./share-modal";
 import { Select } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 
@@ -53,7 +54,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   const [room, setRoom] = useState<Room>(initialRoom);
   const [isStarting, setIsStarting] = useState(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const updateRoomSettings = async (payload: Record<string, unknown>) => {
     setIsUpdatingSettings(true);
@@ -166,17 +167,6 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
       ? `${window.location.origin}/join?code=${roomCode}`
       : "";
 
-  const handleCopyUrl = async () => {
-    try {
-      await navigator.clipboard.writeText(roomUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      if (process.env.NODE_ENV === "development")
-        console.error("Failed to copy URL:", error);
-    }
-  };
-
   return (
     <div className="container mx-auto px-4 py-6 md:p-6 max-w-4xl min-h-screen bg-background">
       <div className="mb-6 md:mb-8">
@@ -192,40 +182,39 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
             onClick={(e) => (e.target as HTMLInputElement).select()}
           />
           <Button
-            variant={copied ? "success" : "primary"}
+            variant="primary"
             size="md"
-            onClick={handleCopyUrl}
+            onClick={() => setShareModalOpen(true)}
             className="whitespace-nowrap min-h-[44px] sm:min-h-0 shrink-0"
           >
-            {copied ? (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  aria-hidden
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                Copied!
-              </>
-            ) : (
-              "Copy Link"
-            )}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+              />
+            </svg>
+            Share
           </Button>
         </div>
         <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-          {copied
-            ? "Link copied to clipboard. Share it with friends to join the room."
-            : "Share this link with friends to join the room"}
+          Share this link with friends to join the room
         </p>
+        <ShareModal
+          isOpen={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          url={roomUrl}
+          title="Share invite link"
+          shareText={`Join my FoulPlay game! Room ${roomCode}`}
+        />
       </div>
 
       <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-2">
