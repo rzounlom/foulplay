@@ -155,7 +155,7 @@ export function GameBoard({
     useState(false);
   const [isSuggestingEndRound, setIsSuggestingEndRound] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [showMoreHostControls, setShowMoreHostControls] = useState(false);
+  const [showMoreHostControls, setShowMoreHostControls] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [lastSeenMessageCount, setLastSeenMessageCount] = useState<
     number | null

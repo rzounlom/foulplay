@@ -96,7 +96,6 @@ export default function GamesPage() {
   const gameCardClass = "block p-4 min-h-[72px] bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:border-primary transition-colors cursor-pointer active:opacity-90";
 
   const isEmpty = filteredAndOrderedGames.length === 0;
-  const showCreateJoinInEmpty = filter === "ended";
 
   return (
     <div className="container mx-auto px-4 py-4 md:py-6 max-w-4xl min-h-[calc(100vh-4.5rem)] bg-background">
@@ -134,16 +133,20 @@ export default function GamesPage() {
             <p className="text-body-muted text-sm md:text-base mb-6 max-w-sm mx-auto">
               Create a room to start a new game, or join one with a code from your friends.
             </p>
-            {showCreateJoinInEmpty && (
-              <div className="flex flex-wrap justify-center gap-3">
-                <Link href="/create" className="min-h-[44px] inline-flex items-center justify-center text-sm font-medium text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded px-4 py-3">
-                  Create a room
-                </Link>
-                <Link href="/join" className="min-h-[44px] inline-flex items-center justify-center link-accent text-sm font-medium hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded px-4 py-3">
-                  Join a room
-                </Link>
-              </div>
-            )}
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link
+                href="/create"
+                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-lg bg-primary text-white border border-transparent shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors active:opacity-90"
+              >
+                Create a room
+              </Link>
+              <Link
+                href="/join"
+                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-lg bg-transparent text-primary border border-primary hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors active:opacity-90"
+              >
+                Join a room
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
