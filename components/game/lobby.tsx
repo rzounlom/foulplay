@@ -294,13 +294,13 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                 </Label>
                 {isHost ? (
                   <Select
-                    value={room.handSize ?? 5}
+                    value={room.handSize ?? 6}
                     disabled={isUpdatingSettings}
                     onChange={(e) =>
                       updateRoomSettings({ handSize: Number(e.target.value) })
                     }
                   >
-                    {[4, 5, 6, 7, 8, 9, 10].map((n) => (
+                    {[4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
                       <option key={n} value={n}>
                         {n} cards
                       </option>
@@ -308,7 +308,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                   </Select>
                 ) : (
                   <div className="w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300">
-                    {room.handSize || 5} cards
+                    {room.handSize || 6} cards
                   </div>
                 )}
               </div>
@@ -337,7 +337,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                     room.sport === "basketball") && (
                     <div>
                       <Label className="mb-2 text-neutral-600 dark:text-neutral-400">
-                        Quarter Clearing
+                        End Round
                       </Label>
                       <label
                         className={`flex items-center gap-2 ${isUpdatingSettings ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
@@ -352,12 +352,15 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                           }
                         />
                         <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                          Enable quarter-based card clearing
+                          Enable round-based card clearing
                         </span>
                       </label>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-6">
-                        Host can end quarters; players get 5 minutes to turn in
-                        unwanted cards (drink penalty applies).
+                        Host can end rounds; players get 5 minutes to turn in
+                        unwanted cards
+                        {room.mode === "non-drinking"
+                          ? " (points apply)."
+                          : " (drink penalty applies)."}
                       </p>
                     </div>
                   )}

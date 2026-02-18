@@ -8,7 +8,7 @@ import { z } from "zod";
 const createRoomSchema = z.object({
   mode: z.string().optional(),
   sport: z.string().optional(),
-  handSize: z.number().int().min(4).max(10).optional(),
+  handSize: z.number().int().min(4).max(12).optional(),
   allowQuarterClearing: z.boolean().optional(),
 });
 
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
           status: "lobby",
           mode: mode || null,
           sport: sport || null,
-          handSize: handSize || 5,
+          handSize: handSize || 6,
           allowQuarterClearing: allowQuarterClearing || false,
           canTurnInCards: true,
         },

@@ -13,7 +13,8 @@
     "postinstall": "prisma generate",
     "prepare": "husky",
     "db:seed": "tsx prisma/seed.ts",
-    "db:fix-card-descriptions": "tsx scripts/fix-card-descriptions.ts"
+    "db:fix-card-descriptions": "tsx scripts/fix-card-descriptions.ts",
+    "db:migrate-hand-size": "tsx scripts/apply-hand-size-migration.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.37.1",

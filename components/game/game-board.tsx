@@ -1678,7 +1678,7 @@ export function GameBoard({
                   onCardDiscard={handleDiscardCards}
                   onQuarterDiscardSelection={handleQuarterDiscardSelection}
                   selectedCardIds={selectedCardIds}
-                  handSize={room.handSize || 5}
+                  handSize={room.handSize || 6}
                   allowQuarterClearing={room.allowQuarterClearing}
                   currentQuarter={room.currentQuarter}
                   canTurnInCards={room.canTurnInCards}

@@ -31,8 +31,8 @@ model Room {
   mode                String?
   sport               String?
   showPoints          Boolean  @default(false) // Host can toggle to show/hide other players' points
-  allowJoinInProgress Boolean  @default(false) // Host can allow new players to join while game is active
-  handSize            Int      @default(5) // Number of cards dealt to each player
+  allowJoinInProgress Boolean  @default(true) // Host can allow new players to join while game is active (default on; host can uncheck)
+  handSize            Int      @default(6) // Number of cards dealt to each player
   allowQuarterClearing Boolean @default(false) // Enable quarter-based card clearing (football/basketball only)
   canTurnInCards       Boolean @default(true) // Always true; legacy field (host toggle removed)
   currentQuarter      String?  // "Q1" | "Q2" | "Q3" | "Q4" | null

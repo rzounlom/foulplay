@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         orderBy: { id: "asc" },
       });
       if (cards.length > 0) {
-        const handSize = room.handSize ?? 5;
+        const handSize = room.handSize ?? 6;
         const cardIndices = drawRandomCardIndices(cards.length, handSize);
         const cardInstancesToCreate = cardIndices.map((cardIndex) => ({
           roomId: room.id,

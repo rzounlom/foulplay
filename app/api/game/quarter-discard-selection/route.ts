@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const handSize = room.handSize ?? 5;
+    const handSize = room.handSize ?? 6;
     if (cardInstanceIds.length > handSize) {
       return NextResponse.json(
         {

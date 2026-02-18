@@ -327,7 +327,7 @@ export async function POST(request: NextRequest) {
 
         // Auto-draw cards to replace approved cards
         // Rejected cards are already returned to hand, so we only need to draw for approved cards
-        const handSizeLimit = room.handSize || 5;
+        const handSizeLimit = room.handSize || 6;
         
         // Count cards currently in hand (after rejected cards have been returned)
         const cardsInHand = await prisma.cardInstance.count({

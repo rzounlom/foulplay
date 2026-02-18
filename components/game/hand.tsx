@@ -89,7 +89,7 @@ export function Hand({
   onQuarterDiscardSelection,
   selectedCardId,
   selectedCardIds = [],
-  handSize = 5,
+  handSize = 6,
   canTurnInCards = true,
   isQuarterIntermission = false,
   myQuarterSelectionIds = [],
@@ -258,7 +258,7 @@ export function Hand({
       )}
       {isQuarterIntermission && (
         <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm shrink-0">
-          Select cards from your hand and click Submit for discard. Highlighted cards are in Cards to Discard above. Remove any to keep them. When the timer ends, cards in Cards to Discard are discarded and replaced.{roomMode !== "non-drinking" && " Drink penalty applies."}
+          Select cards from your hand and click Submit for discard. Highlighted cards are in Cards to Discard above. Remove any to keep them. When the timer ends, cards in Cards to Discard are discarded and replaced.{roomMode === "non-drinking" ? " Points apply." : " Drink penalty applies."}
         </div>
       )}
 

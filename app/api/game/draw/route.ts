@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check hand size limit based on room handSize
-    const handSizeLimit = room.handSize || 5;
+    const handSizeLimit = room.handSize || 6;
     const cardsInHand = await prisma.cardInstance.count({
       where: {
         roomId: room.id,

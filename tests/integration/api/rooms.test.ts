@@ -176,7 +176,7 @@ describe("Room API Routes", () => {
       const request = new NextRequest("http://localhost:3000/api/rooms", {
         method: "POST",
         body: JSON.stringify({
-          handSize: 15, // Invalid: exceeds max of 10
+          handSize: 15, // Invalid: exceeds max of 12
         }),
       });
 

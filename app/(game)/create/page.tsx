@@ -16,7 +16,7 @@ export default function CreateRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<string>("");
   const [sport, setSport] = useState<string>("");
-  const [handSize, setHandSize] = useState<number>(5);
+  const [handSize, setHandSize] = useState<number>(6);
   const [allowQuarterClearing, setAllowQuarterClearing] = useState<boolean>(false);
 
   // Redirect to sign-in if not authenticated, preserving the current path
@@ -157,7 +157,8 @@ export default function CreateRoomPage() {
                 </span>
               </label>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-6">
-                Host controls when rounds end; players get 5 minutes to turn in unwanted cards (drink penalty applies).
+                Host controls when rounds end; players get 5 minutes to turn in unwanted cards
+                {mode === "non-drinking" ? " (points apply)." : " (drink penalty applies)."}
               </p>
             </div>
           )}
@@ -171,12 +172,14 @@ export default function CreateRoomPage() {
               required
             >
               <option value={4}>4 cards</option>
-              <option value={5}>5 cards (default)</option>
-              <option value={6}>6 cards</option>
+              <option value={5}>5 cards</option>
+              <option value={6}>6 cards (default)</option>
               <option value={7}>7 cards</option>
               <option value={8}>8 cards</option>
               <option value={9}>9 cards</option>
               <option value={10}>10 cards</option>
+              <option value={11}>11 cards</option>
+              <option value={12}>12 cards</option>
             </Select>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
               Number of cards each player starts with

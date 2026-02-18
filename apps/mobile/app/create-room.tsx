@@ -27,7 +27,7 @@ export default function CreateRoomScreen() {
   const router = useRouter();
   const [mode, setMode] = useState("casual");
   const [sport, setSport] = useState("football");
-  const [handSize, setHandSize] = useState(5);
+  const [handSize, setHandSize] = useState(6);
   const [allowQuarterClearing, setAllowQuarterClearing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,14 +112,14 @@ export default function CreateRoomScreen() {
         ))}
       </View>
 
-      <Text style={styles.label}>Cards per hand (4–10)</Text>
+      <Text style={styles.label}>Cards per hand (4–12)</Text>
       <TextInput
         style={styles.input}
         value={String(handSize)}
         keyboardType="number-pad"
         onChangeText={(t) => {
           const n = parseInt(t, 10);
-          if (!isNaN(n) && n >= 4 && n <= 10) setHandSize(n);
+          if (!isNaN(n) && n >= 4 && n <= 12) setHandSize(n);
         }}
       />
 

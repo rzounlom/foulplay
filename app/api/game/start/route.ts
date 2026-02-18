@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Deal cards to each player based on room handSize
-    const handSize = room.handSize || 5;
+    const handSize = room.handSize || 6;
     const cardInstancesToCreate: Array<{
       roomId: string;
       cardId: string;

@@ -104,7 +104,7 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                     <li><strong>Casual</strong> — Mild drinking penalties; milder cards (~70% mild)</li>
                     <li><strong>Party</strong> — Balanced mix (~50% mild); &quot;Take x drinks&quot; penalties +1</li>
                     <li><strong>Get Lit</strong> — Intense drinking penalties (~40% mild, more severe); &quot;Take x drinks&quot; penalties ×2</li>
-                    <li><strong>Non-drinking</strong> — Same mix as Casual; no drink penalties (generic text)</li>
+                    <li><strong>Non-drinking</strong> — Same gameplay as other modes (end round, suggest end round, submit for vote, etc.); only the card text differs — cards show generic text (e.g. &quot;Earn points when this event occurs&quot;) instead of drink penalties.</li>
                   </ul>
                 </div>
 

@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     // Draw new cards to replace discarded ones (cap at handSize so we never exceed max)
     if (room.gameState && room.sport) {
-      const handSize = room.handSize ?? 5;
+      const handSize = room.handSize ?? 6;
       const drawnCountAfterDiscard = await prisma.cardInstance.count({
         where: {
           roomId: room.id,

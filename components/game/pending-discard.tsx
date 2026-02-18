@@ -44,7 +44,7 @@ export function PendingDiscard({
         </h3>
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           {cardInstances.length > 0
-            ? `These cards will be discarded when the round intermission ends. You'll get new cards and points${roomMode !== "non-drinking" ? " (drink penalty applies)" : ""}. Time left: ${timeStr}. Remove any you want to keep.`
+            ? `These cards will be discarded when the round intermission ends. You'll get new cards and points${roomMode === "non-drinking" ? " (points apply)" : " (drink penalty applies)"}. Time left: ${timeStr}. Remove any you want to keep.`
             : `Select cards from your hand and submit for discard. They will appear here. Time left: ${timeStr}. When intermission ends, cards here are discarded and replaced.`}
         </p>
       </div>
