@@ -185,7 +185,7 @@ export default function CreateRoomPage() {
         </div>
 
           <Button
-            variant="outline-primary"
+            variant="primary"
             size="lg"
             fullWidth
             onClick={handleCreateRoom}

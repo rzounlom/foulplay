@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
-import {
-  initializeGameState,
-  drawRandomCardIndices,
-} from "@/lib/game/engine";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 
@@ -81,10 +77,13 @@ export async function POST(request: NextRequest) {
       leaderboard,
     };
 
-    // Store result so end-game page can display it (before we reset points)
+    // Store result and set room status to ended (end-game page will display results)
     await prisma.room.update({
       where: { id: room.id },
-      data: { lastGameEndResult: lastGameEndResult as object },
+      data: {
+        lastGameEndResult: lastGameEndResult as object,
+        status: "ended",
+      },
     });
 
     // Update user stats for all players
@@ -124,79 +123,15 @@ export async function POST(request: NextRequest) {
       where: { roomId: room.id },
     });
 
-    // Reset all player points to 0
+    // Reset all player points to 0 (room is ended; points stored in lastGameEndResult)
     await prisma.player.updateMany({
       where: { roomId: room.id },
       data: { points: 0 },
     });
 
-    // Get all cards for the sport
-    const cards = await prisma.card.findMany({
-      where: { sport: room.sport! },
-      orderBy: { id: "asc" },
-    });
-
-    if (cards.length === 0) {
-      return NextResponse.json(
-        { error: "No cards found for this sport" },
-        { status: 500 }
-      );
-    }
-
-    // Initialize new game state
-    const playerIds = room.players.map((p) => p.id);
-    const gameState = initializeGameState(
-      room.id,
-      playerIds,
-      room.sport as "football" | "basketball"
-    );
-
-    // Create new game state in database
-    await prisma.gameState.create({
-      data: {
-        roomId: room.id,
-        currentTurnPlayerId: gameState.currentTurnPlayerId,
-        deckSeed: gameState.deckSeed,
-        activeCardInstanceId: null,
-      },
-    });
-
-    // Deal cards to each player based on room handSize
-    const handSize = room.handSize || 5;
-    const cardInstancesToCreate: Array<{
-      roomId: string;
-      cardId: string;
-      drawnById: string;
-      status: string;
-    }> = [];
-
-    for (const player of room.players) {
-      const cardIndices = drawRandomCardIndices(cards.length, handSize);
-      for (const cardIndex of cardIndices) {
-        const selectedCard = cards[cardIndex];
-        cardInstancesToCreate.push({
-          roomId: room.id,
-          cardId: selectedCard.id,
-          drawnById: player.id,
-          status: "drawn",
-        });
-      }
-    }
-
-    // Create all card instances in database
-    if (cardInstancesToCreate.length > 0) {
-      await prisma.cardInstance.createMany({
-        data: cardInstancesToCreate,
-      });
-    }
-
-    // Room status stays "active" (new game started)
-
-    // Emit game_ended and game_started events via Ably
+    // Emit game_ended so all players redirect to end-game page
     try {
       const channel = getRoomChannel(room.code);
-      
-      // Emit game ended event with winner info
       await channel.publish("game_ended", {
         roomCode: room.code,
         winner: {
@@ -205,12 +140,6 @@ export async function POST(request: NextRequest) {
           nickname: winner.nickname,
           points: winner.points,
         },
-        timestamp: new Date().toISOString(),
-      });
-
-      // Emit game started event for new game
-      await channel.publish("game_started", {
-        roomCode: room.code,
         timestamp: new Date().toISOString(),
       });
     } catch (ablyError) {
@@ -225,7 +154,7 @@ export async function POST(request: NextRequest) {
         nickname: winner.nickname,
         points: winner.points,
       },
-      message: "Game ended and new game started",
+      message: "Game ended",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

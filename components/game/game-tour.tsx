@@ -204,20 +204,21 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
 
   return (
     <>
-      {/* Overlay */}
+      {/* Full-screen click target for skip; spotlight's box-shadow provides the dark overlay with cutout */}
       <div
         ref={overlayRef}
-        className="fixed inset-0 bg-black/60 z-[9998] transition-opacity"
+        className="fixed inset-0 z-[9998] cursor-default"
         onClick={handleSkip}
+        aria-hidden
       />
 
-      {/* Spotlight — bright highlight with primary-color border and glow */}
+      {/* Spotlight — transparent cutout so highlighted section is clear; box-shadow creates dark overlay around it */}
       <div
         ref={spotlightRef}
-        className="fixed z-[9999] pointer-events-none transition-all duration-300 ease-out rounded-lg bg-white/10 dark:bg-white/5"
+        className="fixed z-[9999] pointer-events-none transition-all duration-300 ease-out rounded-lg"
         style={{
           boxShadow:
-            "0 0 0 9999px rgba(0, 0, 0, 0.65), 0 0 0 4px rgb(255, 102, 0), 0 0 24px 4px rgba(255, 102, 0, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.15)",
+            "0 0 0 9999px rgba(0, 0, 0, 0.65), 0 0 0 4px rgb(255, 102, 0), 0 0 24px 4px rgba(255, 102, 0, 0.6)",
         }}
       />
 

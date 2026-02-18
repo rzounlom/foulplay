@@ -41,6 +41,13 @@ interface LobbyProps {
   initialRoom: Room;
 }
 
+const MODE_LABELS: Record<string, string> = {
+  casual: "Casual — mild drinking penalties",
+  party: "Party — balanced mix",
+  lit: "Get Lit — intense drinking penalties",
+  "non-drinking": "Non-drinking",
+};
+
 export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   const router = useRouter();
   const [room, setRoom] = useState<Room>(initialRoom);
@@ -248,14 +255,15 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                       updateRoomSettings({ mode: e.target.value })
                     }
                   >
-                    <option value="casual">Casual</option>
-                    <option value="party">Party</option>
-                    <option value="lit">Lit</option>
+                    <option value="">Select mode</option>
+                    <option value="casual">Casual — mild drinking penalties</option>
+                    <option value="party">Party — balanced mix</option>
+                    <option value="lit">Get Lit — intense drinking penalties</option>
                     <option value="non-drinking">Non-drinking</option>
                   </Select>
                 ) : (
-                  <div className="w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 capitalize">
-                    {room.mode || "Not set"}
+                  <div className="w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300">
+                    {room.mode ? MODE_LABELS[room.mode] ?? room.mode : "Not set"}
                   </div>
                 )}
               </div>
@@ -360,7 +368,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
 
           {isHost && (
             <Button
-              variant="outline-primary"
+              variant="primary"
               size="lg"
               fullWidth
               onClick={handleStartGame}

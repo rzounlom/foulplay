@@ -168,7 +168,7 @@ function JoinRoomForm() {
 
             <Button
               type="submit"
-              variant="outline-primary"
+              variant="primary"
               size="lg"
               fullWidth
               disabled={code.length !== 6}

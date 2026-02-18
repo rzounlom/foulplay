@@ -149,13 +149,19 @@ export function EndGameScreen({
           </ul>
         </div>
 
-        {/* Actions — same for everyone: create a room or go home */}
+        {/* Actions — create a room, view games, or go home */}
         <div className="space-y-3">
           <Link
             href="/create"
             className="inline-flex items-center justify-center w-full py-2.5 px-5 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Create a room
+          </Link>
+          <Link
+            href="/games"
+            className="inline-flex items-center justify-center w-full py-2.5 px-5 text-sm font-medium rounded-lg bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+          >
+            My games
           </Link>
           <Link
             href="/"

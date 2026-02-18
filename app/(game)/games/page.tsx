@@ -76,13 +76,13 @@ export default function GamesPage() {
     { value: "all", label: "All" },
     { value: "active", label: "In Progress" },
     { value: "lobby", label: "Lobby" },
-    { value: "ended", label: "Completed" },
+    { value: "ended", label: "Ended" },
   ];
 
   const getStatusLabel = (status: string) => {
     if (status === "active") return "In Progress";
     if (status === "lobby") return "Lobby";
-    if (status === "ended") return "Completed";
+    if (status === "ended") return "Ended";
     return status;
   };
 
@@ -128,7 +128,7 @@ export default function GamesPage() {
               </svg>
             </div>
             <h2 className="text-lg md:text-section-title text-neutral-800 dark:text-neutral-200 mb-2">
-              {filter === "all" ? "No games" : `No ${filter === "active" ? "in progress" : filter === "lobby" ? "lobby" : "completed"} games`}
+              {filter === "all" ? "No games" : `No ${filter === "active" ? "in progress" : filter === "lobby" ? "lobby" : "ended"} games`}
             </h2>
             <p className="text-body-muted text-sm md:text-base mb-6 max-w-sm mx-auto">
               Create a room to start a new game, or join one with a code from your friends.
