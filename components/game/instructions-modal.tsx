@@ -101,9 +101,9 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                     The host selects a mode when creating the room. Mode affects the <strong>mix of card severities</strong> (mild, moderate, severe) in the deck:
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-2 mt-2">
-                    <li><strong>Casual</strong> — Milder cards (~70% mild); penalties shown as-is</li>
+                    <li><strong>Casual</strong> — Mild drinking penalties; milder cards (~70% mild)</li>
                     <li><strong>Party</strong> — Balanced mix (~50% mild); &quot;Take x drinks&quot; penalties +1</li>
-                    <li><strong>Lit</strong> — More intense (~40% mild, more severe); &quot;Take x drinks&quot; penalties ×2</li>
+                    <li><strong>Get Lit</strong> — Intense drinking penalties (~40% mild, more severe); &quot;Take x drinks&quot; penalties ×2</li>
                     <li><strong>Non-drinking</strong> — Same mix as Casual; no drink penalties (generic text)</li>
                   </ul>
                 </div>
@@ -184,8 +184,9 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-2 mt-2">
                     <li><strong>Show/hide points</strong> — Toggle whether everyone can see each other&apos;s scores.</li>
+                    <li><strong>Allow new users to join</strong> — Let players join after the game has started.</li>
                     <li><strong>Reset Points</strong> — Set all players&apos; points to 0 without ending the game (e.g. if players join late).</li>
-                    <li><strong>End Game</strong> — End the current game, declare the winner (highest points), and start a new game with the same players; points reset for the new game.</li>
+                    <li><strong>End Game</strong> — End the current game and declare the winner (highest points). All players see the end-game screen with confetti and the final leaderboard. The game is marked as ended; from there you can create a new room, view your games, or go home.</li>
                   </ul>
                   <p className="mt-2">
                     When the room is set to Football or Basketball, the host can also enable <strong>round-based card clearing</strong> and use End Round, intermission, and quarter discard flow (see below).
@@ -207,6 +208,9 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                   </h3>
                   <p className="mb-2">
                     When the room is set to Football or Basketball and the host has enabled round-based card clearing, the host can end a round during the game. Rounds are numbered (1, 2, 3, …) and the host can reset the round count anytime so the next round starts at 1 again.
+                  </p>
+                  <p className="mb-2">
+                    <strong>Suggest end round:</strong> If you&apos;re stuck and haven&apos;t been able to submit cards, non-host players can click <strong>&quot;Suggest end round&quot;</strong> (in the Players panel on mobile, or the players section on desktop). The host sees how many players want new cards. When at least 50% have voted, the host gets a banner suggesting they consider ending the round.
                   </p>
                   <ol className="list-decimal list-inside space-y-2 ml-2">
                     <li>
@@ -233,6 +237,15 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                   </h3>
                   <p>
                     The player with the most points at the end of the game wins. The host can end the game at any time (see Host Controls). Current scores are shown in the player list when the host has enabled &quot;Show points&quot;.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
+                    After a Game Ends
+                  </h3>
+                  <p>
+                    When the host ends the game, everyone sees the <strong>end-game screen</strong> with the winner, final leaderboard, and a confetti celebration. From there you can create a new room, go to My games, or go home. On the <strong>Games</strong> page, ended games show an &quot;Ended&quot; tag; clicking one takes you back to the end-game screen to view the results.
                   </p>
                 </div>
               </div>
