@@ -55,6 +55,8 @@ export async function POST(request: NextRequest) {
           handSize: handSize || 6,
           allowQuarterClearing: allowQuarterClearing || false,
           canTurnInCards: true,
+          showPoints: true,
+          allowJoinInProgress: true,
         },
       });
 
