@@ -64,9 +64,14 @@ export function MainNav() {
     </>
   );
 
+  const isHomePage = pathname === "/";
+  const navClassName = isHomePage
+    ? "relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-sm"
+    : "border-b border-border bg-surface shadow-sm dark:shadow-none";
+
   return (
     <>
-      <nav className="border-b border-border bg-surface shadow-sm dark:shadow-none">
+      <nav className={navClassName}>
         <div className="container mx-auto px-4 py-2 md:py-4">
           <div className="flex items-center justify-between">
             {/* Logo/Brand */}

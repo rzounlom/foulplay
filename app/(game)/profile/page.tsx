@@ -96,7 +96,7 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[calc(100vh-4.5rem)] items-center justify-center px-4 py-6 bg-background">
+      <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 bg-background">
         <div className="w-full max-w-2xl">
           <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
             <p className="text-center">Loading profile...</p>
@@ -107,7 +107,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-4 md:py-6 max-w-4xl min-h-[calc(100vh-4.5rem)] bg-background">
+    <div className="container mx-auto px-4 py-4 md:py-6 max-w-4xl min-h-[calc(100vh-7.5rem)] bg-background">
       <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
         <h1 className="text-xl md:text-page-title text-foreground mb-4 md:mb-6">Profile</h1>
 

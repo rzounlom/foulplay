@@ -108,7 +108,7 @@ function JoinRoomForm() {
 
   if (!isLoaded) {
     return (
-      <div className="flex min-h-[calc(100vh-4.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
+      <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
         <JoinRoomCardSkeleton />
       </div>
     );
@@ -119,7 +119,7 @@ function JoinRoomForm() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
+    <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
       <div className="w-full max-w-2xl mx-auto my-auto">
         <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
           <h1 className="text-xl md:text-page-title text-foreground mb-3 md:mb-4">Join a Room</h1>
@@ -187,7 +187,7 @@ function JoinRoomForm() {
 export default function JoinRoomPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-[calc(100vh-4.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
+      <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
         <JoinRoomCardSkeleton />
       </div>
     }>

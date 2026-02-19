@@ -12,14 +12,15 @@ export function AppHome() {
   }, []);
 
   return (
-    <div className="relative flex h-[calc(100vh-4.5rem)] min-h-0 items-center justify-center overflow-hidden">
+    <div className="relative flex flex-1 min-h-0 items-center justify-center overflow-hidden">
+      {/* Full-viewport background so it extends behind the navbar */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${LANDING_BG})` }}
         aria-hidden
       />
       <div
-        className="absolute inset-0 bg-black/65 dark:bg-black/75"
+        className="fixed inset-0 z-0 bg-black/65 dark:bg-black/75"
         aria-hidden
       />
 

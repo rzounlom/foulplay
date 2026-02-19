@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { DomainAwareNav } from "@/components/navigation/domain-aware-nav";
+import { DomainAwareFooter } from "@/components/navigation/domain-aware-footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,8 +51,13 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <ToastProvider>
-              <DomainAwareNav />
-              {children}
+              <div className="min-h-screen flex flex-col">
+                <DomainAwareNav />
+                <main className="flex-1 min-h-0 flex flex-col">
+                  {children}
+                </main>
+                <DomainAwareFooter />
+              </div>
             </ToastProvider>
           </ThemeProvider>
         </body>
