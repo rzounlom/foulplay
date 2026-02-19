@@ -161,7 +161,7 @@ export function EndGameScreen({
             href="/games"
             className="inline-flex items-center justify-center w-full py-2.5 px-5 text-sm font-medium rounded-lg bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
           >
-            My games
+            My Games
           </Link>
           <Link
             href="/"

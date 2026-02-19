@@ -100,7 +100,7 @@ export default function GamesPage() {
   return (
     <div className="container mx-auto px-4 py-4 md:py-6 max-w-4xl min-h-[calc(100vh-4.5rem)] bg-background">
       <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
-        <h1 className="text-xl md:text-page-title text-foreground mb-4 md:mb-6">Games</h1>
+        <h1 className="text-xl md:text-page-title text-foreground mb-4 md:mb-6">My Games</h1>
 
         {/* Filter tabs */}
         <div className="flex flex-wrap gap-2 mb-6">

@@ -819,10 +819,8 @@ export function GameBoard({
       const data = await response.json();
       throw new Error(data.error || "Failed to send message");
     }
-    const data = await response.json();
-    if (data.message) {
-      setMessages((prev) => [...prev, data.message]);
-    }
+    // Don't add message here — we receive it via Ably message_sent event.
+    // Adding from both API response and Ably caused sender to see their message twice.
   };
 
   const isFootballOrBasketball =

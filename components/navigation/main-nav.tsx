@@ -56,7 +56,7 @@ export function MainNav() {
         Join Room
       </Link>
       <Link href="/games" className={linkClass("/games")} onClick={() => setSidebarOpen(false)}>
-        Games
+        My Games
       </Link>
       <Link href="/profile" className={linkClass("/profile")} onClick={() => setSidebarOpen(false)}>
         Profile

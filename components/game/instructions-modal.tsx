@@ -245,7 +245,7 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                     After a Game Ends
                   </h3>
                   <p>
-                    When the host ends the game, everyone sees the <strong>end-game screen</strong> with the winner, final leaderboard, and a confetti celebration. From there you can create a new room, go to My games, or go home. On the <strong>Games</strong> page, ended games show an &quot;Ended&quot; tag; clicking one takes you back to the end-game screen to view the results.
+                    When the host ends the game, everyone sees the <strong>end-game screen</strong> with the winner, final leaderboard, and a confetti celebration. From there you can create a new room, go to My Games, or go home. On the <strong>My Games</strong> page, ended games show an &quot;Ended&quot; tag; clicking one takes you back to the end-game screen to view the results.
                   </p>
                 </div>
               </div>
