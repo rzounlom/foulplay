@@ -164,3 +164,11 @@ model Message {
   @@index([roomId])
   @@index([senderId])
 }
+
+model WaitlistSignup {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}

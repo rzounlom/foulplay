@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 import { NextResponse } from "next/server";
+import { getDomainType, getAppUrl } from "@/lib/host";
 
 const isProtectedRoute = createRouteMatcher([
   "/game(.*)",
@@ -8,7 +9,41 @@ const isProtectedRoute = createRouteMatcher([
   "/api/rooms(.*)",
 ]);
 
+const APP_ROUTES = [
+  "/create",
+  "/join",
+  "/game",
+  "/games",
+  "/profile",
+  "/sign-in",
+  "/sign-up",
+  "/active-games",
+];
+
+function isAppRoute(pathname: string): boolean {
+  return APP_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+}
+
 export default clerkMiddleware(async (auth, req) => {
+  // Host-based redirect: app routes on marketing/waitlist → app subdomain
+  const pathname = req.nextUrl.pathname;
+  if (
+    !pathname.startsWith("/api/") &&
+    !pathname.startsWith("/_next/") &&
+    !pathname.startsWith("/favicon") &&
+    !pathname.includes(".")
+  ) {
+    const host = req.headers.get("host") ?? "";
+    const domainType = getDomainType(host);
+    if (isAppRoute(pathname) && domainType !== "app") {
+      const appUrl = getAppUrl();
+      const url = new URL(pathname + req.nextUrl.search, appUrl);
+      return NextResponse.redirect(url);
+    }
+  }
+
   if (isProtectedRoute(req)) {
     const { userId } = await auth();
     if (!userId) {
