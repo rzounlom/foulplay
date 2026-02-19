@@ -28,8 +28,8 @@ export const metadata: Metadata = {
   title: "FoulPlay - Real-time Social Card Games",
   description: "Play interactive card-based games with friends in real-time",
   icons: {
-    icon: "/foul-play-logo.png",
-    apple: "/foul-play-logo.png",
+    icon: "/favicon-new.png",
+    apple: "/favicon-new.png",
   },
 };
 
