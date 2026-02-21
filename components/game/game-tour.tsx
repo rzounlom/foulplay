@@ -7,9 +7,28 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 interface TourStep {
   target: string; // CSS selector or data attribute
+  fallbackTarget?: string; // Used when primary target is hidden (e.g. host-controls on mobile)
   title: string;
   content: string;
   position?: "top" | "bottom" | "left" | "right" | "center";
+}
+
+function isElementVisible(el: HTMLElement | null): boolean {
+  return !!(
+    el &&
+    el.offsetParent !== null &&
+    el.getBoundingClientRect().width > 0
+  );
+}
+
+function getVisibleTarget(step: TourStep): HTMLElement | null {
+  const primary = document.querySelector(step.target) as HTMLElement;
+  if (isElementVisible(primary)) return primary;
+  if (step.fallbackTarget) {
+    const fallback = document.querySelector(step.fallbackTarget) as HTMLElement;
+    if (isElementVisible(fallback)) return fallback;
+  }
+  return null;
 }
 
 interface GameTourProps {
@@ -53,8 +72,9 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     },
     {
       target: '[data-tour="host-controls"]',
+      fallbackTarget: '[data-tour="players-button"]',
       title: "Host Controls (host only)",
-      content: "If you're the host, you can show/hide points, reset everyone's points, or end the game and start a new one. For Football/Basketball rooms you may also see round controls (End Round, Reset Round, Finalize quarter) here.",
+      content: "If you're the host, tap the Players button to access host controls: show/hide points, reset points, end round, or end the game. On desktop, host controls appear in the left sidebar.",
       position: "top",
     },
     {
@@ -69,7 +89,7 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     if (!isActive || currentStep >= steps.length) return;
 
     const step = steps[currentStep];
-    const targetElement = document.querySelector(step.target) as HTMLElement;
+    const targetElement = getVisibleTarget(step);
 
     if (!targetElement || !spotlightRef.current || !overlayRef.current) return;
 
@@ -126,12 +146,7 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
   };
 
   const isStepTargetVisible = useCallback((stepIndex: number) => {
-    const target = document.querySelector(steps[stepIndex].target) as HTMLElement;
-    return !!(
-      target &&
-      target.offsetParent !== null &&
-      target.getBoundingClientRect().width > 0
-    );
+    return getVisibleTarget(steps[stepIndex]) !== null;
   }, [steps]);
 
   const handlePrevious = () => {
@@ -180,14 +195,9 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     if (!isActive || currentStep >= steps.length) return;
 
     const step = steps[currentStep];
-    const targetElement = document.querySelector(step.target) as HTMLElement;
+    const targetElement = getVisibleTarget(step);
 
-    const shouldSkip =
-      !targetElement ||
-      targetElement.offsetParent === null ||
-      targetElement.getBoundingClientRect().width === 0;
-
-    if (shouldSkip) {
+    if (!targetElement) {
       const timer = setTimeout(() => {
         if (currentStep < steps.length - 1) {
           setCurrentStep(currentStep + 1);
@@ -202,7 +212,7 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
   if (!isActive || currentStep >= steps.length) return null;
 
   const step = steps[currentStep];
-  const targetElement = document.querySelector(step.target) as HTMLElement;
+  const targetElement = getVisibleTarget(step);
 
   if (!targetElement) {
     return null;
