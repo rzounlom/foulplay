@@ -41,14 +41,8 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     },
     {
       target: '[data-tour="your-cards"]',
-      title: "Your Cards",
-      content: "Your hand! Click cards to select them (you can select multiple), then click 'Submit Selected Cards' when you see matching events in the game. Your hand size is set by the host.",
-      position: "top",
-    },
-    {
-      target: '[data-tour="pending-submissions"]',
-      title: "Pending Submissions",
-      content: "Cards waiting for votes appear here. You can't vote on your own submission. Vote Approve or Reject per card; a card is approved or rejected when a majority of other players have voted. Approved cards earn points; rejected cards return to the submitter's hand.",
+      title: "Your Cards & Submitting",
+      content: "Your hand! Click cards to select them (you can select multiple), then click 'Submit Selected Cards' when you see matching events in the game. Submitted cards go to Pending Submissions where other players vote Approve or Reject—approved cards earn points; rejected cards return to your hand. You can't vote on your own submission. Your hand size is set by the host.",
       position: "top",
     },
     {
@@ -131,10 +125,26 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     }
   };
 
+  const isStepTargetVisible = useCallback((stepIndex: number) => {
+    const target = document.querySelector(steps[stepIndex].target) as HTMLElement;
+    return !!(
+      target &&
+      target.offsetParent !== null &&
+      target.getBoundingClientRect().width > 0
+    );
+  }, [steps]);
+
   const handlePrevious = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+    if (currentStep <= 0) return;
+    let prev = currentStep - 1;
+    while (prev >= 0) {
+      if (isStepTargetVisible(prev)) {
+        setCurrentStep(prev);
+        return;
+      }
+      prev--;
     }
+    setCurrentStep(0);
   };
 
   const saveTourPreference = useCallback(async (skip: boolean) => {
