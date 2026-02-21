@@ -4,16 +4,32 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
+import {
+  HandLayoutGrid,
+  getLayoutsForCardCount,
+  getGridContainerClasses,
+  getCardClasses,
+  type HandLayout,
+} from "./hand-layout-grid";
 
 export const HAND_LAYOUT_KEY = "foulplay-hand-layout";
-export type HandLayout = "1v" | "1h" | "2v" | "2h";
+export type { HandLayout } from "./hand-layout-grid";
+
+const VALID_LAYOUTS: HandLayout[] = [
+  "1v",
+  "1h",
+  "2v",
+  "2h",
+  "3v",
+  "3h",
+];
 
 export function useHandLayout() {
   const [layout, setLayout] = useState<HandLayout>(() => {
     if (typeof window === "undefined") return "2v";
     try {
       const stored = localStorage.getItem(HAND_LAYOUT_KEY) as HandLayout | null;
-      if (stored && ["1v", "1h", "2v", "2h"].includes(stored)) return stored;
+      if (stored && VALID_LAYOUTS.includes(stored)) return stored;
     } catch {
       /* ignore */
     }
@@ -100,18 +116,29 @@ export function Hand({
   const [handLayout, setHandLayout] = useHandLayout();
   const isSmallViewport = useIsSmallViewport();
   const isMultiSelect = !!(onCardSubmit || onQuarterDiscardSelection);
+  const cardsInHand = cards.filter((c) => c.status === "drawn");
+  const cardsToDisplay = cardsInHand;
+
   const selectedIds = useMemo(
     () =>
       isMultiSelect ? selectedCardIds : selectedCardId ? [selectedCardId] : [],
     [isMultiSelect, selectedCardIds, selectedCardId],
   );
-  // During normal play, only submit-for-vote is allowed. Discard with penalty is only during round intermission.
   const canSubmitCards =
     canTurnInCards && !isQuarterIntermission && !submissionDisabled;
-  const cardsInHand = cards.filter((c) => c.status === "drawn");
 
-  // During intermission: show all cards in grid; highlight those in discard selection
-  const cardsToDisplay = cardsInHand;
+  // Ensure layout is valid for current card count (e.g. user had 6 cards with 6v, then drew down to 3)
+  const validLayouts = getLayoutsForCardCount(cardsToDisplay.length);
+  const effectiveLayout = validLayouts.includes(handLayout)
+    ? handLayout
+    : (validLayouts[0] ?? "2v");
+
+  useEffect(() => {
+    const layouts = getLayoutsForCardCount(cardsToDisplay.length);
+    if (!layouts.includes(handLayout) && layouts.length > 0) {
+      setHandLayout(layouts[0]);
+    }
+  }, [cardsToDisplay.length, handLayout, setHandLayout]);
 
   const canSubmitWithEnter =
     (canSubmitCards && selectedIds.length > 0) ||
@@ -214,35 +241,11 @@ export function Hand({
             </span>
           )}
           {isSmallViewport && (
-            <div
-              className="flex items-center gap-1 ml-2"
-              role="group"
-              aria-label="Card layout"
-            >
-              {(
-                [
-                  ["1v", "1 col, scroll down", "↓"],
-                  ["1h", "1 col, scroll right", "→"],
-                  ["2v", "2 cols, scroll down", "2↓"],
-                  ["2h", "2 cols, scroll right", "2→"],
-                ] as const
-              ).map(([value, label, short]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setHandLayout(value)}
-                  title={label}
-                  aria-pressed={handLayout === value}
-                  className={`min-w-9 h-8 px-1.5 rounded text-xs font-medium transition-colors ${
-                    handLayout === value
-                      ? "bg-primary text-white"
-                      : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                  }`}
-                >
-                  {short}
-                </button>
-              ))}
-            </div>
+            <HandLayoutGrid
+              cardCount={cardsToDisplay.length}
+              currentLayout={effectiveLayout}
+              onLayoutChange={setHandLayout}
+            />
           )}
         </div>
       </div>
@@ -306,13 +309,7 @@ export function Hand({
       <div
         className={
           isSmallViewport
-            ? handLayout === "1v"
-              ? "flex flex-col gap-2 overflow-y-auto min-h-0 flex-1 max-h-[calc(100vh-12rem)] p-1"
-              : handLayout === "1h"
-                ? "flex overflow-x-auto overflow-y-hidden gap-2 p-1 pb-2 snap-x snap-mandatory min-h-0 min-w-0 w-full flex-1 max-h-[calc(100vh-12rem)]"
-                : handLayout === "2v"
-                  ? "grid grid-cols-2 gap-2 overflow-y-auto min-h-0 flex-1 max-h-[calc(100vh-12rem)] p-1"
-                  : "grid grid-flow-col gap-2 overflow-x-auto overflow-y-auto p-1 pb-2 auto-cols-[minmax(160px,min(45vw,300px))] min-h-0 min-w-0 w-full flex-1 max-h-[calc(100vh-12rem)] [grid-template-rows:repeat(2,auto)]"
+            ? getGridContainerClasses(effectiveLayout)
             : "grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 lg:gap-5 p-2 overflow-y-auto min-h-0 flex-1"
         }
       >
@@ -321,15 +318,11 @@ export function Hand({
             ? selectedIds.includes(cardInstance.id)
             : selectedCardId === cardInstance.id;
           const isInDiscardSelection = myQuarterSelectionIds.includes(cardInstance.id);
-          const cardClasses = isSmallViewport
-            ? handLayout === "1v"
-              ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[280px] flex-shrink-0 w-full hover:scale-[1.01] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
-              : handLayout === "1h"
-                ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[280px] flex-shrink-0 w-[min(85vw,320px)] snap-center hover:scale-[1.01] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
-                : handLayout === "2v"
-                  ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[220px] hover:scale-[1.01] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
-                  : "p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer hover:scale-[1.01] hover:shadow-md active:scale-[0.99] animate-fade-in-up"
-            : "p-3 md:p-4 lg:p-4 rounded-lg border-2 transition-all duration-200 ease-out cursor-pointer min-h-[150px] md:min-h-[120px] lg:min-h-[220px] hover:scale-[1.02] hover:shadow-md active:scale-[0.99] animate-fade-in-up";
+          const cardClasses = getCardClasses(
+            effectiveLayout,
+            isSmallViewport,
+            true
+          );
           return (
             <div
               key={cardInstance.id}

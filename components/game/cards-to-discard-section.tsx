@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
+import { useHandLayout, useIsSmallViewport } from "./hand";
 import {
-  useHandLayout,
-  useIsSmallViewport,
-  type HandLayout,
-} from "./hand";
+  HandLayoutGrid,
+  getLayoutsForCardCount,
+  getGridContainerClasses,
+  getCardClasses,
+} from "./hand-layout-grid";
 
 interface Card {
   id: string;
@@ -40,6 +43,18 @@ export function CardsToDiscardSection({
   const [handLayout, setHandLayout] = useHandLayout();
   const isSmallViewport = useIsSmallViewport();
 
+  const validLayouts = getLayoutsForCardCount(cardInstances.length);
+  const effectiveLayout = validLayouts.includes(handLayout)
+    ? handLayout
+    : (validLayouts[0] ?? "2v");
+
+  useEffect(() => {
+    const layouts = getLayoutsForCardCount(cardInstances.length);
+    if (!layouts.includes(handLayout) && layouts.length > 0) {
+      setHandLayout(layouts[0]);
+    }
+  }, [cardInstances.length, handLayout, setHandLayout]);
+
   if (cardInstances.length === 0) return null;
 
   return (
@@ -52,35 +67,11 @@ export function CardsToDiscardSection({
           </span>
         </h3>
         {isSmallViewport && (
-          <div
-            className="flex items-center gap-1"
-            role="group"
-            aria-label="Card layout"
-          >
-            {(
-              [
-                ["1v", "1 col, scroll down", "↓"],
-                ["1h", "1 col, scroll right", "→"],
-                ["2v", "2 cols, scroll down", "2↓"],
-                ["2h", "2 cols, scroll right", "2→"],
-              ] as const
-            ).map(([value, label, short]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setHandLayout(value as HandLayout)}
-                title={label}
-                aria-pressed={handLayout === value}
-                className={`min-w-9 h-8 px-1.5 rounded text-xs font-medium transition-colors ${
-                  handLayout === value
-                    ? "bg-primary text-white"
-                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                }`}
-              >
-                {short}
-              </button>
-            ))}
-          </div>
+          <HandLayoutGrid
+            cardCount={cardInstances.length}
+            currentLayout={effectiveLayout}
+            onLayoutChange={setHandLayout}
+          />
         )}
       </div>
       <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-4 shrink-0">
@@ -89,26 +80,13 @@ export function CardsToDiscardSection({
       <div
         className={
           isSmallViewport
-            ? handLayout === "1v"
-              ? "flex flex-col gap-2 overflow-y-auto min-h-0 flex-1 max-h-[calc(100vh-12rem)] p-1"
-              : handLayout === "1h"
-                ? "flex overflow-x-auto overflow-y-hidden gap-2 p-1 pb-2 snap-x snap-mandatory min-h-0 min-w-0 w-full flex-1 max-h-[calc(100vh-12rem)]"
-                : handLayout === "2v"
-                  ? "grid grid-cols-2 gap-2 overflow-y-auto min-h-0 flex-1 max-h-[calc(100vh-12rem)] p-1"
-                  : "grid grid-flow-col gap-2 overflow-x-auto overflow-y-auto p-1 pb-2 auto-cols-[minmax(160px,min(45vw,300px))] min-h-0 min-w-0 w-full flex-1 max-h-[calc(100vh-12rem)] [grid-template-rows:repeat(2,auto)]"
+            ? getGridContainerClasses(effectiveLayout)
             : "grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 lg:gap-5 p-2 overflow-y-auto min-h-0 flex-1"
         }
       >
         {cardInstances.map((cardInstance, index) => {
-          const cardClasses = isSmallViewport
-            ? handLayout === "1v"
-              ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out min-h-[280px] flex-shrink-0 w-full relative"
-              : handLayout === "1h"
-                ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out min-h-[280px] flex-shrink-0 w-[min(85vw,320px)] snap-center relative"
-                : handLayout === "2v"
-                  ? "p-4 rounded-lg border-2 transition-all duration-200 ease-out min-h-[220px] relative"
-                  : "p-4 rounded-lg border-2 transition-all duration-200 ease-out relative"
-            : "p-3 md:p-4 lg:p-4 rounded-lg border-2 transition-all duration-200 ease-out min-h-[150px] md:min-h-[120px] lg:min-h-[220px] relative";
+          const cardClasses =
+            getCardClasses(effectiveLayout, isSmallViewport, false) + " relative";
           return (
             <div
               key={cardInstance.id}
