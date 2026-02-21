@@ -31,6 +31,25 @@ export const metadata: Metadata = {
     icon: "/favicon-new.png",
     apple: "/favicon-new.png",
   },
+  openGraph: {
+    title: "FoulPlay - Real-time Social Card Games",
+    description: "Play interactive card-based games with friends in real-time",
+    images: [
+      {
+        url: `${baseUrl}/social-branding.png`,
+        width: 1200,
+        height: 630,
+        alt: "FoulPlay - Real-time Social Card Games",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FoulPlay - Real-time Social Card Games",
+    description: "Play interactive card-based games with friends in real-time",
+    images: [`${baseUrl}/social-branding.png`],
+  },
 };
 
 export default function RootLayout({

@@ -13,7 +13,7 @@ export function AppHome() {
 
   const contentSection = (
     <div className="flex flex-col items-center gap-3 md:gap-5 px-4 py-4 md:px-6 md:py-6">
-      <p className="text-base md:text-section-title text-neutral-200 md:text-neutral-100 text-center">
+      <p className="text-base md:text-3xl lg:text-4xl xl:text-5xl md:font-extrabold md:tracking-tight text-neutral-200 md:text-neutral-100 text-center">
         Real-time social card games with friends
       </p>
       <div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full max-w-md">
@@ -63,7 +63,7 @@ export function AppHome() {
           className="fixed inset-0 z-0 bg-gradient-to-b from-neutral-950/40 to-neutral-950/90"
           aria-hidden
         />
-        <main className="relative z-10 flex w-full max-w-4xl flex-1 flex-col items-center justify-center min-h-0">
+        <main className="relative z-10 flex w-full max-w-4xl flex-1 flex-col items-center justify-center min-h-0 pt-40">
           {contentSection}
         </main>
       </div>

@@ -27,7 +27,7 @@ function isAppRoute(pathname: string): boolean {
 }
 
 export default clerkMiddleware(async (auth, req) => {
-  // Host-based redirect: app routes on marketing/waitlist → app subdomain
+    // Host-based redirect: app routes on marketing domain → app subdomain
   const pathname = req.nextUrl.pathname;
   if (
     !pathname.startsWith("/api/") &&
