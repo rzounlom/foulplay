@@ -155,6 +155,7 @@ export function GameBoard({
   const [isMarkingDone, setIsMarkingDone] = useState(false);
   const [suggestEndRoundBannerDismissed, setSuggestEndRoundBannerDismissed] =
     useState(false);
+  const [showHostDeclinedBanner, setShowHostDeclinedBanner] = useState(false);
   const [isSuggestingEndRound, setIsSuggestingEndRound] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [showMoreHostControls, setShowMoreHostControls] = useState(true);
@@ -384,8 +385,25 @@ export function GameBoard({
         event === "quarter_discard_selection_updated" ||
         event === "quarter_discard_done_updated" ||
         event === "suggest_end_round_updated" ||
+        event === "suggest_end_round_declined" ||
         event === "round_reset"
       ) {
+        if (event === "suggest_end_round_declined" && data) {
+          const payload = data as { declinedPlayerIds?: string[] };
+          const declinedIds = payload.declinedPlayerIds ?? [];
+          const currentPlayerId = room.players.find(
+            (p) => p.user.id === currentUserId
+          )?.id;
+          if (
+            currentPlayerId &&
+            declinedIds.includes(currentPlayerId)
+          ) {
+            setShowHostDeclinedBanner(true);
+          }
+        }
+        if (event === "suggest_end_round_updated") {
+          setSuggestEndRoundBannerDismissed(false);
+        }
         fetchRoom();
         fetchHand();
         fetchSubmissions();
@@ -1111,7 +1129,6 @@ export function GameBoard({
                             if (response.ok) {
                               const updatedRoom = await response.json();
                               setRoom(updatedRoom);
-                              setPlayersPanelOpen(false);
                             }
                           } catch (err) {
                             if (process.env.NODE_ENV === "development")
@@ -1144,7 +1161,6 @@ export function GameBoard({
                             if (response.ok) {
                               const updatedRoom = await response.json();
                               setRoom(updatedRoom);
-                              setPlayersPanelOpen(false);
                             }
                           } catch (err) {
                             if (process.env.NODE_ENV === "development")
@@ -1520,9 +1536,86 @@ export function GameBoard({
                 <span className="font-semibold text-amber-800 dark:text-amber-200">
                   50% of players want new cards. Consider ending the round.
                 </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={() => setShowEndRoundModal(true)}
+                  >
+                    End Round
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(
+                          "/api/game/decline-suggest-end-round",
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({ roomCode }),
+                          }
+                        );
+                        if (response.ok) {
+                          setSuggestEndRoundBannerDismissed(true);
+                          fetchRoom();
+                        } else {
+                          const data = await response.json();
+                          toast.addToast(
+                            data.error || "Failed to dismiss",
+                            "error"
+                          );
+                        }
+                      } catch (error) {
+                        if (
+                          process.env.NODE_ENV === "development"
+                        )
+                          console.error(
+                            "Failed to decline suggest end round:",
+                            error
+                          );
+                        toast.addToast(
+                          "Failed to dismiss",
+                          "error"
+                        );
+                      }
+                    }}
+                    className="p-2 rounded-md text-amber-800/80 hover:text-amber-800 hover:bg-amber-200/50 dark:text-amber-200 dark:hover:bg-amber-800/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    aria-label="Dismiss banner"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          {/* Banner for non-host users when host declined their suggest end round */}
+          {!isHost &&
+            showQuarterControls &&
+            !isQuarterIntermission &&
+            showHostDeclinedBanner && (
+              <div className="flex items-center justify-between gap-3 p-3 rounded-lg border-2 border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/30">
+                <span className="font-semibold text-amber-800 dark:text-amber-200">
+                  The host has decided not to end the round.
+                </span>
                 <button
                   type="button"
-                  onClick={() => setSuggestEndRoundBannerDismissed(true)}
+                  onClick={() => setShowHostDeclinedBanner(false)}
                   className="p-2 rounded-md text-amber-800/80 hover:text-amber-800 hover:bg-amber-200/50 dark:text-amber-200 dark:hover:bg-amber-800/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary shrink-0"
                   aria-label="Dismiss banner"
                 >
