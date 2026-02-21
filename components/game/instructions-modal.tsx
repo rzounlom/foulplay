@@ -220,7 +220,7 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
                       A <strong>5-minute intermission</strong> starts. Everyone sees a notification and a countdown timer. <strong>Submissions and voting are paused</strong> during this time.
                     </li>
                     <li>
-                      During the 5 minutes, <strong>select cards from your hand</strong> and click <strong>&quot;Submit X card(s) for discard&quot;</strong> — just like submitting for vote. They move to the <strong>Cards to Discard</strong> section (above Your Cards). Click <strong>Remove</strong> on a card to keep it. Add and remove as often as you like until the timer ends.
+                      During the 5 minutes, <strong>select cards from your hand</strong> and click <strong>&quot;Submit X card(s) for discard&quot;</strong> — just like submitting for vote. They move to the <strong>Cards to Discard</strong> section (below Your Hand). Click <strong>Remove</strong> on a card to keep it. Add and remove as often as you like until the timer ends.
                     </li>
                     <li>
                       <strong>When the intermission ends</strong> (timer reaches zero or host ends early), all cards still in Cards to Discard are processed: you receive points for them, get new cards to replace them, and must perform the drink penalty per card.

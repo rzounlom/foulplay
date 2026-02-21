@@ -42,14 +42,14 @@ export function SubmitterPendingBadge({
   );
 
   return (
-    <div className="bg-surface rounded-lg p-4 md:p-6 border border-border shadow-sm dark:shadow-none">
-      <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-4 flex items-center gap-2">
+    <div className="bg-surface rounded-lg p-4 md:p-6 border border-border shadow-sm dark:shadow-none flex flex-col min-h-0 max-h-[calc(100vh-12rem)] overflow-hidden">
+      <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-4 flex items-center gap-2 shrink-0">
         Your submissions
         <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-medium">
           Vote pending
         </span>
       </h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 overflow-y-auto min-h-0">
         {allCards.map(({ id, card, submissionId }) => (
           <div
             key={`${submissionId}-${id}`}

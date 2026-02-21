@@ -881,7 +881,7 @@ export function GameBoard({
     <div className="container mx-auto px-2 py-4 md:p-6 lg:p-4 max-w-6xl min-h-screen bg-background overflow-x-hidden">
       <GameTour startTour={startTour} onTourStart={() => setStartTour(false)} />
 
-      <div className="mb-6">
+      <div className="sticky top-0 z-30 bg-background pb-6">
         <div className="flex items-center justify-center md:justify-start gap-2 mb-2 min-w-0">
           <h1
             className="text-lg sm:text-page-title text-foreground truncate min-w-0"
@@ -1690,33 +1690,6 @@ export function GameBoard({
             </div>
           )}
 
-          {/* Cards to Discard — above Your Hand, separate container (like SubmitterPendingBadge) */}
-          {currentPlayer &&
-            isQuarterIntermission &&
-            showQuarterControls &&
-            ((room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? [])
-              .length > 0 && (
-              <CardsToDiscardSection
-                cardInstances={hand.filter((c) =>
-                  (
-                    (room.pendingQuarterDiscardSelections ?? null)?.[
-                      currentPlayer.id
-                    ] ?? []
-                  ).includes(c.id),
-                )}
-                onRemove={(cardInstanceId) => {
-                  const current =
-                    (room.pendingQuarterDiscardSelections ?? null)?.[
-                      currentPlayer.id
-                    ] ?? [];
-                  handleQuarterDiscardSelection(
-                    current.filter((id) => id !== cardInstanceId),
-                  );
-                }}
-                roomMode={room.mode}
-              />
-            )}
-
           {/* Your hand — front and center */}
           {currentPlayer && (
             <div
@@ -1771,6 +1744,33 @@ export function GameBoard({
               )}
             </div>
           )}
+
+          {/* Cards to Discard — below Your Hand, same styling as Your Hand */}
+          {currentPlayer &&
+            isQuarterIntermission &&
+            showQuarterControls &&
+            ((room.pendingQuarterDiscardSelections ?? null)?.[currentPlayer.id] ?? [])
+              .length > 0 && (
+              <CardsToDiscardSection
+                cardInstances={hand.filter((c) =>
+                  (
+                    (room.pendingQuarterDiscardSelections ?? null)?.[
+                      currentPlayer.id
+                    ] ?? []
+                  ).includes(c.id),
+                )}
+                onRemove={(cardInstanceId) => {
+                  const current =
+                    (room.pendingQuarterDiscardSelections ?? null)?.[
+                      currentPlayer.id
+                    ] ?? [];
+                  handleQuarterDiscardSelection(
+                    current.filter((id) => id !== cardInstanceId),
+                  );
+                }}
+                roomMode={room.mode}
+              />
+            )}
 
           {/* Active Card Display */}
           <div

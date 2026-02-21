@@ -5,10 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
 
-const HAND_LAYOUT_KEY = "foulplay-hand-layout";
-type HandLayout = "1v" | "1h" | "2v" | "2h";
+export const HAND_LAYOUT_KEY = "foulplay-hand-layout";
+export type HandLayout = "1v" | "1h" | "2v" | "2h";
 
-function useHandLayout() {
+export function useHandLayout() {
   const [layout, setLayout] = useState<HandLayout>(() => {
     if (typeof window === "undefined") return "2v";
     try {
@@ -30,7 +30,7 @@ function useHandLayout() {
   return [layout, setAndStore] as const;
 }
 
-function useIsSmallViewport() {
+export function useIsSmallViewport() {
   const [isSmall, setIsSmall] = useState(() =>
     typeof window !== "undefined"
       ? window.matchMedia("(max-width: 820px)").matches
@@ -258,7 +258,7 @@ export function Hand({
       )}
       {isQuarterIntermission && (
         <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm shrink-0">
-          Select cards from your hand and click Submit for discard. Highlighted cards are in Cards to Discard above. Remove any to keep them. When the timer ends, cards in Cards to Discard are discarded and replaced.{roomMode === "non-drinking" ? " Points apply." : " Drink penalty applies."}
+          Select cards from your hand and click Submit for discard. Highlighted cards are in Cards to Discard below. Remove any to keep them. When the timer ends, cards in Cards to Discard are discarded and replaced.{roomMode === "non-drinking" ? " Points apply." : " Drink penalty applies."}
         </div>
       )}
 
