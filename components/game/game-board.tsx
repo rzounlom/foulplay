@@ -180,6 +180,7 @@ export function GameBoard({
   const [votingPanelOpen, setVotingPanelOpen] = useState(false);
   const [votingDismissed, setVotingDismissed] = useState(false);
   const prevSubmissionsToVoteCount = useRef(0);
+  const roomRef = useRef(room);
 
   const router = useRouter();
   const toast = useToast();
@@ -187,6 +188,9 @@ export function GameBoard({
 
   // Keep screen awake during gameplay (mobile-friendly)
   useScreenWakeLock(true);
+
+  // Keep roomRef in sync for event handlers (avoids stale closures on rapid events)
+  roomRef.current = room;
 
   const fetchRoom = useCallback(async (): Promise<Room | null> => {
     try {
@@ -295,6 +299,12 @@ export function GameBoard({
       // When game ends, redirect all players to end-game page (no alert, no tour)
       if (event === "game_ended") {
         isRedirectingToEndGame.current = true;
+        // Auto-disable tour for users who have played a game
+        fetch("/api/user/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ skipTour: true }),
+        }).catch(() => {});
         router.push(`/game/${roomCode}/end-game`);
         return;
       }
@@ -328,7 +338,8 @@ export function GameBoard({
         };
         const points = payload.pointsAwarded ?? 0;
         const submitterPlayerId = payload.submittedBy?.id;
-        const currentPlayerId = room.players.find(
+        const r = roomRef.current;
+        const currentPlayerId = r.players.find(
           (p) => p.user.id === currentUserId,
         )?.id;
         const isRecipient =
@@ -348,12 +359,12 @@ export function GameBoard({
           setTimeout(() => setPointsAwardedPopup(null), 2200);
           // After points animation, show drink penalty reminder (skip in non-drinking mode)
           if (
-            !isNonDrinkingMode(room.mode) &&
+            !isNonDrinkingMode(r.mode) &&
             payload.cards &&
             payload.cards.length > 0
           ) {
             const penalties = payload.cards.map((c) =>
-              getCardDescriptionForDisplay(c.description, room.mode),
+              getCardDescriptionForDisplay(c.description, r.mode),
             );
             const combined = combinePenalties(penalties);
             const penaltyText =
@@ -374,7 +385,7 @@ export function GameBoard({
         };
         const points = payload.pointsAwarded ?? 0;
         const recipientPlayerId = payload.submittedBy?.id;
-        const currentPlayerId = room.players.find(
+        const currentPlayerId = roomRef.current.players.find(
           (p) => p.user.id === currentUserId,
         )?.id;
         const isRecipient =
@@ -420,7 +431,7 @@ export function GameBoard({
         if (event === "suggest_end_round_declined" && data) {
           const payload = data as { declinedPlayerIds?: string[] };
           const declinedIds = payload.declinedPlayerIds ?? [];
-          const currentPlayerId = room.players.find(
+          const currentPlayerId = roomRef.current.players.find(
             (p) => p.user.id === currentUserId
           )?.id;
           if (
@@ -1782,7 +1793,8 @@ export function GameBoard({
                   roomMode={room.mode}
                   currentUserPoints={currentPlayer.points}
                   submissionDisabled={
-                    /* Pause during: host ending round, or all-done 5s countdown */
+                    /* Pause during: card submission in progress, host ending round, or all-done 5s countdown */
+                    isSubmitting ||
                     ((isEndingRound || isEndingRoundEarly) && isHost) ||
                     allDoneCountdown != null
                   }

@@ -256,7 +256,7 @@ export function Hand({
       )}
       {submissionDisabled && (
         <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm shrink-0">
-          Submissions paused — round is ending
+          Submissions paused — please wait
         </div>
       )}
       {isQuarterIntermission && (
@@ -326,8 +326,8 @@ export function Hand({
           return (
             <div
               key={cardInstance.id}
-              onClick={() => onCardSelect?.(cardInstance.id)}
-              className={`${cardClasses} ${
+              onClick={() => !submissionDisabled && onCardSelect?.(cardInstance.id)}
+              className={`${cardClasses} ${submissionDisabled ? "pointer-events-none opacity-75" : ""} ${
                 isSelected
                   ? isSmallViewport
                     ? "border-primary bg-primary/10 shadow-md"

@@ -162,8 +162,9 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
     setCurrentStep(0);
   };
 
-  const saveTourPreference = useCallback(async (skip: boolean) => {
-    if (skip && dontShowAgain) {
+  const saveTourPreference = useCallback(async (alwaysSave: boolean) => {
+    // Always save skipTour when user completes/skips tour (seen once) or explicitly checks "Don't show again"
+    if (alwaysSave || dontShowAgain) {
       try {
         await fetch("/api/user/profile", {
           method: "PATCH",
@@ -177,18 +178,16 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
   }, [dontShowAgain]);
 
   const handleSkip = useCallback(async () => {
-    await saveTourPreference(true);
+    await saveTourPreference(true); // Always save — user has seen the tour
     setIsActive(false);
     onSkip?.();
   }, [saveTourPreference, onSkip]);
 
   const handleComplete = useCallback(async () => {
-    if (dontShowAgain) {
-      await saveTourPreference(true);
-    }
+    await saveTourPreference(true); // Always save — user has seen the tour
     setIsActive(false);
     onComplete?.();
-  }, [onComplete, dontShowAgain, saveTourPreference]);
+  }, [onComplete, saveTourPreference]);
 
   // Handle missing or hidden elements (e.g. host-controls hidden on mobile)
   useEffect(() => {
