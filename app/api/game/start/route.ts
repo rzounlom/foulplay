@@ -3,7 +3,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import {
   initializeGameState,
-  drawRandomCardIndices,
+  drawRandomCardIndicesRespectingSevere,
 } from "@/lib/game/engine";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
@@ -107,8 +107,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Deal cards to each player based on room handSize
+    // Deal cards to each player based on room handSize (respects severe limits per mode)
     const handSize = room.handSize || 6;
+    const mode = room.mode ?? null;
     const cardInstancesToCreate: Array<{
       roomId: string;
       cardId: string;
@@ -117,7 +118,12 @@ export async function POST(request: NextRequest) {
     }> = [];
 
     for (const player of room.players) {
-      const cardIndices = drawRandomCardIndices(cards.length, handSize);
+      const cardIndices = drawRandomCardIndicesRespectingSevere(
+        cards,
+        handSize,
+        mode,
+        handSize
+      );
       for (const cardIndex of cardIndices) {
         const selectedCard = cards[cardIndex];
         cardInstancesToCreate.push({

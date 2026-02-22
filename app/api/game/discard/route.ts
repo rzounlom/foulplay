@@ -3,7 +3,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
-import { drawRandomCardIndices } from "@/lib/game/engine";
+import { drawRandomCardIndicesRespectingSevere } from "@/lib/game/engine";
 
 const discardCardSchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
@@ -142,7 +142,25 @@ export async function POST(request: NextRequest) {
         });
 
         if (cards.length > 0) {
-          const cardIndices = drawRandomCardIndices(cards.length, cardsToDeal);
+          const remainingHand = await prisma.cardInstance.findMany({
+            where: {
+              roomId: room.id,
+              drawnById: currentPlayer.id,
+              status: "drawn",
+            },
+            include: { card: true },
+          });
+          const initialSevereCount = remainingHand.filter(
+            (ci) => ci.card.severity === "severe"
+          ).length;
+          const mode = room.mode ?? null;
+          const cardIndices = drawRandomCardIndicesRespectingSevere(
+            cards,
+            cardsToDeal,
+            mode,
+            handSize,
+            initialSevereCount
+          );
           const newCardInstances = cardIndices.map((cardIndex) => ({
             roomId: room.id,
             cardId: cards[cardIndex].id,

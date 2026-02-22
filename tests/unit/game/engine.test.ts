@@ -1,12 +1,130 @@
 import {
   drawRandomCardIndex,
   drawRandomCardIndices,
+  drawRandomCardIndexRespectingSevere,
+  drawRandomCardIndicesRespectingSevere,
+  getMaxSevereCardsInHand,
   initializeGameState,
   advanceTurn,
   type GameState,
 } from "@/lib/game/engine";
 
 describe("Game Engine", () => {
+  describe("getMaxSevereCardsInHand", () => {
+    it("returns 1 for casual mode", () => {
+      expect(getMaxSevereCardsInHand("casual", 4)).toBe(1);
+      expect(getMaxSevereCardsInHand("casual", 6)).toBe(1);
+      expect(getMaxSevereCardsInHand("casual", 8)).toBe(1);
+    });
+
+    it("returns 1 for party when hand size <= 6", () => {
+      expect(getMaxSevereCardsInHand("party", 4)).toBe(1);
+      expect(getMaxSevereCardsInHand("party", 6)).toBe(1);
+    });
+
+    it("returns 2 for party when hand size > 6", () => {
+      expect(getMaxSevereCardsInHand("party", 7)).toBe(2);
+      expect(getMaxSevereCardsInHand("party", 10)).toBe(2);
+    });
+
+    it("returns Infinity for lit mode", () => {
+      expect(getMaxSevereCardsInHand("lit", 4)).toBe(Infinity);
+      expect(getMaxSevereCardsInHand("lit", 8)).toBe(Infinity);
+    });
+
+    it("returns Infinity for null/unknown mode", () => {
+      expect(getMaxSevereCardsInHand(null, 6)).toBe(Infinity);
+      expect(getMaxSevereCardsInHand("custom", 6)).toBe(Infinity);
+    });
+  });
+
+  describe("drawRandomCardIndexRespectingSevere", () => {
+    const cards = [
+      { severity: "mild" },
+      { severity: "moderate" },
+      { severity: "severe" },
+    ];
+
+    it("draws from all cards when under limit", () => {
+      for (let i = 0; i < 50; i++) {
+        const idx = drawRandomCardIndexRespectingSevere(cards, 0, 1);
+        expect(idx).toBeGreaterThanOrEqual(0);
+        expect(idx).toBeLessThan(3);
+      }
+    });
+
+    it("excludes severe when at limit", () => {
+      for (let i = 0; i < 50; i++) {
+        const idx = drawRandomCardIndexRespectingSevere(cards, 1, 1);
+        expect(idx).toBeLessThan(2);
+        expect(cards[idx].severity).not.toBe("severe");
+      }
+    });
+
+    it("allows severe when under limit", () => {
+      let foundSevere = false;
+      for (let i = 0; i < 100; i++) {
+        const idx = drawRandomCardIndexRespectingSevere(cards, 0, 2);
+        if (cards[idx].severity === "severe") foundSevere = true;
+      }
+      expect(foundSevere).toBe(true);
+    });
+  });
+
+  describe("drawRandomCardIndicesRespectingSevere", () => {
+    const cards = [
+      { severity: "mild" },
+      { severity: "moderate" },
+      { severity: "severe" },
+    ];
+
+    it("returns correct count", () => {
+      const indices = drawRandomCardIndicesRespectingSevere(
+        cards,
+        3,
+        "casual",
+        6
+      );
+      expect(indices).toHaveLength(3);
+    });
+
+    it("respects casual limit (max 1 severe)", () => {
+      for (let run = 0; run < 20; run++) {
+        const indices = drawRandomCardIndicesRespectingSevere(
+          cards,
+          5,
+          "casual",
+          6
+        );
+        const severeCount = indices.filter((i) => cards[i].severity === "severe").length;
+        expect(severeCount).toBeLessThanOrEqual(1);
+      }
+    });
+
+    it("respects party limit with hand size 7 (max 2 severe)", () => {
+      for (let run = 0; run < 20; run++) {
+        const indices = drawRandomCardIndicesRespectingSevere(
+          cards,
+          5,
+          "party",
+          7
+        );
+        const severeCount = indices.filter((i) => cards[i].severity === "severe").length;
+        expect(severeCount).toBeLessThanOrEqual(2);
+      }
+    });
+
+    it("allows any count for lit mode", () => {
+      const indices = drawRandomCardIndicesRespectingSevere(
+        cards,
+        3,
+        "lit",
+        6
+      );
+      expect(indices).toHaveLength(3);
+    });
+  });
+
   describe("drawRandomCardIndex", () => {
     it("should return an index in valid range", () => {
       const cardCount = 50;

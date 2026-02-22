@@ -3,7 +3,10 @@ import {
   canResolveSubmission,
   getVoteCounts,
 } from "@/lib/game/approval";
-import { drawRandomCardIndex } from "@/lib/game/engine";
+import {
+  drawRandomCardIndexRespectingSevere,
+  getMaxSevereCardsInHand,
+} from "@/lib/game/engine";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { getRoomChannel } from "@/lib/ably/client";
 import { prisma } from "@/lib/db/prisma";
@@ -233,9 +236,30 @@ export async function POST(request: NextRequest) {
           orderBy: { id: "asc" },
         });
 
+        const handWithCards = await prisma.cardInstance.findMany({
+          where: {
+            roomId: room.id,
+            drawnById: submission.submittedById,
+            status: "drawn",
+          },
+          include: { card: true },
+        });
+        let severeInHand = handWithCards.filter(
+          (ci) => ci.card.severity === "severe"
+        ).length;
+        const maxSevere = getMaxSevereCardsInHand(
+          room.mode ?? null,
+          handSizeLimit
+        );
+
         for (let i = 0; i < cardsNeeded && cards.length > 0; i++) {
-          const cardIndex = drawRandomCardIndex(cards.length);
+          const cardIndex = drawRandomCardIndexRespectingSevere(
+            cards,
+            severeInHand,
+            maxSevere
+          );
           const selectedCard = cards[cardIndex];
+          if (selectedCard.severity === "severe") severeInHand++;
           await prisma.cardInstance.create({
             data: {
               roomId: room.id,

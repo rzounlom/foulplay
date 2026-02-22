@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
-import { drawRandomCardIndex } from "@/lib/game/engine";
+import {
+  drawRandomCardIndexRespectingSevere,
+  getMaxSevereCardsInHand,
+} from "@/lib/game/engine";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 
@@ -105,8 +108,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Draw random card (equal probability, duplicates allowed)
-    const cardIndex = drawRandomCardIndex(cards.length);
+    // Count severe cards in hand (respect mode limits)
+    const handCardInstances = await prisma.cardInstance.findMany({
+      where: {
+        roomId: room.id,
+        drawnById: currentPlayer.id,
+        status: "drawn",
+      },
+      include: { card: true },
+    });
+    const severeInHand = handCardInstances.filter(
+      (ci) => ci.card.severity === "severe"
+    ).length;
+    const maxSevere = getMaxSevereCardsInHand(room.mode ?? null, handSizeLimit);
+    const cardIndex = drawRandomCardIndexRespectingSevere(
+      cards,
+      severeInHand,
+      maxSevere
+    );
     const selectedCard = cards[cardIndex];
 
     // Create card instance
