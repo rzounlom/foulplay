@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
+
+const AUTO_ACCEPT_SECONDS = 60;
 
 interface Card {
   id: string;
@@ -31,6 +33,7 @@ interface CardInstance {
 interface Submission {
   id: string;
   status: string;
+  createdAt?: string;
   cardInstances: CardInstance[];
   submittedBy: {
     id: string;
@@ -43,8 +46,10 @@ interface VotingPanelProps {
   submissions: Submission[];
   currentUserId: string;
   totalPlayers: number;
+  roomCode: string;
   onVote: (submissionId: string, cardInstanceIds: string[], vote: boolean) => Promise<void>;
   onClose: () => void;
+  onRefresh?: () => void;
   votingPaused?: boolean;
   roomMode?: string | null;
 }
@@ -53,12 +58,17 @@ export function VotingPanel({
   submissions,
   currentUserId,
   totalPlayers,
+  roomCode,
   onVote,
   onClose,
+  onRefresh,
   votingPaused = false,
   roomMode = null,
 }: VotingPanelProps) {
   const [isVoting, setIsVoting] = useState<Record<string, boolean>>({});
+  const [autoAcceptCountdown, setAutoAcceptCountdown] = useState<Record<string, number>>({});
+  const [autoAccepting, setAutoAccepting] = useState<Record<string, boolean>>({});
+  const autoAcceptFiredForRef = useRef<Set<string>>(new Set());
 
   const submissionsToVote = useMemo(
     () =>
@@ -84,6 +94,62 @@ export function VotingPanel({
     }
     return submissionsToVote.length > 0;
   }, [submissionsToVote, currentUserId]);
+
+  const getSecondsRemaining = (createdAt: string | undefined) => {
+    if (!createdAt) return 0;
+    const created = new Date(createdAt).getTime();
+    const elapsed = (Date.now() - created) / 1000;
+    return Math.max(0, Math.ceil(AUTO_ACCEPT_SECONDS - elapsed));
+  };
+
+  useEffect(() => {
+    const updateCountdowns = () => {
+      const next: Record<string, number> = {};
+      for (const s of submissionsToVote) {
+        next[s.id] = getSecondsRemaining(s.createdAt);
+      }
+      setAutoAcceptCountdown(next);
+    };
+    updateCountdowns();
+    const interval = setInterval(updateCountdowns, 1000);
+    return () => clearInterval(interval);
+  }, [submissionsToVote]);
+
+  const handleAutoAccept = useCallback(
+    async (submissionId: string) => {
+      if (autoAcceptFiredForRef.current.has(submissionId) || votingPaused) return;
+      autoAcceptFiredForRef.current.add(submissionId);
+      setAutoAccepting((prev) => ({ ...prev, [submissionId]: true }));
+      try {
+        const res = await fetch("/api/game/auto-accept-submission", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ roomCode, submissionId }),
+        });
+        if (res.ok) {
+          onRefresh?.();
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === "development")
+          console.error("Auto-accept failed:", error);
+      } finally {
+        setAutoAccepting((prev) => ({ ...prev, [submissionId]: false }));
+      }
+    },
+    [roomCode, onRefresh, votingPaused]
+  );
+
+  useEffect(() => {
+    for (const s of submissionsToVote) {
+      if (
+        autoAcceptCountdown[s.id] === 0 &&
+        !autoAcceptFiredForRef.current.has(s.id) &&
+        !votingPaused
+      ) {
+        void handleAutoAccept(s.id);
+      }
+    }
+  }, [autoAcceptCountdown, votingPaused, submissionsToVote, handleAutoAccept]);
 
   const handleVote = async (submissionId: string, cardInstanceId: string, vote: boolean) => {
     const key = `${submissionId}-${cardInstanceId}`;
@@ -168,6 +234,11 @@ export function VotingPanel({
                       Reject All
                     </Button>
                   </div>
+                )}
+                {canVoteThis && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Auto accept in {autoAcceptCountdown[submission.id] ?? getSecondsRemaining(submission.createdAt)}s
+                  </p>
                 )}
               </div>
 

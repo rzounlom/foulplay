@@ -1,6 +1,7 @@
 import {
   getCardDescriptionForDisplay,
   isNonDrinkingMode,
+  combinePenalties,
 } from "@/lib/game/display";
 
 describe("Display helpers", () => {
@@ -63,6 +64,48 @@ describe("Display helpers", () => {
       expect(getCardDescriptionForDisplay(desc, null)).toBe(desc);
       expect(getCardDescriptionForDisplay(desc, "")).toBe(desc);
       expect(getCardDescriptionForDisplay(desc, "custom")).toBe(desc);
+    });
+  });
+
+  describe("combinePenalties", () => {
+    it("combines Take X drinks", () => {
+      expect(combinePenalties(["Take 2 drinks", "Take 3 drinks"])).toEqual([
+        "Take 5 drinks",
+      ]);
+      expect(combinePenalties(["Take a drink", "Take 2 drinks"])).toEqual([
+        "Take 3 drinks",
+      ]);
+    });
+
+    it("combines Take X shots", () => {
+      expect(combinePenalties(["Take a shot", "Take a shot"])).toEqual([
+        "Take 2 shots",
+      ]);
+      expect(combinePenalties(["Take a shot", "Take 2 shots"])).toEqual([
+        "Take 3 shots",
+      ]);
+    });
+
+    it("combines Shotgun X beers", () => {
+      expect(combinePenalties(["Shotgun a beer", "Shotgun a beer"])).toEqual([
+        "Shotgun 2 beers",
+      ]);
+    });
+
+    it("combines Finish X drinks", () => {
+      expect(
+        combinePenalties(["Finish your drink", "Finish your drink"])
+      ).toEqual(["Finish 2 drinks"]);
+    });
+
+    it("keeps mixed types separate", () => {
+      expect(
+        combinePenalties(["Take 2 drinks", "Take a shot", "Take 3 drinks"])
+      ).toEqual(["Take 5 drinks", "Take a shot"]);
+    });
+
+    it("returns single penalty unchanged", () => {
+      expect(combinePenalties(["Take 2 drinks"])).toEqual(["Take 2 drinks"]);
     });
   });
 

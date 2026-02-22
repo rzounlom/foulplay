@@ -329,3 +329,27 @@ textarea:focus-visible {
 .points-awarded-popup {
   animation: points-awarded-enter 2s ease-out forwards;
 }
+
+/* Penalty reminder popup: fade in, hold visible ~3.5s, fade out */
+@keyframes penalty-reminder-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  8% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px) scale(1);
+  }
+}
+
+.penalty-reminder-popup {
+  animation: penalty-reminder-enter 3.5s ease-out forwards;
+}

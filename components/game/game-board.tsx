@@ -17,7 +17,13 @@ import { SubmitterPendingBadge } from "./submitter-pending-badge";
 import { CardsToDiscardSection } from "./cards-to-discard-section";
 import { VotingPanel } from "./voting-panel";
 import { ShareModal } from "./share-modal";
-import { getCardDescriptionForDisplay } from "@/lib/game/display";
+import {
+  getCardDescriptionForDisplay,
+  isNonDrinkingMode,
+  formatPenaltyReminder,
+  formatPenaltyPartForCombined,
+  combinePenalties,
+} from "@/lib/game/display";
 import { useScreenWakeLock } from "@/lib/hooks/useScreenWakeLock";
 
 interface Player {
@@ -167,6 +173,9 @@ export function GameBoard({
   const [pointsAwardedPopup, setPointsAwardedPopup] = useState<{
     points: number;
   } | null>(null);
+  const [penaltyReminderPopup, setPenaltyReminderPopup] = useState<string | null>(
+    null
+  );
   const [playersPanelOpen, setPlayersPanelOpen] = useState(false);
   const [votingPanelOpen, setVotingPanelOpen] = useState(false);
   const [votingDismissed, setVotingDismissed] = useState(false);
@@ -315,6 +324,7 @@ export function GameBoard({
         const payload = data as {
           pointsAwarded?: number;
           submittedBy?: { id: string };
+          cards?: Array<{ description: string }>;
         };
         const points = payload.pointsAwarded ?? 0;
         const submitterPlayerId = payload.submittedBy?.id;
@@ -336,6 +346,25 @@ export function GameBoard({
             });
           });
           setTimeout(() => setPointsAwardedPopup(null), 2200);
+          // After points animation, show drink penalty reminder (skip in non-drinking mode)
+          if (
+            !isNonDrinkingMode(room.mode) &&
+            payload.cards &&
+            payload.cards.length > 0
+          ) {
+            const penalties = payload.cards.map((c) =>
+              getCardDescriptionForDisplay(c.description, room.mode),
+            );
+            const combined = combinePenalties(penalties);
+            const penaltyText =
+              combined.length === 1
+                ? formatPenaltyReminder(combined[0])
+                : `Don't forget to ${combined.map(formatPenaltyPartForCombined).join(" AND ")}!`;
+            setTimeout(() => {
+              setPenaltyReminderPopup(penaltyText);
+              setTimeout(() => setPenaltyReminderPopup(null), 3500);
+            }, 2200);
+          }
         }
       }
       if (event === "quarter_discard_points_awarded" && data) {
@@ -1039,6 +1068,17 @@ export function GameBoard({
         </div>
       )}
 
+      {penaltyReminderPopup && (
+        <div
+          className="fixed left-1/2 bottom-[40%] -translate-x-1/2 z-50 pointer-events-none"
+          aria-live="polite"
+        >
+          <div className="penalty-reminder-popup rounded-xl bg-amber-600 text-white px-6 py-4 shadow-xl border-2 border-amber-500/50 text-lg font-bold text-center max-w-[90vw]">
+            {penaltyReminderPopup}
+          </div>
+        </div>
+      )}
+
       <ChatPanel
         roomCode={roomCode}
         messages={messages}
@@ -1057,10 +1097,16 @@ export function GameBoard({
           submissions={submissions}
           currentUserId={currentUserId}
           totalPlayers={room.players.length}
+          roomCode={roomCode}
           onVote={handleVote}
           onClose={() => {
             setVotingPanelOpen(false);
             setVotingDismissed(true);
+          }}
+          onRefresh={() => {
+            fetchSubmissions();
+            fetchRoom();
+            fetchHand();
           }}
           votingPaused={isQuarterIntermission}
           roomMode={room.mode}
