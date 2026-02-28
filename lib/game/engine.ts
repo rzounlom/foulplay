@@ -51,25 +51,62 @@ export function getTargetTierCounts(handSize: number): {
   rare: number;
 } {
   const s = Math.max(4, Math.min(12, handSize));
+  // Tier mix: rare increased for more severe opportunities; severe caps unchanged
   let hfPct = 0.55;
-  let commonPct = 0.4;
-  let rarePct = 0.05;
+  let commonPct = 0.35;
+  let rarePct = 0.1;
   if (s >= 7 && s <= 9) {
     hfPct = 0.45;
-    commonPct = 0.45;
-    rarePct = 0.1;
+    commonPct = 0.4;
+    rarePct = 0.15;
   } else if (s >= 10) {
     hfPct = 0.4;
-    commonPct = 0.45;
-    rarePct = 0.15;
+    commonPct = 0.4;
+    rarePct = 0.2;
   }
-  const hf = Math.max(1, Math.round(s * hfPct));
-  const common = Math.max(0, Math.round(s * commonPct));
-  let rare = Math.max(0, s - hf - common);
-  const total = hf + common + rare;
-  if (total !== s) {
-    const diff = s - total;
-    rare = Math.max(0, rare + diff);
+  let hf = Math.floor(s * hfPct);
+  let common = Math.floor(s * commonPct);
+  let rare = Math.floor(s * rarePct);
+  hf = Math.max(1, hf);
+  common = Math.max(0, common);
+  rare = Math.max(0, rare);
+  let remainder = s - (hf + common + rare);
+  // Distribute remainder: common first, then hf, then rare
+  const order: Array<keyof { hf: number; common: number; rare: number }> = [
+    "common",
+    "hf",
+    "rare",
+  ];
+  let idx = 0;
+  while (remainder > 0) {
+    const tier = order[idx % 3];
+    if (tier === "common") {
+      common++;
+      remainder--;
+    } else if (tier === "hf") {
+      hf++;
+      remainder--;
+    } else {
+      rare++;
+      remainder--;
+    }
+    idx++;
+  }
+  idx = 0;
+  while (remainder < 0) {
+    const tier = order[idx % 3];
+    if (tier === "common" && common > 0) {
+      common--;
+      remainder++;
+    } else if (tier === "hf" && hf > 1) {
+      hf--;
+      remainder++;
+    } else if (tier === "rare" && rare > 0) {
+      rare--;
+      remainder++;
+    }
+    idx++;
+    if (idx > 20) break;
   }
   return { hf, common, rare };
 }

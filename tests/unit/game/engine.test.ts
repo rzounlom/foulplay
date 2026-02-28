@@ -132,14 +132,66 @@ describe("Game Engine", () => {
   });
 
   describe("getTargetTierCounts", () => {
-    it("returns correct counts for hand size 6", () => {
-      const t = getTargetTierCounts(6);
-      expect(t.hf + t.common + t.rare).toBe(6);
-      expect(t.hf).toBeGreaterThanOrEqual(1);
+    it("returns counts that sum to handSize for all hand sizes 4–12", () => {
+      for (let s = 4; s <= 12; s++) {
+        const t = getTargetTierCounts(s);
+        expect(t.hf + t.common + t.rare).toBe(s);
+      }
     });
-    it("returns correct counts for hand size 10", () => {
-      const t = getTargetTierCounts(10);
-      expect(t.hf + t.common + t.rare).toBe(10);
+
+    it("returns no negative counts", () => {
+      for (let s = 4; s <= 12; s++) {
+        const t = getTargetTierCounts(s);
+        expect(t.hf).toBeGreaterThanOrEqual(0);
+        expect(t.common).toBeGreaterThanOrEqual(0);
+        expect(t.rare).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it("returns hf >= 1 for all hand sizes", () => {
+      for (let s = 4; s <= 12; s++) {
+        const t = getTargetTierCounts(s);
+        expect(t.hf).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it("returns output with hf, common, rare keys", () => {
+      const t = getTargetTierCounts(6);
+      expect(t).toHaveProperty("hf");
+      expect(t).toHaveProperty("common");
+      expect(t).toHaveProperty("rare");
+      expect(Object.keys(t)).toHaveLength(3);
+    });
+
+    it("matches new tier mix for 4–6: rare ~10%", () => {
+      for (let s = 4; s <= 6; s++) {
+        const t = getTargetTierCounts(s);
+        expect(t.rare).toBeGreaterThanOrEqual(0);
+        expect(t.rare).toBeLessThanOrEqual(Math.ceil(s * 0.15));
+      }
+    });
+
+    it("matches new tier mix for 7–9: rare ~15%", () => {
+      for (let s = 7; s <= 9; s++) {
+        const t = getTargetTierCounts(s);
+        expect(t.rare).toBeGreaterThanOrEqual(1);
+        expect(t.rare).toBeLessThanOrEqual(Math.ceil(s * 0.2));
+      }
+    });
+
+    it("matches new tier mix for 10–12: rare ~20%", () => {
+      for (let s = 10; s <= 12; s++) {
+        const t = getTargetTierCounts(s);
+        expect(t.rare).toBeGreaterThanOrEqual(2);
+        expect(t.rare).toBeLessThanOrEqual(Math.ceil(s * 0.25));
+      }
+    });
+
+    it("clamps handSize to 4–12", () => {
+      const t1 = getTargetTierCounts(1);
+      expect(t1.hf + t1.common + t1.rare).toBe(4);
+      const t20 = getTargetTierCounts(20);
+      expect(t20.hf + t20.common + t20.rare).toBe(12);
     });
   });
 
