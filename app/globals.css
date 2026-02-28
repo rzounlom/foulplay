@@ -330,6 +330,11 @@ textarea:focus-visible {
   animation: points-awarded-enter 2s ease-out forwards;
 }
 
+/* Cards rejected popup: same float-up as points, red background for clarity */
+.cards-rejected-popup {
+  animation: points-awarded-enter 2s ease-out forwards;
+}
+
 /* Penalty reminder popup: fade in, hold visible ~3.5s, fade out */
 @keyframes penalty-reminder-enter {
   0% {

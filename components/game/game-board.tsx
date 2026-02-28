@@ -176,6 +176,9 @@ export function GameBoard({
   const [penaltyReminderPopup, setPenaltyReminderPopup] = useState<string | null>(
     null
   );
+  const [cardsRejectedPopup, setCardsRejectedPopup] = useState<{
+    cardCount: number;
+  } | null>(null);
   const [playersPanelOpen, setPlayersPanelOpen] = useState(false);
   const [votingPanelOpen, setVotingPanelOpen] = useState(false);
   const [votingDismissed, setVotingDismissed] = useState(false);
@@ -403,6 +406,25 @@ export function GameBoard({
             });
           });
           setTimeout(() => setPointsAwardedPopup(null), 2200);
+        }
+      }
+      if (event === "card_rejected" && data) {
+        const payload = data as {
+          submittedBy?: { id: string };
+          cardCount?: number;
+        };
+        const submitterPlayerId = payload.submittedBy?.id;
+        const currentPlayerId = roomRef.current.players.find(
+          (p) => p.user.id === currentUserId,
+        )?.id;
+        const isSubmitter =
+          submitterPlayerId &&
+          currentPlayerId &&
+          submitterPlayerId === currentPlayerId;
+        const cardCount = payload.cardCount ?? 1;
+        if (isSubmitter && cardCount > 0) {
+          setCardsRejectedPopup({ cardCount });
+          setTimeout(() => setCardsRejectedPopup(null), 2200);
         }
       }
       if (
@@ -1075,6 +1097,19 @@ export function GameBoard({
         >
           <div className="points-awarded-popup rounded-xl bg-emerald-600 text-white px-6 py-4 shadow-xl border-2 border-emerald-500/50 text-2xl font-bold">
             +{pointsAwardedPopup.points} pts
+          </div>
+        </div>
+      )}
+
+      {cardsRejectedPopup && (
+        <div
+          className="fixed left-1/2 bottom-[40%] -translate-x-1/2 z-50 pointer-events-none"
+          aria-live="polite"
+        >
+          <div className="cards-rejected-popup rounded-xl bg-red-600 text-white px-6 py-4 shadow-xl border-2 border-red-500/50 text-xl font-bold text-center max-w-[90vw]">
+            {cardsRejectedPopup.cardCount === 1
+              ? "Card rejected"
+              : `${cardsRejectedPopup.cardCount} cards rejected`}
           </div>
         </div>
       )}
