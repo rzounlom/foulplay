@@ -3,7 +3,9 @@ import {
   drawRandomCardIndices,
   drawRandomCardIndexRespectingSevere,
   drawRandomCardIndicesRespectingSevere,
+  drawRandomCardIndicesSmart,
   getMaxSevereCardsInHand,
+  getTargetTierCounts,
   initializeGameState,
   advanceTurn,
   type GameState,
@@ -27,9 +29,13 @@ describe("Game Engine", () => {
       expect(getMaxSevereCardsInHand("party", 10)).toBe(2);
     });
 
-    it("returns Infinity for lit mode", () => {
-      expect(getMaxSevereCardsInHand("lit", 4)).toBe(Infinity);
-      expect(getMaxSevereCardsInHand("lit", 8)).toBe(Infinity);
+    it("returns 2/3/4 for lit mode by hand size", () => {
+      expect(getMaxSevereCardsInHand("lit", 4)).toBe(2);
+      expect(getMaxSevereCardsInHand("lit", 6)).toBe(2);
+      expect(getMaxSevereCardsInHand("lit", 7)).toBe(3);
+      expect(getMaxSevereCardsInHand("lit", 9)).toBe(3);
+      expect(getMaxSevereCardsInHand("lit", 10)).toBe(4);
+      expect(getMaxSevereCardsInHand("lit", 12)).toBe(4);
     });
 
     it("returns Infinity for null/unknown mode", () => {
@@ -122,6 +128,53 @@ describe("Game Engine", () => {
         6
       );
       expect(indices).toHaveLength(3);
+    });
+  });
+
+  describe("getTargetTierCounts", () => {
+    it("returns correct counts for hand size 6", () => {
+      const t = getTargetTierCounts(6);
+      expect(t.hf + t.common + t.rare).toBe(6);
+      expect(t.hf).toBeGreaterThanOrEqual(1);
+    });
+    it("returns correct counts for hand size 10", () => {
+      const t = getTargetTierCounts(10);
+      expect(t.hf + t.common + t.rare).toBe(10);
+    });
+  });
+
+  describe("drawRandomCardIndicesSmart", () => {
+    const cardsWithTier = [
+      { severity: "mild", tier: "hf" as const },
+      { severity: "mild", tier: "common" as const },
+      { severity: "severe", tier: "rare" as const },
+    ];
+
+    it("returns correct count", () => {
+      const indices = drawRandomCardIndicesSmart(
+        cardsWithTier,
+        2,
+        "casual",
+        6,
+        []
+      );
+      expect(indices).toHaveLength(2);
+    });
+
+    it("respects severe cap in casual mode", () => {
+      for (let run = 0; run < 30; run++) {
+        const indices = drawRandomCardIndicesSmart(
+          cardsWithTier,
+          3,
+          "casual",
+          6,
+          []
+        );
+        const severeCount = indices.filter(
+          (i) => cardsWithTier[i].severity === "severe"
+        ).length;
+        expect(severeCount).toBeLessThanOrEqual(1);
+      }
     });
   });
 

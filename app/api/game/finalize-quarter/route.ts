@@ -4,7 +4,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
-import { drawRandomCardIndicesRespectingSevere } from "@/lib/game/engine";
+import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
 
 const finalizeQuarterSchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
@@ -136,17 +136,17 @@ export async function POST(request: NextRequest) {
           },
           include: { card: true },
         });
-        const initialSevereCount = remainingHand.filter(
-          (ci) => ci.card.severity === "severe"
-        ).length;
+        const currentHandIndices = remainingHand
+          .map((ci) => cards.findIndex((c) => c.id === ci.cardId))
+          .filter((i) => i >= 0);
         const handSize = room.handSize ?? 6;
         const mode = room.mode ?? null;
-        const cardIndices = drawRandomCardIndicesRespectingSevere(
+        const cardIndices = drawRandomCardIndicesSmart(
           cards,
           cardsToDeal,
           mode,
           handSize,
-          initialSevereCount
+          currentHandIndices
         );
         const newCardInstances = cardIndices.map((cardIndex) => ({
           roomId: room!.id,

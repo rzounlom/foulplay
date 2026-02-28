@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
-import {
-  drawRandomCardIndexRespectingSevere,
-  getMaxSevereCardsInHand,
-} from "@/lib/game/engine";
+import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 
@@ -108,7 +105,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Count severe cards in hand (respect mode limits)
+    // Build current hand indices for smart draw (tier + severe aware)
     const handCardInstances = await prisma.cardInstance.findMany({
       where: {
         roomId: room.id,
@@ -117,14 +114,16 @@ export async function POST(request: NextRequest) {
       },
       include: { card: true },
     });
-    const severeInHand = handCardInstances.filter(
-      (ci) => ci.card.severity === "severe"
-    ).length;
-    const maxSevere = getMaxSevereCardsInHand(room.mode ?? null, handSizeLimit);
-    const cardIndex = drawRandomCardIndexRespectingSevere(
+    const currentHandIndices = handCardInstances
+      .map((ci) => cards.findIndex((c) => c.id === ci.cardId))
+      .filter((i) => i >= 0);
+
+    const [cardIndex] = drawRandomCardIndicesSmart(
       cards,
-      severeInHand,
-      maxSevere
+      1,
+      room.mode ?? null,
+      handSizeLimit,
+      currentHandIndices
     );
     const selectedCard = cards[cardIndex];
 

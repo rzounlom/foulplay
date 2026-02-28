@@ -3,7 +3,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 import { getRoomChannel } from "@/lib/ably/client";
-import { drawRandomCardIndicesRespectingSevere } from "@/lib/game/engine";
+import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
 
 const joinRoomSchema = z.object({
   code: z.string().length(6, "Room code must be 6 characters"),
@@ -87,11 +87,12 @@ export async function POST(request: NextRequest) {
       if (cards.length > 0) {
         const handSize = room.handSize ?? 6;
         const mode = room.mode ?? null;
-        const cardIndices = drawRandomCardIndicesRespectingSevere(
+        const cardIndices = drawRandomCardIndicesSmart(
           cards,
           handSize,
           mode,
-          handSize
+          handSize,
+          [] // new player, empty hand
         );
         const cardInstancesToCreate = cardIndices.map((cardIndex) => ({
           roomId: room.id,

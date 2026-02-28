@@ -29,6 +29,7 @@ async function main() {
         severity: card.severity,
         type: card.type,
         points: card.points || 0,
+        tier: card.tier,
       },
     });
   }
@@ -43,6 +44,7 @@ async function main() {
         severity: card.severity,
         type: card.type,
         points: card.points || 0,
+        tier: card.tier,
       },
     });
   }

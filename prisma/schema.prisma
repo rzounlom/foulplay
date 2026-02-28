@@ -92,6 +92,7 @@ model Card {
   severity    String   // "mild" | "moderate" | "severe"
   type        String   // "action" | "challenge" | "penalty"
   points      Int      @default(0) // Points awarded for this card
+  tier        String   @default("common") // "hf" | "common" | "rare" - for hand composition
   createdAt   DateTime @default(now())
   cardInstances CardInstance[]
 
