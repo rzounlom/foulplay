@@ -25,6 +25,7 @@ export type RoomEvent =
   | {
       type: "submission.accepted";
       roomId: string;
+      roomCode: string;
       version: number;
       submissionId: string;
       acceptedBy: "players" | "auto";
@@ -32,6 +33,7 @@ export type RoomEvent =
   | {
       type: "submission.rejected";
       roomId: string;
+      roomCode: string;
       version: number;
       submissionId: string;
     }

@@ -92,6 +92,20 @@ describe("Approval Logic", () => {
       // 2 players, 1 approve, 1 reject - approvals checked first, 1 >= 1, so approved
       expect(canResolveSubmission(2, 1, 1)).toBe("approved");
     });
+
+    it("should resolve immediately when 50% or more of eligible voters have voted (majority rule)", () => {
+      // 4 players, 2 eligible voters (submitter excluded). 2 approve = 50%+ of eligible
+      expect(canResolveSubmission(4, 2, 0, 3)).toBe("approved");
+      // 4 players, 2 eligible voters. 2 reject = 50%+ of eligible
+      expect(canResolveSubmission(4, 0, 2, 3)).toBe("rejected");
+    });
+
+    it("should resolve immediately when all eligible voters have voted", () => {
+      // 3 players, 2 eligible voters. Both voted: 1 approve, 1 reject. Majority = reject
+      expect(canResolveSubmission(3, 1, 1, 2)).toBe("rejected");
+      // 3 players, 2 eligible voters. Both voted: 2 approve. Approved
+      expect(canResolveSubmission(3, 2, 0, 2)).toBe("approved");
+    });
   });
 
   describe("getVoteCounts", () => {

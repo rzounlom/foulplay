@@ -7,6 +7,7 @@ import {
 import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { getRoomChannel } from "@/lib/ably/client";
+import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 
@@ -224,6 +225,7 @@ export async function POST(request: NextRequest) {
     }
 
     const totalPlayers = room.players.length;
+    const eligibleVoters = totalPlayers - 1; // Submitter cannot vote
     const autoDrawnCards: Array<{
       id: string;
       card: {
@@ -247,7 +249,8 @@ export async function POST(request: NextRequest) {
       const resolution = canResolveSubmission(
         totalPlayers,
         voteCounts.approvals,
-        voteCounts.rejections
+        voteCounts.rejections,
+        eligibleVoters
       );
       
       if (resolution === "approved") {
@@ -290,6 +293,7 @@ export async function POST(request: NextRequest) {
     // Check if submission is fully resolved (all cards are approved or rejected)
     const allResolved = pendingCards.length === 0;
     let submissionStatus = submission.status;
+    let newVersion = room.version;
     if (allResolved) {
       // If all cards are resolved, mark submission as resolved
       // Use "approved" if at least one card was approved, otherwise "rejected"
@@ -298,6 +302,37 @@ export async function POST(request: NextRequest) {
         where: { id: submissionId },
         data: { status: submissionStatus },
       });
+      // Increment room version for authoritative state channel
+      const updatedRoom = await prisma.room.update({
+        where: { id: room.id },
+        data: { version: { increment: 1 } },
+        select: { version: true },
+      });
+      newVersion = updatedRoom.version;
+
+      // Publish to room:{roomCode}:state for client sync
+      try {
+        if (submissionStatus === "approved") {
+          await publishRoomEvent({
+            type: "submission.accepted",
+            roomId: room.id,
+            roomCode: room.code,
+            version: newVersion,
+            submissionId,
+            acceptedBy: "players",
+          });
+        } else {
+          await publishRoomEvent({
+            type: "submission.rejected",
+            roomId: room.id,
+            roomCode: room.code,
+            version: newVersion,
+            submissionId,
+          });
+        }
+      } catch (publishError) {
+        console.error("Failed to publish room event:", publishError);
+      }
     }
 
     // Award points and auto-draw cards for approved cards
@@ -529,7 +564,8 @@ export async function POST(request: NextRequest) {
         resolution: canResolveSubmission(
           totalPlayers,
           voteCounts.approvals,
-          voteCounts.rejections
+          voteCounts.rejections,
+          eligibleVoters
         ),
       };
     });

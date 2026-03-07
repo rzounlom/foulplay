@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
 
-const AUTO_ACCEPT_SECONDS = 60;
+import { AUTO_ACCEPT_SECONDS } from "@/lib/game/constants";
 
 interface Card {
   id: string;

@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { getRoomChannel } from "@/lib/ably/client";
 import { prisma } from "@/lib/db/prisma";
+import { enqueue } from "@/lib/queue/qstash";
+import { AUTO_ACCEPT_DELAY } from "@/lib/game/constants";
 import { z } from "zod";
 
 const submitCardSchema = z.object({
@@ -175,6 +177,21 @@ export async function POST(request: NextRequest) {
           status: "submitted",
         },
       });
+
+      // Enqueue durable auto-accept callback
+      const appUrl =
+        process.env.APP_URL ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        "http://localhost:3000";
+      try {
+        await enqueue({
+          url: `${appUrl}/api/qstash/auto-accept`,
+          body: { submissionId: submission.id },
+          delay: AUTO_ACCEPT_DELAY,
+        });
+      } catch (enqueueError) {
+        console.error("Failed to enqueue auto-accept job:", enqueueError);
+      }
     }
 
     // Emit card_submitted event via Ably
