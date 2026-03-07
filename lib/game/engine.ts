@@ -5,7 +5,7 @@
  * Card drawing: All cards have equal probability. Cards never run out; duplicates allowed.
  */
 
-import { getCardsForSport, type Sport } from "./cards";
+import { getCardsForSport, type Sport, type Tier } from "./cards";
 
 export type GameMode = "casual" | "party" | "lit";
 
@@ -38,8 +38,8 @@ export function getMaxSevereCardsInHand(
   return Infinity;
 }
 
-/** hf = high-frequency; common = gameplay; rare = big moments */
-export type Tier = "hf" | "common" | "rare";
+/** Re-export Tier from cards for consumers of engine */
+export type { Tier } from "./cards";
 
 /**
  * Target tier counts for hand composition (hand size 4–12).
