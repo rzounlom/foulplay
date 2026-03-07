@@ -210,7 +210,74 @@ describe("QStash auto-accept callback", () => {
     expect(mockPublishRoomEvent).not.toHaveBeenCalled();
   });
 
-  it("publishes submission.accepted when zero votes (force-accept)", async () => {
+  it("callback remains idempotent: second call with same submission no-ops when already resolved", async () => {
+    const submission = {
+      id: "sub_123",
+      roomId: "room_123",
+      status: "approved",
+      room: { id: "room_123", code: "ABC123" },
+    };
+    mockPrisma.cardSubmission.findUnique.mockResolvedValue(submission as never);
+
+    const request = new NextRequest("http://localhost/api/qstash/auto-accept", {
+      method: "POST",
+      body: JSON.stringify({ submissionId: "sub_123" }),
+    });
+
+    const response1 = await autoAcceptHandler(request);
+    const response2 = await autoAcceptHandler(request);
+
+    expect(response1.status).toBe(200);
+    expect(response2.status).toBe(200);
+    expect(processAutoAccept).not.toHaveBeenCalled();
+    expect(mockPublishRoomEvent).not.toHaveBeenCalled();
+  });
+
+  it("publishes submission.accepted when pending cards are auto-accepted", async () => {
+    const submission = {
+      id: "sub_123",
+      roomId: "room_123",
+      status: "pending",
+      room: { id: "room_123", code: "ABC123" },
+    };
+    mockPrisma.cardSubmission.findUnique.mockResolvedValue(submission as never);
+    mockPrisma.room.update.mockResolvedValue({
+      id: "room_123",
+      version: 2,
+    } as never);
+
+    (processAutoAccept as jest.Mock).mockResolvedValue({
+      ok: true,
+      noop: false,
+      approvedCount: 2,
+      rejectedCount: 0,
+      room: { id: "room_123", code: "ABC123", version: 1 },
+    });
+
+    const request = new NextRequest("http://localhost/api/qstash/auto-accept", {
+      method: "POST",
+      body: JSON.stringify({ submissionId: "sub_123" }),
+    });
+
+    const response = await autoAcceptHandler(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.ok).toBe(true);
+    expect(data.noop).toBe(false);
+    expect(data.approvedCount).toBe(2);
+
+    expect(mockPublishRoomEvent).toHaveBeenCalledWith({
+      type: "submission.accepted",
+      roomId: "room_123",
+      roomCode: "ABC123",
+      version: 2,
+      submissionId: "sub_123",
+      acceptedBy: "auto",
+    });
+  });
+
+  it("publishes submission.rejected when all cards in batch were rejected by votes", async () => {
     const submission = {
       id: "sub_123",
       roomId: "room_123",
@@ -246,12 +313,11 @@ describe("QStash auto-accept callback", () => {
     expect(data.rejectedCount).toBe(2);
 
     expect(mockPublishRoomEvent).toHaveBeenCalledWith({
-      type: "submission.accepted",
+      type: "submission.rejected",
       roomId: "room_123",
       roomCode: "ABC123",
       version: 2,
       submissionId: "sub_123",
-      acceptedBy: "auto",
     });
   });
 });

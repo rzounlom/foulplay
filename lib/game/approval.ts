@@ -36,6 +36,11 @@ export function canResolveSubmission(
   const totalVotes = approvalVotes + rejectionVotes;
   const votersForAllVoted = eligibleVoterCount ?? totalPlayers;
 
+  // No votes yet: cannot resolve from votes; remains pending (e.g. for auto-accept at timeout)
+  if (totalVotes === 0) {
+    return "pending";
+  }
+
   // If we have enough approvals, approve
   if (approvalVotes >= required) {
     return "approved";

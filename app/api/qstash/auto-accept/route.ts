@@ -37,21 +37,31 @@ export async function autoAcceptHandler(request: NextRequest) {
       return NextResponse.json({ ok: true, noop: true }, { status: 200 });
     }
 
-    // Increment room version and publish submission.accepted (including zero-vote auto-accept)
+    // Increment room version and publish appropriate event
     const updatedRoom = await prisma.room.update({
       where: { id: result.room.id },
       data: { version: { increment: 1 } },
       select: { version: true },
     });
 
-    await publishRoomEvent({
-      type: "submission.accepted",
-      roomId: result.room.id,
-      roomCode: result.room.code,
-      version: updatedRoom.version,
-      submissionId,
-      acceptedBy: "auto",
-    });
+    if (result.approvedCount > 0) {
+      await publishRoomEvent({
+        type: "submission.accepted",
+        roomId: result.room.id,
+        roomCode: result.room.code,
+        version: updatedRoom.version,
+        submissionId,
+        acceptedBy: "auto",
+      });
+    } else if (result.rejectedCount > 0) {
+      await publishRoomEvent({
+        type: "submission.rejected",
+        roomId: result.room.id,
+        roomCode: result.room.code,
+        version: updatedRoom.version,
+        submissionId,
+      });
+    }
 
     return NextResponse.json({
       ok: true,

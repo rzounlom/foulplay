@@ -471,6 +471,69 @@ describe("Game API Routes", () => {
         })
       );
     });
+
+    it("allows resubmitting a previously rejected card as fresh submission", async () => {
+      const gameState = {
+        id: "gamestate_123",
+        roomId: "room_123",
+        currentTurnPlayerId: "player_123",
+        activeCardInstanceId: null,
+        deckSeed: "test-seed",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const previouslyRejectedCard = {
+        ...mockCardInstance,
+        id: "card_instance_rejected",
+        status: "drawn",
+        submissionId: null,
+      };
+      const submission = {
+        id: "submission_new",
+        roomId: "room_123",
+        submittedById: "player_123",
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        status: "active",
+        gameState,
+        handSize: 5,
+        canTurnInCards: true,
+        quarterIntermissionEndsAt: null,
+        players: [{ ...mockPlayer, userId: mockUser.id }],
+      });
+      mockPrisma.player.findFirst = jest.fn().mockResolvedValue(mockPlayer);
+      mockPrisma.cardInstance.findMany = jest
+        .fn()
+        .mockResolvedValueOnce([previouslyRejectedCard])
+        .mockResolvedValueOnce([]);
+      mockPrisma.cardSubmission.findFirst = jest.fn().mockResolvedValue(null);
+      mockPrisma.cardSubmission.create = jest.fn().mockResolvedValue(submission);
+      mockPrisma.cardInstance.updateMany = jest.fn().mockResolvedValue({
+        count: 1,
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/game/submit", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC123",
+          cardInstanceIds: ["card_instance_rejected"],
+        }),
+      });
+
+      const response = await submitCard(request);
+      expect(response.status).toBe(200);
+      expect(mockPrisma.cardSubmission.create).toHaveBeenCalled();
+      expect(enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: { submissionId: "submission_new" },
+        })
+      );
+    });
   });
 
   describe("GET /api/game/hand", () => {

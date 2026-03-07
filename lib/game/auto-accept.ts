@@ -159,6 +159,8 @@ export async function processAutoAccept(
 
   const approvedCards: typeof updatedSubmission.cardInstances = [];
   const rejectedCards: typeof updatedSubmission.cardInstances = [];
+  const approvedIds = new Set<string>();
+  const rejectedIds = new Set<string>();
 
   for (const cardInstance of updatedSubmission.cardInstances) {
     const voteCounts = getVoteCounts(cardInstance.votes || []);
@@ -168,23 +170,23 @@ export async function processAutoAccept(
       voteCounts.rejections,
       eligibleVoters
     );
-    if (resolution === "approved") approvedCards.push(cardInstance);
-    else if (resolution === "rejected") rejectedCards.push(cardInstance);
+    if (resolution === "approved") {
+      approvedCards.push(cardInstance);
+      approvedIds.add(cardInstance.id);
+    } else if (resolution === "rejected") {
+      rejectedCards.push(cardInstance);
+      rejectedIds.add(cardInstance.id);
+    }
   }
 
-  // Zero-vote / force-accept: when timer expires (QStash), always accept to prevent stalled gameplay
-  // - No votes or cards still pending: treat all as accepted
-  // - All rejected by votes: force-accept (override) when skipElapsedCheck so we publish submission.accepted
-  if (approvedCards.length === 0) {
-    if (
-      rejectedCards.length === 0 ||
-      options.skipElapsedCheck // QStash timer: force-accept even when all rejected
-    ) {
-      for (const cardInstance of updatedSubmission.cardInstances) {
-        approvedCards.push(cardInstance);
-      }
-      rejectedCards.length = 0;
-    }
+  // At timeout: auto-accept only PENDING cards in this batch. Never override rejected cards.
+  // Pending = in submission but not resolved by votes (no approval/rejection threshold met).
+  // We only reach this code when timer has expired (skipElapsedCheck or elapsed check passed).
+  const pendingCards = updatedSubmission.cardInstances.filter(
+    (ci) => !approvedIds.has(ci.id) && !rejectedIds.has(ci.id)
+  );
+  for (const card of pendingCards) {
+    approvedCards.push(card);
   }
 
   if (approvedCards.length > 0) {

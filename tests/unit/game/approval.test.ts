@@ -106,6 +106,11 @@ describe("Approval Logic", () => {
       // 3 players, 2 eligible voters. Both voted: 2 approve. Approved
       expect(canResolveSubmission(3, 2, 0, 2)).toBe("approved");
     });
+
+    it("should return pending when no votes yet (for auto-accept at timeout)", () => {
+      expect(canResolveSubmission(4, 0, 0)).toBe("pending");
+      expect(canResolveSubmission(4, 0, 0, 3)).toBe("pending");
+    });
   });
 
   describe("getVoteCounts", () => {
