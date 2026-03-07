@@ -36,6 +36,7 @@ jest.mock("next/server", () => ({
 
 import { NextRequest } from "next/server";
 import { GET as getRoom, PATCH as updateRoom } from "@/app/api/rooms/[code]/route";
+import { GET as getSnapshot } from "@/app/api/rooms/[code]/snapshot/route";
 import { POST as createRoom } from "@/app/api/rooms/route";
 import { POST as joinRoom } from "@/app/api/rooms/join/route";
 import { mockUser, mockPlayer, mockRoom } from "@/tests/helpers/mocks";
@@ -78,6 +79,12 @@ jest.mock("@/lib/db/prisma", () => {
         create: jest.fn(),
         findFirst: jest.fn(),
         findUnique: jest.fn(),
+      },
+      cardSubmission: {
+        findMany: jest.fn(),
+      },
+      cardInstance: {
+        findMany: jest.fn(),
       },
     },
   };
@@ -314,6 +321,44 @@ describe("Room API Routes", () => {
 
       const request = new NextRequest("http://localhost:3000/api/rooms/INVALID");
       const response = await getRoom(request, {
+        params: Promise.resolve({ code: "INVALID" }),
+      });
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe("GET /api/rooms/[code]/snapshot", () => {
+    it("should return snapshot with version, players, and hand", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        version: 1,
+        gameState: null,
+      });
+      mockPrisma.cardSubmission.findMany = jest.fn().mockResolvedValue([]);
+      mockPrisma.cardInstance.findMany = jest.fn().mockResolvedValue([]);
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/ABC123/snapshot");
+      const response = await getSnapshot(request, {
+        params: Promise.resolve({ code: "ABC123" }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toHaveProperty("roomId", "room_123");
+      expect(data).toHaveProperty("roomCode", "ABC123");
+      expect(data).toHaveProperty("version", 1);
+      expect(data).toHaveProperty("mode", "casual");
+      expect(data).toHaveProperty("players");
+      expect(data).toHaveProperty("submissions");
+      expect(data).toHaveProperty("hand");
+    });
+
+    it("should return 404 when room does not exist", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue(null);
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/INVALID/snapshot");
+      const response = await getSnapshot(request, {
         params: Promise.resolve({ code: "INVALID" }),
       });
 

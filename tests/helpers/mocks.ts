@@ -25,6 +25,7 @@ export const mockPlayer = {
 export const mockRoom = {
   id: "room_123",
   code: "ABC123",
+  version: 0,
   hostId: "player_123",
   status: "lobby",
   mode: "casual",

@@ -26,6 +26,7 @@ model User {
 model Room {
   id                  String   @id @default(cuid())
   code                String   @unique
+  version             Int      @default(0) // Authoritative version; increment on gameplay mutations
   hostId              String
   status              String   @default("lobby") // lobby | active | ended
   mode                String?
