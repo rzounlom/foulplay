@@ -25,7 +25,6 @@ export async function publishRoomEvent(event: RoomEvent): Promise<void> {
   const channel = client.channels.get(channelName);
   await channel.publish("event", event);
   if (process.env.NODE_ENV === "development") {
-    // eslint-disable-next-line no-console -- dev logging for realtime events
     console.debug("[publishRoomEvent]", event.type, channelName, "v" + event.version);
   }
 }

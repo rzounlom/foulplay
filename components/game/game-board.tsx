@@ -580,7 +580,7 @@ export function GameBoard({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ roomCode }),
     }).then(() => fetchRoom());
-  }, [allDoneCountdown, isHost, roomCode]);
+  }, [allDoneCountdown, isHost, roomCode, fetchRoom]);
 
   // Countdown timer for quarter intermission; when it hits 0, only host calls finalize-quarter (avoids duplicate calls from all clients)
   // Skip when all-done countdown is active (that path handles finalize)
@@ -605,7 +605,7 @@ export function GameBoard({
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [endsAt, roomCode, isHost, allDoneCountdown]);
+  }, [endsAt, roomCode, isHost, allDoneCountdown, fetchRoom]);
 
   // All-done 5-second countdown tick
   useEffect(() => {
