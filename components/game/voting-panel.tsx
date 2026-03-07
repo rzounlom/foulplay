@@ -67,7 +67,6 @@ export function VotingPanel({
 }: VotingPanelProps) {
   const [isVoting, setIsVoting] = useState<Record<string, boolean>>({});
   const [autoAcceptCountdown, setAutoAcceptCountdown] = useState<Record<string, number>>({});
-  const [autoAccepting, setAutoAccepting] = useState<Record<string, boolean>>({});
   const autoAcceptFiredForRef = useRef<Set<string>>(new Set());
 
   const submissionsToVote = useMemo(
@@ -119,7 +118,6 @@ export function VotingPanel({
     async (submissionId: string) => {
       if (autoAcceptFiredForRef.current.has(submissionId) || votingPaused) return;
       autoAcceptFiredForRef.current.add(submissionId);
-      setAutoAccepting((prev) => ({ ...prev, [submissionId]: true }));
       try {
         const res = await fetch("/api/game/auto-accept-submission", {
           method: "POST",
@@ -132,8 +130,6 @@ export function VotingPanel({
       } catch (error) {
         if (process.env.NODE_ENV === "development")
           console.error("Auto-accept failed:", error);
-      } finally {
-        setAutoAccepting((prev) => ({ ...prev, [submissionId]: false }));
       }
     },
     [roomCode, onRefresh, votingPaused]

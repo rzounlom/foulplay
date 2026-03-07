@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
+import { gameModeSchemaOptional } from "@/lib/game/modes";
 import { z } from "zod";
 import { getRoomChannel } from "@/lib/ably/client";
 
 const updateRoomSchema = z.object({
-  mode: z.string().optional(),
+  mode: gameModeSchemaOptional,
   sport: z.string().optional(),
   handSize: z.number().int().min(4).max(12).optional(),
   showPoints: z.boolean().optional(),

@@ -31,11 +31,20 @@ describe("Game Engine", () => {
 
     it("returns 2/3/4 for lit mode by hand size", () => {
       expect(getMaxSevereCardsInHand("lit", 4)).toBe(2);
+      expect(getMaxSevereCardsInHand("lit", 5)).toBe(2);
       expect(getMaxSevereCardsInHand("lit", 6)).toBe(2);
       expect(getMaxSevereCardsInHand("lit", 7)).toBe(3);
+      expect(getMaxSevereCardsInHand("lit", 8)).toBe(3);
       expect(getMaxSevereCardsInHand("lit", 9)).toBe(3);
       expect(getMaxSevereCardsInHand("lit", 10)).toBe(4);
+      expect(getMaxSevereCardsInHand("lit", 11)).toBe(4);
       expect(getMaxSevereCardsInHand("lit", 12)).toBe(4);
+    });
+
+    it("returns Infinity for anything_goes mode", () => {
+      expect(getMaxSevereCardsInHand("anything_goes", 4)).toBe(Infinity);
+      expect(getMaxSevereCardsInHand("anything_goes", 6)).toBe(Infinity);
+      expect(getMaxSevereCardsInHand("anything_goes", 12)).toBe(Infinity);
     });
 
     it("returns Infinity for null/unknown mode", () => {
@@ -125,6 +134,16 @@ describe("Game Engine", () => {
         cards,
         3,
         "lit",
+        6
+      );
+      expect(indices).toHaveLength(3);
+    });
+
+    it("allows any count for anything_goes mode", () => {
+      const indices = drawRandomCardIndicesRespectingSevere(
+        cards,
+        3,
+        "anything_goes",
         6
       );
       expect(indices).toHaveLength(3);
@@ -276,6 +295,24 @@ describe("Game Engine", () => {
       }
     });
 
+    it("allows any severe count in anything_goes mode", () => {
+      const cardsAllSevere = [
+        { severity: "severe", tier: "rare" as const },
+        { severity: "severe", tier: "rare" as const },
+        { severity: "severe", tier: "rare" as const },
+      ];
+      const indices = drawRandomCardIndicesSmart(
+        cardsAllSevere,
+        3,
+        "anything_goes",
+        6,
+        []
+      );
+      expect(indices).toHaveLength(3);
+      const severeCount = indices.filter((i) => cardsAllSevere[i].severity === "severe").length;
+      expect(severeCount).toBe(3);
+    });
+
     it("initial deal uses target tier mix", () => {
       const deck = [
         { severity: "mild", tier: "hf" as const },
@@ -284,7 +321,6 @@ describe("Game Engine", () => {
         { severity: "mild", tier: "common" as const },
         { severity: "mild", tier: "rare" as const },
       ];
-      const target = getTargetTierCounts(6);
       // Run many initial deals and verify tier counts sum to 6 and severe cap holds
       for (let run = 0; run < 30; run++) {
         const indices = drawRandomCardIndicesSmart(deck, 6, "casual", 6, []);

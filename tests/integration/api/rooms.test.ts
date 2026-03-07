@@ -183,6 +183,52 @@ describe("Room API Routes", () => {
       const response = await createRoom(request, { params: Promise.resolve({ code: "" }) });
       expect(response.status).toBe(400);
     });
+
+    it("should accept valid modes", async () => {
+      mockGetCurrentUserFromRequest.mockResolvedValue(mockUser);
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue(null);
+      mockPrisma.room.create = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        mode: "lit",
+        sport: "football",
+      });
+      (mockPrisma as { $transaction: jest.Mock }).$transaction = jest.fn(
+        async (cb: (tx: Record<string, unknown>) => Promise<unknown>) => {
+        const tx = {
+          room: { create: jest.fn().mockResolvedValue({ ...mockRoom, mode: "lit", sport: "football" }) },
+          player: { create: jest.fn().mockResolvedValue(mockPlayer) },
+        };
+        return cb(tx);
+        }
+      );
+
+      for (const mode of ["casual", "party", "lit", "anything_goes", "non-drinking"]) {
+        const request = new NextRequest("http://localhost:3000/api/rooms", {
+          method: "POST",
+          body: JSON.stringify({ mode, sport: "football", handSize: 6 }),
+        });
+        const response = await createRoom(request, { params: Promise.resolve({ code: "" }) });
+        expect(response.status).toBe(201);
+      }
+    });
+
+    it("should reject invalid mode on create", async () => {
+      mockGetCurrentUserFromRequest.mockResolvedValue(mockUser);
+
+      const request = new NextRequest("http://localhost:3000/api/rooms", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "invalid_mode",
+          sport: "football",
+          handSize: 6,
+        }),
+      });
+
+      const response = await createRoom(request, { params: Promise.resolve({ code: "" }) });
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toBe("Invalid request body");
+    });
   });
 
   describe("POST /api/rooms/join", () => {
@@ -325,6 +371,52 @@ describe("Room API Routes", () => {
       });
 
       expect(response.status).toBe(403);
+    });
+
+    it("should reject invalid mode on PATCH", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        players: [mockPlayer],
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/ABC123", {
+        method: "PATCH",
+        body: JSON.stringify({
+          mode: "freeform_invalid",
+        }),
+      });
+
+      const response = await updateRoom(request, {
+        params: Promise.resolve({ code: "ABC123" }),
+      });
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toBe("Invalid request body");
+    });
+
+    it("should allow PATCH without mode (optional)", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        players: [mockPlayer],
+      });
+      mockPrisma.room.update = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        handSize: 8,
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/ABC123", {
+        method: "PATCH",
+        body: JSON.stringify({
+          handSize: 8,
+        }),
+      });
+
+      const response = await updateRoom(request, {
+        params: Promise.resolve({ code: "ABC123" }),
+      });
+
+      expect(response.status).toBe(200);
     });
   });
 });

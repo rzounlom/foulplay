@@ -3,10 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateRoomCode } from "@/lib/rooms/utils";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
+import { gameModeSchemaOptional } from "@/lib/game/modes";
 import { z } from "zod";
 
 const createRoomSchema = z.object({
-  mode: z.string().optional(),
+  mode: gameModeSchemaOptional,
   sport: z.string().optional(),
   handSize: z.number().int().min(4).max(12).optional(),
   allowQuarterClearing: z.boolean().optional(),

@@ -5,9 +5,9 @@
  * Card drawing: All cards have equal probability. Cards never run out; duplicates allowed.
  */
 
-import { getCardsForSport, type Sport, type Tier } from "./cards";
+import { type Sport, type Tier } from "./cards";
 
-export type GameMode = "casual" | "party" | "lit";
+export type { GameMode } from "./modes";
 
 export interface GameState {
   roomId: string;
@@ -23,6 +23,7 @@ export interface GameState {
  * - Casual: max 1
  * - Party: max 1 when hand size 4–6, max 2 when hand size > 6
  * - Lit: max 2 (4–6), max 3 (7–9), max 4 (10–12)
+ * - Anything Goes: no cap (Infinity)
  */
 export function getMaxSevereCardsInHand(
   mode: string | null,
@@ -35,6 +36,7 @@ export function getMaxSevereCardsInHand(
     if (handSize <= 9) return 3;
     return 4;
   }
+  if (mode === "anything_goes") return Infinity;
   return Infinity;
 }
 
