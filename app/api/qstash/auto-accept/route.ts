@@ -63,6 +63,20 @@ export async function autoAcceptHandler(request: NextRequest) {
       });
     }
 
+    if (
+      result.replenishedCount > 0 &&
+      result.replenishedPlayerId
+    ) {
+      await publishRoomEvent({
+        type: "hand.replenished",
+        roomId: result.room.id,
+        roomCode: result.room.code,
+        version: updatedRoom.version,
+        playerId: result.replenishedPlayerId,
+        cardCount: result.replenishedCount,
+      });
+    }
+
     return NextResponse.json({
       ok: true,
       noop: false,

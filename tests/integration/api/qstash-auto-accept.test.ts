@@ -320,4 +320,94 @@ describe("QStash auto-accept callback", () => {
       submissionId: "sub_123",
     });
   });
+
+  it("does not publish turn.advanced when auto-accept resolves (turn not advanced in current flow)", async () => {
+    const submission = {
+      id: "sub_123",
+      roomId: "room_123",
+      status: "pending",
+      room: { id: "room_123", code: "ABC123" },
+    };
+    mockPrisma.cardSubmission.findUnique.mockResolvedValue(submission as never);
+    mockPrisma.room.update.mockResolvedValue({
+      id: "room_123",
+      version: 2,
+    } as never);
+
+    (processAutoAccept as jest.Mock).mockResolvedValue({
+      ok: true,
+      noop: false,
+      approvedCount: 2,
+      rejectedCount: 0,
+      replenishedPlayerId: "player_123",
+      replenishedCount: 2,
+      room: { id: "room_123", code: "ABC123", version: 1 },
+    });
+
+    const request = new NextRequest("http://localhost/api/qstash/auto-accept", {
+      method: "POST",
+      body: JSON.stringify({ submissionId: "sub_123" }),
+    });
+
+    const response = await autoAcceptHandler(request);
+    expect(response.status).toBe(200);
+
+    const turnAdvancedCall = mockPublishRoomEvent.mock.calls.find(
+      (c: [unknown]) => (c[0] as { type?: string })?.type === "turn.advanced"
+    );
+    expect(turnAdvancedCall).toBeUndefined();
+  });
+
+  it("publishes hand.replenished when auto-accept replenishes hand", async () => {
+    const submission = {
+      id: "sub_123",
+      roomId: "room_123",
+      status: "pending",
+      room: { id: "room_123", code: "ABC123" },
+    };
+    mockPrisma.cardSubmission.findUnique.mockResolvedValue(submission as never);
+    mockPrisma.room.update.mockResolvedValue({
+      id: "room_123",
+      version: 2,
+    } as never);
+
+    (processAutoAccept as jest.Mock).mockResolvedValue({
+      ok: true,
+      noop: false,
+      approvedCount: 2,
+      rejectedCount: 0,
+      replenishedPlayerId: "player_123",
+      replenishedCount: 2,
+      room: { id: "room_123", code: "ABC123", version: 1 },
+    });
+
+    const request = new NextRequest("http://localhost/api/qstash/auto-accept", {
+      method: "POST",
+      body: JSON.stringify({ submissionId: "sub_123" }),
+    });
+
+    const response = await autoAcceptHandler(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.ok).toBe(true);
+    expect(data.noop).toBe(false);
+
+    expect(mockPublishRoomEvent).toHaveBeenCalledWith({
+      type: "submission.accepted",
+      roomId: "room_123",
+      roomCode: "ABC123",
+      version: 2,
+      submissionId: "sub_123",
+      acceptedBy: "auto",
+    });
+    expect(mockPublishRoomEvent).toHaveBeenCalledWith({
+      type: "hand.replenished",
+      roomId: "room_123",
+      roomCode: "ABC123",
+      version: 2,
+      playerId: "player_123",
+      cardCount: 2,
+    });
+  });
 });

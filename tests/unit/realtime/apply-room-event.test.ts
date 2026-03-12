@@ -97,6 +97,7 @@ describe("applyRoomEvent", () => {
     const event: RoomEvent = {
       type: "turn.advanced",
       roomId: "room_123",
+      roomCode: "ABC123",
       version: 2,
       currentTurnPlayerId: "p2",
     };
@@ -134,6 +135,7 @@ describe("applyRoomEvent", () => {
     const event: RoomEvent = {
       type: "hand.replenished",
       roomId: "room_123",
+      roomCode: "ABC123",
       version: 2,
       playerId: "p1",
       cardCount: 2,

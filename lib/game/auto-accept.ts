@@ -22,6 +22,9 @@ export interface ProcessAutoAcceptResolved {
   noop: false;
   approvedCount: number;
   rejectedCount: number;
+  /** When hand was replenished: player ID and number of cards drawn */
+  replenishedPlayerId: string | null;
+  replenishedCount: number;
   approvedCardInstances: Array<{
     id: string;
     card: { id: string; title: string; description: string; severity: string; type: string; points: number };
@@ -216,6 +219,9 @@ export async function processAutoAccept(
     });
   }
 
+  let replenishedPlayerId: string | null = null;
+  let replenishedCount = 0;
+
   if (approvedCards.length > 0) {
     const totalPoints = approvedCards.reduce(
       (sum, ci) => sum + ci.card.points,
@@ -286,6 +292,9 @@ export async function processAutoAccept(
           },
         });
       }
+
+      replenishedPlayerId = submission.submittedById;
+      replenishedCount = drawnIndices.length;
     }
   }
 
@@ -294,6 +303,8 @@ export async function processAutoAccept(
     noop: false,
     approvedCount: approvedCards.length,
     rejectedCount: rejectedCards.length,
+    replenishedPlayerId,
+    replenishedCount,
     approvedCardInstances: approvedCards.map((c) => ({
       id: c.id,
       card: {

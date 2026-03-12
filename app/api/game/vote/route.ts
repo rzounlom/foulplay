@@ -346,7 +346,7 @@ export async function POST(request: NextRequest) {
           type: "submission.vote_cast",
           roomId: room.id,
           roomCode: room.code,
-          version: updatedRoom.version,
+          version: newVersion,
           submissionId,
           voterPlayerId: votingPlayer.id,
           approve: vote,
@@ -477,6 +477,22 @@ export async function POST(request: NextRequest) {
                 console.error("Failed to publish Ably event:", ablyError);
               }
             }
+          }
+        }
+
+        // Publish hand.replenished to room:{roomCode}:state when cards were drawn
+        if (autoDrawnCards.length > 0) {
+          try {
+            await publishRoomEvent({
+              type: "hand.replenished",
+              roomId: room.id,
+              roomCode: room.code,
+              version: newVersion,
+              playerId: submittingPlayer.id,
+              cardCount: autoDrawnCards.length,
+            });
+          } catch (publishError) {
+            console.error("Failed to publish hand.replenished:", publishError);
           }
         }
       }

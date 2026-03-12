@@ -35,6 +35,7 @@ describe("Version gap recovery", () => {
     const event: RoomEvent = {
       type: "turn.advanced",
       roomId: "room_123",
+      roomCode: "ABC123",
       version: 6,
       currentTurnPlayerId: "p2",
     };

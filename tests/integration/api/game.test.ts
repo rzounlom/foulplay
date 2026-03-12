@@ -451,6 +451,7 @@ describe("Game API Routes", () => {
       mockPrisma.cardInstance.updateMany = jest
         .fn()
         .mockResolvedValue({ count: 1 });
+      mockPrisma.room.update = jest.fn().mockResolvedValue({ version: 2 });
 
       const request = new NextRequest("http://localhost:3000/api/game/submit", {
         method: "POST",
@@ -463,6 +464,18 @@ describe("Game API Routes", () => {
       const response = await submitCard(request);
       expect(response.status).toBe(200);
 
+      expect(mockPublishRoomEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "submission.created",
+          roomId: mockRoom.id,
+          roomCode: "ABC123",
+          submissionId: "submission_123",
+          submittedByPlayerId: mockPlayer.id,
+        })
+      );
+      expect(mockPublishRoomEvent.mock.calls[0][0]).toHaveProperty("autoAcceptAt");
+      expect(mockPublishRoomEvent.mock.calls[0][0]).toHaveProperty("version", 2);
+
       expect(enqueue).toHaveBeenCalledWith(
         expect.objectContaining({
           url: expect.stringContaining("/api/qstash/auto-accept"),
@@ -470,6 +483,56 @@ describe("Game API Routes", () => {
           delay: "30s",
         })
       );
+    });
+
+    it("does not emit submission.created when adding cards to existing pending submission", async () => {
+      const gameState = {
+        id: "gamestate_123",
+        roomId: "room_123",
+        currentTurnPlayerId: "player_123",
+        activeCardInstanceId: null,
+        deckSeed: "test-seed",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const existingSubmission = {
+        id: "submission_existing",
+        roomId: "room_123",
+        submittedById: "player_123",
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        status: "active",
+        gameState,
+        handSize: 5,
+        canTurnInCards: true,
+        quarterIntermissionEndsAt: null,
+        players: [{ ...mockPlayer, userId: mockUser.id }],
+      });
+      mockPrisma.player.findFirst = jest.fn().mockResolvedValue(mockPlayer);
+      mockPrisma.cardInstance.findMany = jest
+        .fn()
+        .mockResolvedValueOnce([{ ...mockCardInstance, id: "ci_new", status: "drawn" }])
+        .mockResolvedValueOnce([]);
+      mockPrisma.cardSubmission.findFirst = jest.fn().mockResolvedValue(existingSubmission);
+      mockPrisma.cardInstance.updateMany = jest.fn().mockResolvedValue({ count: 1 });
+
+      const request = new NextRequest("http://localhost:3000/api/game/submit", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC123",
+          cardInstanceIds: ["ci_new"],
+        }),
+      });
+
+      const response = await submitCard(request);
+      expect(response.status).toBe(200);
+      expect(mockPrisma.cardSubmission.create).not.toHaveBeenCalled();
+      expect(mockPublishRoomEvent).not.toHaveBeenCalled();
     });
 
     it("allows resubmitting a previously rejected card as fresh submission", async () => {
@@ -668,6 +731,7 @@ describe("Game API Routes", () => {
         cardInstanceId: "ci_1",
         vote: true,
       });
+      mockPrisma.room.update = jest.fn().mockResolvedValue({ version: 2 });
 
       const request = new NextRequest("http://localhost:3000/api/game/vote", {
         method: "POST",
@@ -686,6 +750,15 @@ describe("Game API Routes", () => {
       expect(data).toHaveProperty("success", true);
       expect(data).toHaveProperty("submission");
       expect(data.submission.status).toBe("pending");
+      expect(mockPublishRoomEvent).toHaveBeenCalledWith({
+        type: "submission.vote_cast",
+        roomId: "room_123",
+        roomCode: "ABC123",
+        version: 2,
+        submissionId: "submission_123",
+        voterPlayerId: "player_456",
+        approve: true,
+      });
     });
 
     it("resolves immediately when 50% majority is reached and publishes submission.accepted", async () => {
@@ -859,6 +932,191 @@ describe("Game API Routes", () => {
         roomCode: "ABC123",
         version: 2,
         submissionId: "submission_123",
+      });
+    });
+
+    it("does not emit turn.advanced on approval (turn not advanced in current flow)", async () => {
+      mockGetCurrentUserFromRequest.mockResolvedValue({
+        ...mockUser,
+        id: "user_456",
+      });
+
+      const submission = {
+        id: "submission_123",
+        roomId: "room_123",
+        submittedById: "player_123",
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        cardInstances: [
+          {
+            ...mockCardInstance,
+            id: "ci_1",
+            votes: [{ vote: true, voterPlayerId: "player_789" }],
+          },
+        ],
+        submittedBy: submitterPlayer,
+      };
+      const submissionAfterVote = {
+        ...submission,
+        cardInstances: [
+          {
+            ...mockCardInstance,
+            id: "ci_1",
+            votes: [
+              { vote: true, voterPlayerId: "player_789" },
+              { vote: true, voterPlayerId: "player_456" },
+            ],
+          },
+        ],
+      };
+
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        status: "active",
+        gameState,
+        quarterIntermissionEndsAt: null,
+        players: [submitterPlayer, voterPlayer, thirdPlayer],
+        version: 1,
+      });
+      mockPrisma.cardSubmission.findUnique = jest
+        .fn()
+        .mockResolvedValueOnce(submission)
+        .mockResolvedValueOnce(submissionAfterVote);
+      mockPrisma.cardVote.upsert = jest.fn().mockResolvedValue({
+        id: "vote_1",
+        cardInstanceId: "ci_1",
+        vote: true,
+      });
+      mockPrisma.cardInstance.updateMany = jest.fn().mockResolvedValue({ count: 1 });
+      mockPrisma.cardSubmission.update = jest.fn().mockResolvedValue({});
+      mockPrisma.room.update = jest.fn().mockResolvedValue({
+        id: "room_123",
+        version: 2,
+      });
+      mockPrisma.player.update = jest.fn().mockResolvedValue({});
+      mockPrisma.cardInstance.count = jest.fn().mockResolvedValue(0);
+      mockPrisma.card.findMany = jest.fn().mockResolvedValue([]);
+
+      const request = new NextRequest("http://localhost:3000/api/game/vote", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC123",
+          submissionId: "submission_123",
+          cardInstanceIds: ["ci_1"],
+          vote: true,
+        }),
+      });
+
+      const response = await castVote(request);
+      expect(response.status).toBe(200);
+
+      const turnAdvancedCall = mockPublishRoomEvent.mock.calls.find(
+        (c) => c[0]?.type === "turn.advanced"
+      );
+      expect(turnAdvancedCall).toBeUndefined();
+    });
+
+    it("emits hand.replenished when vote resolution approves cards and draws replacements", async () => {
+      mockGetCurrentUserFromRequest.mockResolvedValue({
+        ...mockUser,
+        id: "user_456",
+      });
+
+      const cardWithPoints = { ...mockCard, id: "card_1", points: 2 };
+      const submission = {
+        id: "submission_123",
+        roomId: "room_123",
+        submittedById: "player_123",
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        cardInstances: [
+          {
+            ...mockCardInstance,
+            id: "ci_1",
+            card: cardWithPoints,
+            votes: [{ vote: true, voterPlayerId: "player_789" }],
+          },
+        ],
+        submittedBy: submitterPlayer,
+      };
+      const submissionAfterVote = {
+        ...submission,
+        cardInstances: [
+          {
+            ...mockCardInstance,
+            id: "ci_1",
+            card: cardWithPoints,
+            votes: [
+              { vote: true, voterPlayerId: "player_789" },
+              { vote: true, voterPlayerId: "player_456" },
+            ],
+          },
+        ],
+      };
+
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        id: "room_123",
+        status: "active",
+        gameState,
+        sport: "football",
+        handSize: 6,
+        quarterIntermissionEndsAt: null,
+        players: [submitterPlayer, voterPlayer, thirdPlayer],
+        version: 1,
+      });
+      mockPrisma.cardSubmission.findUnique = jest
+        .fn()
+        .mockResolvedValueOnce(submission)
+        .mockResolvedValueOnce(submissionAfterVote);
+      mockPrisma.cardVote.upsert = jest.fn().mockResolvedValue({
+        id: "vote_1",
+        cardInstanceId: "ci_1",
+        vote: true,
+      });
+      mockPrisma.cardInstance.updateMany = jest.fn().mockResolvedValue({ count: 1 });
+      mockPrisma.cardSubmission.update = jest.fn().mockResolvedValue({});
+      mockPrisma.room.update = jest.fn().mockResolvedValue({
+        id: "room_123",
+        version: 2,
+      });
+      mockPrisma.player.update = jest.fn().mockResolvedValue({});
+      mockPrisma.cardInstance.count = jest.fn().mockResolvedValue(0);
+      mockPrisma.card.findMany = jest.fn().mockResolvedValue([
+        { id: "card_1", sport: "football", title: "C1", description: "", severity: "mild", type: "action", points: 1 },
+      ]);
+      mockPrisma.cardInstance.findMany = jest.fn().mockResolvedValue([]);
+      mockPrisma.cardInstance.create = jest.fn().mockResolvedValue({
+        id: "ci_drawn_1",
+        card: cardWithPoints,
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/game/vote", {
+        method: "POST",
+        body: JSON.stringify({
+          roomCode: "ABC123",
+          submissionId: "submission_123",
+          cardInstanceIds: ["ci_1"],
+          vote: true,
+        }),
+      });
+
+      const response = await castVote(request);
+      expect(response.status).toBe(200);
+
+      const handReplenishedCall = mockPublishRoomEvent.mock.calls.find(
+        (c) => c[0]?.type === "hand.replenished"
+      );
+      expect(handReplenishedCall).toBeDefined();
+      expect(handReplenishedCall![0]).toMatchObject({
+        type: "hand.replenished",
+        roomId: "room_123",
+        roomCode: "ABC123",
+        version: 2,
+        playerId: "player_123",
+        cardCount: 1,
       });
     });
 

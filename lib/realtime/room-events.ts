@@ -42,12 +42,14 @@ export type RoomEvent =
   | {
       type: "turn.advanced";
       roomId: string;
+      roomCode: string;
       version: number;
       currentTurnPlayerId: string;
     }
   | {
       type: "hand.replenished";
       roomId: string;
+      roomCode: string;
       version: number;
       playerId: string;
       cardCount: number;

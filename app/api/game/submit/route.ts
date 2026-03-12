@@ -193,31 +193,30 @@ export async function POST(request: NextRequest) {
       } catch (enqueueError) {
         console.error("Failed to enqueue auto-accept job:", enqueueError);
       }
-    }
 
-    // Publish submission.created to state channel for client patching
-    try {
-      const createdAt = new Date(submission.createdAt).getTime();
-      const autoAcceptAt = new Date(
-        createdAt + AUTO_ACCEPT_DELAY_SECONDS * 1000
-      ).toISOString();
-      const updatedRoom = await prisma.room
-        .update({
+      // Publish submission.created to state channel for client patching (only when creating new)
+      try {
+        const createdAt = new Date(submission.createdAt).getTime();
+        const autoAcceptAt = new Date(
+          createdAt + AUTO_ACCEPT_DELAY_SECONDS * 1000
+        ).toISOString();
+        const updatedRoom = await prisma.room.update({
           where: { id: room.id },
           data: { version: { increment: 1 } },
           select: { version: true },
         });
-      await publishRoomEvent({
-        type: "submission.created",
-        roomId: room.id,
-        roomCode: room.code,
-        version: updatedRoom.version,
-        submissionId: submission.id,
-        submittedByPlayerId: submittingPlayer.id,
-        autoAcceptAt,
-      });
-    } catch (publishError) {
-      console.error("Failed to publish submission.created:", publishError);
+        await publishRoomEvent({
+          type: "submission.created",
+          roomId: room.id,
+          roomCode: room.code,
+          version: updatedRoom.version,
+          submissionId: submission.id,
+          submittedByPlayerId: submittingPlayer.id,
+          autoAcceptAt,
+        });
+      } catch (publishError) {
+        console.error("Failed to publish submission.created:", publishError);
+      }
     }
 
     // Emit card_submitted event via Ably (legacy channel)
