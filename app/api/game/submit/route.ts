@@ -4,7 +4,8 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { getRoomChannel } from "@/lib/ably/client";
 import { prisma } from "@/lib/db/prisma";
 import { enqueue } from "@/lib/queue/qstash";
-import { AUTO_ACCEPT_DELAY } from "@/lib/game/constants";
+import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
+import { AUTO_ACCEPT_DELAY, AUTO_ACCEPT_DELAY_SECONDS } from "@/lib/game/constants";
 import { z } from "zod";
 
 const submitCardSchema = z.object({
@@ -194,7 +195,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Emit card_submitted event via Ably
+    // Publish submission.created to state channel for client patching
+    try {
+      const createdAt = new Date(submission.createdAt).getTime();
+      const autoAcceptAt = new Date(
+        createdAt + AUTO_ACCEPT_DELAY_SECONDS * 1000
+      ).toISOString();
+      const updatedRoom = await prisma.room
+        .update({
+          where: { id: room.id },
+          data: { version: { increment: 1 } },
+          select: { version: true },
+        });
+      await publishRoomEvent({
+        type: "submission.created",
+        roomId: room.id,
+        roomCode: room.code,
+        version: updatedRoom.version,
+        submissionId: submission.id,
+        submittedByPlayerId: submittingPlayer.id,
+        autoAcceptAt,
+      });
+    } catch (publishError) {
+      console.error("Failed to publish submission.created:", publishError);
+    }
+
+    // Emit card_submitted event via Ably (legacy channel)
     try {
       const channel = getRoomChannel(room.code);
       await channel.publish("card_submitted", {

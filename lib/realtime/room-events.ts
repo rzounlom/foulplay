@@ -9,6 +9,7 @@ export type RoomEvent =
   | {
       type: "submission.created";
       roomId: string;
+      roomCode: string;
       version: number;
       submissionId: string;
       submittedByPlayerId: string;
@@ -17,6 +18,7 @@ export type RoomEvent =
   | {
       type: "submission.vote_cast";
       roomId: string;
+      roomCode: string;
       version: number;
       submissionId: string;
       voterPlayerId: string;

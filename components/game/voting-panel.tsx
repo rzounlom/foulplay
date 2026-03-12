@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
 
@@ -34,6 +34,7 @@ interface Submission {
   id: string;
   status: string;
   createdAt?: string;
+  autoAcceptAt?: string;
   cardInstances: CardInstance[];
   submittedBy: {
     id: string;
@@ -49,7 +50,6 @@ interface VotingPanelProps {
   roomCode: string;
   onVote: (submissionId: string, cardInstanceIds: string[], vote: boolean) => Promise<void>;
   onClose: () => void;
-  onRefresh?: () => void;
   votingPaused?: boolean;
   roomMode?: string | null;
 }
@@ -58,16 +58,14 @@ export function VotingPanel({
   submissions,
   currentUserId,
   totalPlayers,
-  roomCode,
+  roomCode: _roomCode,
   onVote,
   onClose,
-  onRefresh,
   votingPaused = false,
   roomMode = null,
 }: VotingPanelProps) {
   const [isVoting, setIsVoting] = useState<Record<string, boolean>>({});
   const [autoAcceptCountdown, setAutoAcceptCountdown] = useState<Record<string, number>>({});
-  const autoAcceptFiredForRef = useRef<Set<string>>(new Set());
 
   const submissionsToVote = useMemo(
     () =>
@@ -94,7 +92,13 @@ export function VotingPanel({
     return submissionsToVote.length > 0;
   }, [submissionsToVote, currentUserId]);
 
-  const getSecondsRemaining = (createdAt: string | undefined) => {
+  const getSecondsRemaining = (submission: Submission) => {
+    const autoAcceptAt = "autoAcceptAt" in submission ? (submission as { autoAcceptAt?: string }).autoAcceptAt : undefined;
+    if (autoAcceptAt) {
+      const target = new Date(autoAcceptAt).getTime();
+      return Math.max(0, Math.ceil((target - Date.now()) / 1000));
+    }
+    const createdAt = submission.createdAt;
     if (!createdAt) return 0;
     const created = new Date(createdAt).getTime();
     const elapsed = (Date.now() - created) / 1000;
@@ -105,7 +109,7 @@ export function VotingPanel({
     const updateCountdowns = () => {
       const next: Record<string, number> = {};
       for (const s of submissionsToVote) {
-        next[s.id] = getSecondsRemaining(s.createdAt);
+        next[s.id] = getSecondsRemaining(s);
       }
       setAutoAcceptCountdown(next);
     };
@@ -114,39 +118,7 @@ export function VotingPanel({
     return () => clearInterval(interval);
   }, [submissionsToVote]);
 
-  const handleAutoAccept = useCallback(
-    async (submissionId: string) => {
-      if (autoAcceptFiredForRef.current.has(submissionId) || votingPaused) return;
-      autoAcceptFiredForRef.current.add(submissionId);
-      try {
-        const res = await fetch("/api/game/auto-accept-submission", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roomCode, submissionId }),
-        });
-        if (res.ok) {
-          onRefresh?.();
-        }
-      } catch (error) {
-        if (process.env.NODE_ENV === "development")
-          console.error("Auto-accept failed:", error);
-      }
-    },
-    [roomCode, onRefresh, votingPaused]
-  );
-
-  useEffect(() => {
-    for (const s of submissionsToVote) {
-      if (
-        autoAcceptCountdown[s.id] === 0 &&
-        !autoAcceptFiredForRef.current.has(s.id) &&
-        !votingPaused
-      ) {
-        void handleAutoAccept(s.id);
-      }
-    }
-  }, [autoAcceptCountdown, votingPaused, submissionsToVote, handleAutoAccept]);
-
+  // Countdown is display-only. Server (QStash) resolves at timeout; client waits for submission.accepted/rejected event.
   const handleVote = async (submissionId: string, cardInstanceId: string, vote: boolean) => {
     const key = `${submissionId}-${cardInstanceId}`;
     if (isVoting[key]) return;
@@ -233,7 +205,7 @@ export function VotingPanel({
                 )}
                 {canVoteThis && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Auto accept in {autoAcceptCountdown[submission.id] ?? getSecondsRemaining(submission.createdAt)}s
+                    Auto accept in {autoAcceptCountdown[submission.id] ?? getSecondsRemaining(submission)}s
                   </p>
                 )}
               </div>

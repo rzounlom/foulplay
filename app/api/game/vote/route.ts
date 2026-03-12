@@ -333,6 +333,27 @@ export async function POST(request: NextRequest) {
       } catch (publishError) {
         console.error("Failed to publish room event:", publishError);
       }
+    } else {
+      // Vote cast but submission still pending — publish for client patching
+      const updatedRoom = await prisma.room.update({
+        where: { id: room.id },
+        data: { version: { increment: 1 } },
+        select: { version: true },
+      });
+      newVersion = updatedRoom.version;
+      try {
+        await publishRoomEvent({
+          type: "submission.vote_cast",
+          roomId: room.id,
+          roomCode: room.code,
+          version: updatedRoom.version,
+          submissionId,
+          voterPlayerId: votingPlayer.id,
+          approve: vote,
+        });
+      } catch (publishError) {
+        console.error("Failed to publish submission.vote_cast:", publishError);
+      }
     }
 
     // Award points and auto-draw cards for approved cards

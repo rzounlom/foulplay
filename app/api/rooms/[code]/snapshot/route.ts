@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
+import { AUTO_ACCEPT_DELAY_SECONDS } from "@/lib/game/constants";
 
 /**
  * GET /api/rooms/[code]/snapshot
  * Authoritative room snapshot for client bootstrap.
- * Returns version, players, scores, turn, pending submissions, and viewer's hand.
+ * Returns version, players, scores, turn, pending submissions (with autoAcceptAt), and viewer's hand.
  */
 export async function GET(
   request: NextRequest,
@@ -86,9 +87,15 @@ export async function GET(
       orderBy: { createdAt: "desc" },
     });
 
-    const submissionsWithCards = pendingSubmissions.filter(
-      (s) => s.cardInstances.length > 0
-    );
+    const submissionsWithCards = pendingSubmissions
+      .filter((s) => s.cardInstances.length > 0)
+      .map((s) => {
+        const createdAt = new Date(s.createdAt).getTime();
+        const autoAcceptAt = new Date(
+          createdAt + AUTO_ACCEPT_DELAY_SECONDS * 1000
+        ).toISOString();
+        return { ...s, autoAcceptAt };
+      });
 
     // Viewer's hand (only if they are a player)
     const currentPlayer = room.players.find((p) => p.userId === user.id);
@@ -119,9 +126,14 @@ export async function GET(
       sport: room.sport,
       handSize: room.handSize,
       showPoints: room.showPoints,
+      allowJoinInProgress: room.allowJoinInProgress,
       allowQuarterClearing: room.allowQuarterClearing,
+      canTurnInCards: room.canTurnInCards,
       currentQuarter: room.currentQuarter,
       quarterIntermissionEndsAt: room.quarterIntermissionEndsAt,
+      pendingQuarterDiscardSelections: room.pendingQuarterDiscardSelections,
+      quarterDiscardDonePlayerIds: room.quarterDiscardDonePlayerIds,
+      suggestEndRoundPlayerIds: room.suggestEndRoundPlayerIds,
       players: room.players.map((p) => ({
         id: p.id,
         userId: p.userId,
