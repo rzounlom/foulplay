@@ -464,6 +464,12 @@ describe("Game API Routes", () => {
       const response = await submitCard(request);
       expect(response.status).toBe(200);
 
+      expect(mockPrisma.room.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { version: { increment: 1 } },
+        })
+      );
+
       expect(mockPublishRoomEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           type: "submission.created",
