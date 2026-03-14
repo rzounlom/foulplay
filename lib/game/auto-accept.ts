@@ -29,6 +29,10 @@ export interface ProcessAutoAcceptResolved {
     id: string;
     card: { id: string; title: string; description: string; severity: string; type: string; points: number };
   }>;
+  rejectedCardInstances: Array<{
+    id: string;
+    card: { id: string; title: string; description: string; severity: string; type: string; points: number };
+  }>;
   submittedBy: { id: string; user: { name: string }; nickname: string | null };
   room: { id: string; code: string; version: number };
 }
@@ -306,6 +310,17 @@ export async function processAutoAccept(
     replenishedPlayerId,
     replenishedCount,
     approvedCardInstances: approvedCards.map((c) => ({
+      id: c.id,
+      card: {
+        id: c.card.id,
+        title: c.card.title,
+        description: c.card.description,
+        severity: c.card.severity,
+        type: c.card.type,
+        points: c.card.points,
+      },
+    })),
+    rejectedCardInstances: rejectedCards.map((c) => ({
       id: c.id,
       card: {
         id: c.card.id,

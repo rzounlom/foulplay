@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { processAutoAccept } from "@/lib/game/auto-accept";
 import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
+import { getRoomChannel } from "@/lib/ably/client";
 import { prisma } from "@/lib/db/prisma";
 
 const bodySchema = z.object({
@@ -75,6 +76,63 @@ export async function autoAcceptHandler(request: NextRequest) {
         playerId: result.replenishedPlayerId,
         cardCount: result.replenishedCount,
       });
+    }
+
+    // Publish legacy channel events for UI popups (points, confetti, drink penalty)
+    try {
+      const channel = getRoomChannel(result.room.code);
+      if (result.approvedCount > 0 && (result.approvedCardInstances?.length ?? 0) > 0) {
+        await channel.publish("card_approved", {
+          roomCode: result.room.code,
+          submissionId,
+          cardInstanceIds: result.approvedCardInstances.map((c) => c.id),
+          cardCount: result.approvedCount,
+          cards: result.approvedCardInstances.map((ci) => ({
+            id: ci.card.id,
+            title: ci.card.title,
+            description: ci.card.description,
+            severity: ci.card.severity,
+            type: ci.card.type,
+            points: ci.card.points,
+          })),
+          submittedBy: {
+            id: result.submittedBy.id,
+            name: result.submittedBy.user.name,
+            nickname: result.submittedBy.nickname,
+          },
+          pointsAwarded: result.approvedCardInstances.reduce(
+            (sum, ci) => sum + ci.card.points,
+            0
+          ),
+          autoAccepted: true,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      if (result.rejectedCount > 0 && (result.rejectedCardInstances?.length ?? 0) > 0) {
+        await channel.publish("card_rejected", {
+          roomCode: result.room.code,
+          submissionId,
+          cardInstanceIds: result.rejectedCardInstances.map((c) => c.id),
+          cardCount: result.rejectedCount,
+          cards: result.rejectedCardInstances.map((ci) => ({
+            id: ci.card.id,
+            title: ci.card.title,
+            description: ci.card.description,
+            severity: ci.card.severity,
+            type: ci.card.type,
+            points: ci.card.points,
+          })),
+          submittedBy: {
+            id: result.submittedBy.id,
+            name: result.submittedBy.user.name,
+            nickname: result.submittedBy.nickname,
+          },
+          cardsReturned: true,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (ablyError) {
+      console.error("Failed to publish legacy card_approved/card_rejected:", ablyError);
     }
 
     return NextResponse.json({

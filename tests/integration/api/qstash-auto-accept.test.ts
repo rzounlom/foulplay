@@ -53,6 +53,12 @@ jest.mock("@/lib/realtime/publish-room-event", () => ({
   publishRoomEvent: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock("@/lib/ably/client", () => ({
+  getRoomChannel: jest.fn(() => ({
+    publish: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
 jest.mock("@/lib/game/auto-accept", () => ({
   processAutoAccept: jest.fn(),
 }));
