@@ -22,6 +22,28 @@ Operational reference for the authoritative gameplay state, snapshot bootstrap, 
 - **Callback endpoint:** `POST ${APP_URL}/api/qstash/auto-accept`
 - Clients **do not** authoritatively trigger auto-accept anymore; the server (via QStash) does.
 
+### Local development
+
+**QStash cloud cannot reach `localhost`.** If `APP_URL` is `http://localhost:3000`, production QStash will enqueue the job but fail to deliver the callback.
+
+Use the **QStash CLI dev server** so callbacks reach your local app:
+
+1. In a separate terminal, run:
+   ```bash
+   npx @upstash/qstash-cli dev
+   ```
+2. Set these env vars (credentials are printed when the dev server starts):
+   ```bash
+   QSTASH_URL=http://localhost:8080
+   QSTASH_TOKEN=<from dev server output>
+   QSTASH_CURRENT_SIGNING_KEY=<from dev server output>
+   QSTASH_NEXT_SIGNING_KEY=<from dev server output>
+   APP_URL=http://localhost:3000
+   ```
+3. Keep the QStash dev server running while testing auto-accept.
+
+**Alternative:** Use ngrok (`ngrok http 3000`) and set `APP_URL` to the ngrok URL so production QStash can reach your app.
+
 ---
 
 ## 2. Authoritative gameplay state channel
