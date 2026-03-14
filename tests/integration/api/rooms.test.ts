@@ -100,11 +100,17 @@ jest.mock("@/lib/ably/client", () => ({
   })),
 }));
 
+jest.mock("@/lib/realtime/publish-room-event", () => ({
+  publishRoomEvent: jest.fn().mockResolvedValue(undefined),
+}));
+
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
+import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
 
 const mockGetCurrentUserFromRequest = getCurrentUserFromRequest as jest.MockedFunction<typeof getCurrentUserFromRequest>;
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
+const mockPublishRoomEvent = publishRoomEvent as jest.MockedFunction<typeof publishRoomEvent>;
 
 describe("Room API Routes", () => {
   beforeEach(() => {
@@ -252,6 +258,7 @@ describe("Room API Routes", () => {
           players: [],
         })
         .mockResolvedValueOnce(roomWithPlayers);
+      mockPrisma.room.update = jest.fn().mockResolvedValue({ version: 1 });
       mockPrisma.player.findUnique = jest.fn().mockResolvedValue(null);
       mockPrisma.player.create = jest.fn().mockResolvedValue(mockPlayer);
 
@@ -270,6 +277,32 @@ describe("Room API Routes", () => {
       // The API returns the room object directly, not wrapped in { room, player }
       expect(data).toHaveProperty("code", "ABC123");
       expect(data).toHaveProperty("players");
+      expect(mockPublishRoomEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "player.joined",
+          roomId: mockRoom.id,
+          roomCode: "ABC123",
+          playerId: mockPlayer.id,
+          displayName: "TestNick",
+        })
+      );
+    });
+
+    it("does not emit player.joined when user already in room", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        players: [mockPlayer],
+      });
+      mockPrisma.player.findUnique = jest.fn().mockResolvedValue(mockPlayer);
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/join", {
+        method: "POST",
+        body: JSON.stringify({ code: "ABC123" }),
+      });
+
+      const response = await joinRoom(request);
+      expect(response.status).toBe(200);
+      expect(mockPublishRoomEvent).not.toHaveBeenCalled();
     });
 
     it("should return 404 when room does not exist", async () => {

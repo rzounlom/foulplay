@@ -57,6 +57,7 @@ export type RoomEvent =
   | {
       type: "player.joined";
       roomId: string;
+      roomCode: string;
       version: number;
       playerId: string;
       displayName: string;
@@ -64,6 +65,7 @@ export type RoomEvent =
   | {
       type: "player.left";
       roomId: string;
+      roomCode: string;
       version: number;
       playerId: string;
     }

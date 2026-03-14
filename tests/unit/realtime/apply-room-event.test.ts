@@ -149,6 +149,7 @@ describe("applyRoomEvent", () => {
     const event: RoomEvent = {
       type: "player.joined",
       roomId: "room_123",
+      roomCode: "ABC123",
       version: 2,
       playerId: "p3",
       displayName: "Player 3",
@@ -162,6 +163,7 @@ describe("applyRoomEvent", () => {
     const event: RoomEvent = {
       type: "player.left",
       roomId: "room_123",
+      roomCode: "ABC123",
       version: 2,
       playerId: "p2",
     };

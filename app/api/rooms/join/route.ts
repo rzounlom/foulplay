@@ -3,6 +3,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 import { getRoomChannel } from "@/lib/ably/client";
+import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
 import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
 
 const joinRoomSchema = z.object({
@@ -108,6 +109,43 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Increment room version for authoritative state
+    const updatedRoomForVersion = await prisma.room.update({
+      where: { id: room.id },
+      data: { version: { increment: 1 } },
+      select: { version: true },
+    });
+
+    // Emit authoritative player.joined to room:{roomCode}:state
+    try {
+      const displayName =
+        (nickname?.trim() || null) ?? user.name ?? "Player";
+      await publishRoomEvent({
+        type: "player.joined",
+        roomId: room.id,
+        roomCode: room.code,
+        version: updatedRoomForVersion.version,
+        playerId: newPlayer.id,
+        displayName,
+      });
+    } catch (publishError) {
+      console.error("Failed to publish player.joined:", publishError);
+    }
+
+    // Emit legacy player_joined to room:{roomCode} (lobby compatibility)
+    try {
+      const channel = getRoomChannel(room.code);
+      await channel.publish("player_joined", {
+        playerId: user.id,
+        playerName: user.name,
+        nickname: nickname?.trim() || null,
+        roomCode: room.code,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (ablyError) {
+      console.error("Failed to publish Ably player_joined:", ablyError);
+    }
+
     // Fetch updated room with all players (and gameState for active games)
     const updatedRoom = await prisma.room.findUnique({
       where: { id: room.id },
@@ -119,21 +157,6 @@ export async function POST(request: NextRequest) {
         },
       },
     });
-
-    // Emit player_joined event via Ably
-    try {
-      const channel = getRoomChannel(room.code);
-      await channel.publish("player_joined", {
-        playerId: user.id,
-        playerName: user.name,
-        nickname: nickname?.trim() || null,
-        roomCode: room.code,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (ablyError) {
-      // Log but don't fail the request if Ably fails
-      console.error("Failed to publish Ably event:", ablyError);
-    }
 
     return NextResponse.json(updatedRoom, { status: 200 });
   } catch (error) {
