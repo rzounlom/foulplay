@@ -1,5 +1,7 @@
 # Ably Production Setup
 
+For authoritative gameplay state channels, snapshot bootstrap, version-gap recovery, and QStash integration, see [`dev-docs/REALTIME_AND_QSTASH.md`](../REALTIME_AND_QSTASH.md).
+
 ## Why Ably may fail in production
 
 1. **API key not exposed**: `NEXT_PUBLIC_ABLY_API_KEY` must be set in your hosting provider's environment variables (e.g. Vercel) so the client can connect.
