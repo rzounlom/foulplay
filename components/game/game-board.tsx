@@ -433,6 +433,7 @@ export function GameBoard({
         const payload = data as {
           pointsAwarded?: number;
           submittedBy?: { id: string };
+          cards?: Array<{ description: string }>;
         };
         const points = payload.pointsAwarded ?? 0;
         const recipientPlayerId = payload.submittedBy?.id;
@@ -456,6 +457,25 @@ export function GameBoard({
             });
           });
           setTimeout(() => setPointsAwardedPopup(null), 2200);
+          // After points animation, show drink penalty reminder (skip in non-drinking mode)
+          if (
+            !isNonDrinkingMode(r2.mode) &&
+            payload.cards &&
+            payload.cards.length > 0
+          ) {
+            const penalties = payload.cards.map((c) =>
+              getCardDescriptionForDisplay(c.description, r2.mode),
+            );
+            const combined = combinePenalties(penalties);
+            const penaltyText =
+              combined.length === 1
+                ? formatPenaltyReminder(combined[0])
+                : `Don't forget to ${combined.map(formatPenaltyPartForCombined).join(" AND ")}!`;
+            setTimeout(() => {
+              setPenaltyReminderPopup(penaltyText);
+              setTimeout(() => setPenaltyReminderPopup(null), 3500);
+            }, 2200);
+          }
         }
       }
       if (event === "card_rejected" && data) {
