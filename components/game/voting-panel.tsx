@@ -58,14 +58,16 @@ export function VotingPanel({
   submissions,
   currentUserId,
   totalPlayers,
-  roomCode: _roomCode,
+  roomCode,
   onVote,
   onClose,
   votingPaused = false,
   roomMode = null,
 }: VotingPanelProps) {
+  void roomCode; // Reserved for future use
   const [isVoting, setIsVoting] = useState<Record<string, boolean>>({});
   const [autoAcceptCountdown, setAutoAcceptCountdown] = useState<Record<string, number>>({});
+  const [votedAllSubmissionIds, setVotedAllSubmissionIds] = useState<Set<string>>(new Set());
 
   const submissionsToVote = useMemo(
     () =>
@@ -76,6 +78,15 @@ export function VotingPanel({
       ),
     [submissions, currentUserId]
   );
+
+  const submissionIdsKey = useMemo(
+    () => submissionsToVote.map((s) => s.id).join(","),
+    [submissionsToVote],
+  );
+
+  useEffect(() => {
+    setVotedAllSubmissionIds(new Set());
+  }, [submissionIdsKey]);
 
   const requiredApprovals = Math.ceil(totalPlayers / 2);
 
@@ -139,6 +150,11 @@ export function VotingPanel({
     setIsVoting((prev) => ({ ...prev, [key]: true }));
     try {
       await onVote(submission.id, allIds, vote);
+      const next = new Set([...votedAllSubmissionIds, submission.id]);
+      setVotedAllSubmissionIds(next);
+      if (submissionsToVote.length === 1 || next.size >= submissionsToVote.length) {
+        onClose();
+      }
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.error("Failed to vote:", error);
     } finally {

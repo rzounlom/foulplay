@@ -491,7 +491,7 @@ describe("Game API Routes", () => {
       );
     });
 
-    it("does not emit submission.created when adding cards to existing pending submission", async () => {
+    it("returns 400 when user has pending submission and blocks new submissions", async () => {
       const gameState = {
         id: "gamestate_123",
         roomId: "room_123",
@@ -525,7 +525,6 @@ describe("Game API Routes", () => {
         .mockResolvedValueOnce([{ ...mockCardInstance, id: "ci_new", status: "drawn" }])
         .mockResolvedValueOnce([]);
       mockPrisma.cardSubmission.findFirst = jest.fn().mockResolvedValue(existingSubmission);
-      mockPrisma.cardInstance.updateMany = jest.fn().mockResolvedValue({ count: 1 });
 
       const request = new NextRequest("http://localhost:3000/api/game/submit", {
         method: "POST",
@@ -536,7 +535,9 @@ describe("Game API Routes", () => {
       });
 
       const response = await submitCard(request);
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("Wait until your current cards");
       expect(mockPrisma.cardSubmission.create).not.toHaveBeenCalled();
       expect(mockPublishRoomEvent).not.toHaveBeenCalled();
     });

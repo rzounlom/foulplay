@@ -145,20 +145,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    let submission;
     if (existingSubmission) {
-      // Add cards to existing submission
-      submission = existingSubmission;
-      await prisma.cardInstance.updateMany({
-        where: {
-          id: { in: cardInstanceIds },
+      return NextResponse.json(
+        {
+          error:
+            "Wait until your current cards are voted on or auto-accepted (30s) before submitting new cards.",
         },
-        data: {
-          submissionId: existingSubmission.id,
-          status: "submitted",
-        },
-      });
-    } else {
+        { status: 400 },
+      );
+    }
+
+    let submission;
+    {
       // Create new submission with all cards
       submission = await prisma.cardSubmission.create({
         data: {

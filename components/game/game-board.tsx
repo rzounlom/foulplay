@@ -226,6 +226,20 @@ export function GameBoard({
     [snapshot?.submissions]
   );
 
+  const myPendingSubmission = useMemo(
+    () =>
+      submissions.find(
+        (s) =>
+          s.status === "pending" &&
+          s.submittedBy?.user?.id === currentUserId
+      ),
+    [submissions, currentUserId]
+  );
+  const hasPendingSubmission = !!myPendingSubmission;
+  const pendingSubmissionAutoAcceptAt =
+    (myPendingSubmission as { autoAcceptAt?: string } | undefined)
+      ?.autoAcceptAt ?? null;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const handLoading = snapshotLoading;
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
@@ -1858,6 +1872,8 @@ export function GameBoard({
                     ((isEndingRound || isEndingRoundEarly) && isHost) ||
                     allDoneCountdown != null
                   }
+                  hasPendingSubmission={hasPendingSubmission}
+                  pendingSubmissionAutoAcceptAt={pendingSubmissionAutoAcceptAt}
                 />
               )}
             </div>
