@@ -10,11 +10,12 @@ import {
   View,
 } from "react-native";
 import { apiFetch } from "@/lib/api";
+import { GAME_MODES, MODE_LABELS } from "@/lib/game/modes";
 
-const MODES = [
-  { value: "casual", label: "Casual" },
-  { value: "party", label: "Party" },
-];
+const MODES = GAME_MODES.map((value) => ({
+  value,
+  label: MODE_LABELS[value],
+}));
 const SPORTS = [
   { value: "football", label: "Football" },
   { value: "basketball", label: "Basketball" },

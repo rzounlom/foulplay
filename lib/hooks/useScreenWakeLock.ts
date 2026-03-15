@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 /**
  * Screen Wake Lock API hook.
@@ -11,7 +11,7 @@ import { useEffect, useRef } from "react";
 export function useScreenWakeLock(enabled = true) {
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
-  const requestWakeLock = async () => {
+  const requestWakeLock = useCallback(async () => {
     if (!enabled || typeof navigator === "undefined" || !("wakeLock" in navigator)) {
       return;
     }
@@ -22,9 +22,9 @@ export function useScreenWakeLock(enabled = true) {
         console.debug("Screen Wake Lock request failed:", err);
       }
     }
-  };
+  }, [enabled]);
 
-  const releaseWakeLock = async () => {
+  const releaseWakeLock = useCallback(async () => {
     if (wakeLockRef.current) {
       try {
         await wakeLockRef.current.release();
@@ -33,7 +33,7 @@ export function useScreenWakeLock(enabled = true) {
       }
       wakeLockRef.current = null;
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;
@@ -52,5 +52,5 @@ export function useScreenWakeLock(enabled = true) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       releaseWakeLock();
     };
-  }, [enabled]);
+  }, [enabled, requestWakeLock, releaseWakeLock]);
 }

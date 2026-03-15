@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { getRoomChannel } from "@/lib/ably/client";
 import { prisma } from "@/lib/db/prisma";
+import { enqueue } from "@/lib/queue/qstash";
+import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
+import { AUTO_ACCEPT_DELAY, AUTO_ACCEPT_DELAY_SECONDS } from "@/lib/game/constants";
 import { z } from "zod";
 
 const submitCardSchema = z.object({
@@ -142,20 +145,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    let submission;
     if (existingSubmission) {
-      // Add cards to existing submission
-      submission = existingSubmission;
-      await prisma.cardInstance.updateMany({
-        where: {
-          id: { in: cardInstanceIds },
+      return NextResponse.json(
+        {
+          error:
+            "Wait until your current cards are voted on or auto-accepted (30s) before submitting new cards.",
         },
-        data: {
-          submissionId: existingSubmission.id,
-          status: "submitted",
-        },
-      });
-    } else {
+        { status: 400 },
+      );
+    }
+
+    let submission;
+    {
       // Create new submission with all cards
       submission = await prisma.cardSubmission.create({
         data: {
@@ -175,9 +176,48 @@ export async function POST(request: NextRequest) {
           status: "submitted",
         },
       });
+
+      // Enqueue durable auto-accept callback
+      const appUrl =
+        process.env.APP_URL ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        "http://localhost:3000";
+      try {
+        await enqueue({
+          url: `${appUrl}/api/qstash/auto-accept`,
+          body: { submissionId: submission.id },
+          delay: AUTO_ACCEPT_DELAY,
+        });
+      } catch (enqueueError) {
+        console.error("Failed to enqueue auto-accept job:", enqueueError);
+      }
+
+      // Publish submission.created to state channel for client patching (only when creating new)
+      try {
+        const createdAt = new Date(submission.createdAt).getTime();
+        const autoAcceptAt = new Date(
+          createdAt + AUTO_ACCEPT_DELAY_SECONDS * 1000
+        ).toISOString();
+        const updatedRoom = await prisma.room.update({
+          where: { id: room.id },
+          data: { version: { increment: 1 } },
+          select: { version: true },
+        });
+        await publishRoomEvent({
+          type: "submission.created",
+          roomId: room.id,
+          roomCode: room.code,
+          version: updatedRoom.version,
+          submissionId: submission.id,
+          submittedByPlayerId: submittingPlayer.id,
+          autoAcceptAt,
+        });
+      } catch (publishError) {
+        console.error("Failed to publish submission.created:", publishError);
+      }
     }
 
-    // Emit card_submitted event via Ably
+    // Emit card_submitted event via Ably (legacy channel)
     try {
       const channel = getRoomChannel(room.code);
       await channel.publish("card_submitted", {

@@ -1,0 +1,8 @@
+.next
+node_modules
+coverage
+dist
+build
+.swc
+.turbo
+.git

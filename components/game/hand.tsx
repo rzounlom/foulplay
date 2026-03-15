@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AUTO_ACCEPT_SECONDS } from "@/lib/game/constants";
 
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
@@ -96,6 +97,10 @@ interface HandProps {
   currentUserPoints?: number;
   /** When true, disables card submission and quarter discard submission (e.g. while host is ending round) */
   submissionDisabled?: boolean;
+  /** When true, user has pending submission — show wait message and block new submissions */
+  hasPendingSubmission?: boolean;
+  /** ISO string when user's pending submission will auto-accept (for countdown display) */
+  pendingSubmissionAutoAcceptAt?: string | null;
 }
 
 export function Hand({
@@ -112,9 +117,26 @@ export function Hand({
   roomMode = null,
   currentUserPoints,
   submissionDisabled = false,
+  hasPendingSubmission = false,
+  pendingSubmissionAutoAcceptAt = null,
 }: HandProps) {
   const [handLayout, setHandLayout] = useHandLayout();
   const isSmallViewport = useIsSmallViewport();
+  const [pendingSecondsLeft, setPendingSecondsLeft] = useState<number | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!hasPendingSubmission || !pendingSubmissionAutoAcceptAt) return;
+    const compute = () => {
+      const target = new Date(pendingSubmissionAutoAcceptAt).getTime();
+      const secs = Math.max(0, Math.ceil((target - Date.now()) / 1000));
+      setPendingSecondsLeft(secs);
+    };
+    compute();
+    const interval = setInterval(compute, 1000);
+    return () => clearInterval(interval);
+  }, [hasPendingSubmission, pendingSubmissionAutoAcceptAt]);
   const isMultiSelect = !!(onCardSubmit || onQuarterDiscardSelection);
   const cardsInHand = cards.filter((c) => c.status === "drawn");
   const cardsToDisplay = cardsInHand;
@@ -125,7 +147,10 @@ export function Hand({
     [isMultiSelect, selectedCardIds, selectedCardId],
   );
   const canSubmitCards =
-    canTurnInCards && !isQuarterIntermission && !submissionDisabled;
+    canTurnInCards &&
+    !isQuarterIntermission &&
+    !submissionDisabled &&
+    !hasPendingSubmission;
 
   // Ensure layout is valid for current card count (e.g. user had 6 cards with 6v, then drew down to 3)
   const validLayouts = getLayoutsForCardCount(cardsToDisplay.length);
@@ -254,7 +279,18 @@ export function Hand({
           Card turn-in is currently disabled by the host
         </div>
       )}
-      {submissionDisabled && (
+      {hasPendingSubmission && (
+        <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm shrink-0">
+          Wait until your current cards are voted on or auto-accepted
+          {pendingSecondsLeft != null ? (
+            <> ({pendingSecondsLeft}s)</>
+          ) : (
+            <> ({AUTO_ACCEPT_SECONDS}s)</>
+          )}{" "}
+          before submitting new cards.
+        </div>
+      )}
+      {submissionDisabled && !hasPendingSubmission && (
         <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm shrink-0">
           Submissions paused — please wait
         </div>
@@ -326,8 +362,12 @@ export function Hand({
           return (
             <div
               key={cardInstance.id}
-              onClick={() => !submissionDisabled && onCardSelect?.(cardInstance.id)}
-              className={`${cardClasses} ${submissionDisabled ? "pointer-events-none opacity-75" : ""} ${
+              onClick={() =>
+                !submissionDisabled &&
+                (!hasPendingSubmission || isQuarterIntermission) &&
+                onCardSelect?.(cardInstance.id)
+              }
+              className={`${cardClasses} ${submissionDisabled || (hasPendingSubmission && !isQuarterIntermission) ? "pointer-events-none opacity-75" : ""} ${
                 isSelected
                   ? isSmallViewport
                     ? "border-primary bg-primary/10 shadow-md"

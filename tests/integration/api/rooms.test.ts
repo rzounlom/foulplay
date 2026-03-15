@@ -36,6 +36,7 @@ jest.mock("next/server", () => ({
 
 import { NextRequest } from "next/server";
 import { GET as getRoom, PATCH as updateRoom } from "@/app/api/rooms/[code]/route";
+import { GET as getSnapshot } from "@/app/api/rooms/[code]/snapshot/route";
 import { POST as createRoom } from "@/app/api/rooms/route";
 import { POST as joinRoom } from "@/app/api/rooms/join/route";
 import { mockUser, mockPlayer, mockRoom } from "@/tests/helpers/mocks";
@@ -79,6 +80,12 @@ jest.mock("@/lib/db/prisma", () => {
         findFirst: jest.fn(),
         findUnique: jest.fn(),
       },
+      cardSubmission: {
+        findMany: jest.fn(),
+      },
+      cardInstance: {
+        findMany: jest.fn(),
+      },
     },
   };
 });
@@ -93,11 +100,17 @@ jest.mock("@/lib/ably/client", () => ({
   })),
 }));
 
+jest.mock("@/lib/realtime/publish-room-event", () => ({
+  publishRoomEvent: jest.fn().mockResolvedValue(undefined),
+}));
+
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
+import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
 
 const mockGetCurrentUserFromRequest = getCurrentUserFromRequest as jest.MockedFunction<typeof getCurrentUserFromRequest>;
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
+const mockPublishRoomEvent = publishRoomEvent as jest.MockedFunction<typeof publishRoomEvent>;
 
 describe("Room API Routes", () => {
   beforeEach(() => {
@@ -183,6 +196,52 @@ describe("Room API Routes", () => {
       const response = await createRoom(request, { params: Promise.resolve({ code: "" }) });
       expect(response.status).toBe(400);
     });
+
+    it("should accept valid modes", async () => {
+      mockGetCurrentUserFromRequest.mockResolvedValue(mockUser);
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue(null);
+      mockPrisma.room.create = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        mode: "lit",
+        sport: "football",
+      });
+      (mockPrisma as { $transaction: jest.Mock }).$transaction = jest.fn(
+        async (cb: (tx: Record<string, unknown>) => Promise<unknown>) => {
+        const tx = {
+          room: { create: jest.fn().mockResolvedValue({ ...mockRoom, mode: "lit", sport: "football" }) },
+          player: { create: jest.fn().mockResolvedValue(mockPlayer) },
+        };
+        return cb(tx);
+        }
+      );
+
+      for (const mode of ["casual", "party", "lit", "anything_goes", "non-drinking"]) {
+        const request = new NextRequest("http://localhost:3000/api/rooms", {
+          method: "POST",
+          body: JSON.stringify({ mode, sport: "football", handSize: 6 }),
+        });
+        const response = await createRoom(request, { params: Promise.resolve({ code: "" }) });
+        expect(response.status).toBe(201);
+      }
+    });
+
+    it("should reject invalid mode on create", async () => {
+      mockGetCurrentUserFromRequest.mockResolvedValue(mockUser);
+
+      const request = new NextRequest("http://localhost:3000/api/rooms", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "invalid_mode",
+          sport: "football",
+          handSize: 6,
+        }),
+      });
+
+      const response = await createRoom(request, { params: Promise.resolve({ code: "" }) });
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toBe("Invalid request body");
+    });
   });
 
   describe("POST /api/rooms/join", () => {
@@ -199,6 +258,7 @@ describe("Room API Routes", () => {
           players: [],
         })
         .mockResolvedValueOnce(roomWithPlayers);
+      mockPrisma.room.update = jest.fn().mockResolvedValue({ version: 1 });
       mockPrisma.player.findUnique = jest.fn().mockResolvedValue(null);
       mockPrisma.player.create = jest.fn().mockResolvedValue(mockPlayer);
 
@@ -217,6 +277,32 @@ describe("Room API Routes", () => {
       // The API returns the room object directly, not wrapped in { room, player }
       expect(data).toHaveProperty("code", "ABC123");
       expect(data).toHaveProperty("players");
+      expect(mockPublishRoomEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "player.joined",
+          roomId: mockRoom.id,
+          roomCode: "ABC123",
+          playerId: mockPlayer.id,
+          displayName: "TestNick",
+        })
+      );
+    });
+
+    it("does not emit player.joined when user already in room", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        players: [mockPlayer],
+      });
+      mockPrisma.player.findUnique = jest.fn().mockResolvedValue(mockPlayer);
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/join", {
+        method: "POST",
+        body: JSON.stringify({ code: "ABC123" }),
+      });
+
+      const response = await joinRoom(request);
+      expect(response.status).toBe(200);
+      expect(mockPublishRoomEvent).not.toHaveBeenCalled();
     });
 
     it("should return 404 when room does not exist", async () => {
@@ -275,6 +361,44 @@ describe("Room API Routes", () => {
     });
   });
 
+  describe("GET /api/rooms/[code]/snapshot", () => {
+    it("should return snapshot with version, players, and hand", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        version: 1,
+        gameState: null,
+      });
+      mockPrisma.cardSubmission.findMany = jest.fn().mockResolvedValue([]);
+      mockPrisma.cardInstance.findMany = jest.fn().mockResolvedValue([]);
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/ABC123/snapshot");
+      const response = await getSnapshot(request, {
+        params: Promise.resolve({ code: "ABC123" }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toHaveProperty("roomId", "room_123");
+      expect(data).toHaveProperty("roomCode", "ABC123");
+      expect(data).toHaveProperty("version", 1);
+      expect(data).toHaveProperty("mode", "casual");
+      expect(data).toHaveProperty("players");
+      expect(data).toHaveProperty("submissions");
+      expect(data).toHaveProperty("hand");
+    });
+
+    it("should return 404 when room does not exist", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue(null);
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/INVALID/snapshot");
+      const response = await getSnapshot(request, {
+        params: Promise.resolve({ code: "INVALID" }),
+      });
+
+      expect(response.status).toBe(404);
+    });
+  });
+
   describe("PATCH /api/rooms/[code]", () => {
     it("should update room settings as host", async () => {
       mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
@@ -325,6 +449,52 @@ describe("Room API Routes", () => {
       });
 
       expect(response.status).toBe(403);
+    });
+
+    it("should reject invalid mode on PATCH", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        players: [mockPlayer],
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/ABC123", {
+        method: "PATCH",
+        body: JSON.stringify({
+          mode: "freeform_invalid",
+        }),
+      });
+
+      const response = await updateRoom(request, {
+        params: Promise.resolve({ code: "ABC123" }),
+      });
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toBe("Invalid request body");
+    });
+
+    it("should allow PATCH without mode (optional)", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        players: [mockPlayer],
+      });
+      mockPrisma.room.update = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        handSize: 8,
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/ABC123", {
+        method: "PATCH",
+        body: JSON.stringify({
+          handSize: 8,
+        }),
+      });
+
+      const response = await updateRoom(request, {
+        params: Promise.resolve({ code: "ABC123" }),
+      });
+
+      expect(response.status).toBe(200);
     });
   });
 });

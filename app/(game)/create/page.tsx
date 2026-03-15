@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
+import { GAME_MODES, MODE_LABELS } from "@/lib/game/modes";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -115,10 +116,11 @@ export default function CreateRoomPage() {
               required
             >
               <option value="">Select mode</option>
-              <option value="casual">Casual — mild drinking penalties</option>
-              <option value="party">Party — balanced mix</option>
-              <option value="lit">Get Lit — intense drinking penalties</option>
-              <option value="non-drinking">Non-drinking</option>
+              {GAME_MODES.map((m) => (
+                <option key={m} value={m}>
+                  {MODE_LABELS[m]}
+                </option>
+              ))}
             </Select>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
               Mode affects the mix of card severities (mild / moderate / severe) in the deck.

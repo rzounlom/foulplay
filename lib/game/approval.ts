@@ -16,7 +16,11 @@ export function requiredApprovals(totalPlayers: number): number {
 }
 
 /**
- * Check if a submission can be resolved based on votes
+ * Check if a submission can be resolved based on votes.
+ * Uses totalPlayers for thresholds (50% majority rule).
+ * Uses eligibleVoterCount for "all voted" early completion (defaults to totalPlayers).
+ * When submitter cannot vote, pass eligibleVoterCount = totalPlayers - 1.
+ *
  * Returns:
  * - "approved" if approval threshold is met
  * - "rejected" if rejection threshold is met (more than half reject)
@@ -25,10 +29,17 @@ export function requiredApprovals(totalPlayers: number): number {
 export function canResolveSubmission(
   totalPlayers: number,
   approvalVotes: number,
-  rejectionVotes: number
+  rejectionVotes: number,
+  eligibleVoterCount?: number
 ): "approved" | "rejected" | "pending" {
   const required = requiredApprovals(totalPlayers);
   const totalVotes = approvalVotes + rejectionVotes;
+  const votersForAllVoted = eligibleVoterCount ?? totalPlayers;
+
+  // No votes yet: cannot resolve from votes; remains pending (e.g. for auto-accept at timeout)
+  if (totalVotes === 0) {
+    return "pending";
+  }
 
   // If we have enough approvals, approve
   if (approvalVotes >= required) {
@@ -41,8 +52,8 @@ export function canResolveSubmission(
     return "rejected";
   }
 
-  // If all players have voted but didn't reach threshold, use majority of votes
-  if (totalVotes >= totalPlayers) {
+  // If all eligible voters have voted, resolve by majority (immediate completion)
+  if (totalVotes >= votersForAllVoted) {
     return approvalVotes > rejectionVotes ? "approved" : "rejected";
   }
 

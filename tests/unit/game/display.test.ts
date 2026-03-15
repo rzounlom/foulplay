@@ -52,11 +52,17 @@ describe("Display helpers", () => {
       });
     });
 
-    it("returns original description for non-Take-x-drinks when mode is casual/party/lit", () => {
+    it("returns original description for non-Take-x-drinks when mode is casual/party/lit/anything_goes", () => {
       const desc = "Do 10 push-ups when this happens.";
       expect(getCardDescriptionForDisplay(desc, "casual")).toBe(desc);
       expect(getCardDescriptionForDisplay(desc, "party")).toBe(desc);
       expect(getCardDescriptionForDisplay(desc, "lit")).toBe(desc);
+      expect(getCardDescriptionForDisplay(desc, "anything_goes")).toBe(desc);
+    });
+
+    it("anything_goes: returns base penalty as-is (same as casual)", () => {
+      expect(getCardDescriptionForDisplay("Take a drink", "anything_goes")).toBe("Take a drink");
+      expect(getCardDescriptionForDisplay("Take 2 drinks", "anything_goes")).toBe("Take 2 drinks");
     });
 
     it("returns original description when mode is null or unknown", () => {
@@ -118,6 +124,7 @@ describe("Display helpers", () => {
       expect(isNonDrinkingMode("casual")).toBe(false);
       expect(isNonDrinkingMode("party")).toBe(false);
       expect(isNonDrinkingMode("lit")).toBe(false);
+      expect(isNonDrinkingMode("anything_goes")).toBe(false);
       expect(isNonDrinkingMode(null)).toBe(false);
       expect(isNonDrinkingMode("")).toBe(false);
     });

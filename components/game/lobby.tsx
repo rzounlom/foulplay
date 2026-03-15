@@ -11,6 +11,7 @@ import { PlayerList } from "./player-list";
 import { ShareModal } from "./share-modal";
 import { Select } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import { GAME_MODES, MODE_LABELS, isValidGameMode } from "@/lib/game/modes";
 
 interface Player {
   id: string;
@@ -41,13 +42,6 @@ interface LobbyProps {
   currentUserId: string;
   initialRoom: Room;
 }
-
-const MODE_LABELS: Record<string, string> = {
-  casual: "Casual — mild drinking penalties",
-  party: "Party — balanced mix",
-  lit: "Get Lit — intense drinking penalties",
-  "non-drinking": "Non-drinking",
-};
 
 export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   const router = useRouter();
@@ -245,14 +239,15 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                     }
                   >
                     <option value="">Select mode</option>
-                    <option value="casual">Casual — mild drinking penalties</option>
-                    <option value="party">Party — balanced mix</option>
-                    <option value="lit">Get Lit — intense drinking penalties</option>
-                    <option value="non-drinking">Non-drinking</option>
+                    {GAME_MODES.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {MODE_LABELS[mode] ?? mode}
+                      </option>
+                    ))}
                   </Select>
                 ) : (
                   <div className="w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300">
-                    {room.mode ? MODE_LABELS[room.mode] ?? room.mode : "Not set"}
+                    {room.mode ? (isValidGameMode(room.mode) ? MODE_LABELS[room.mode] : room.mode) : "Not set"}
                   </div>
                 )}
               </div>

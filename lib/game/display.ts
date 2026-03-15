@@ -41,6 +41,7 @@ function parseDrinkCount(description: string): number | null {
  * - casual: base penalty as-is
  * - party: "Take x drinks" → base + 1 (severe penalties unchanged)
  * - lit: "Take x drinks" → base * 2 (severe penalties unchanged)
+ * - anything_goes: base penalty as-is (same as casual)
  */
 export function getCardDescriptionForDisplay(
   description: string,
@@ -57,7 +58,7 @@ export function getCardDescriptionForDisplay(
   const base = parseDrinkCount(description);
   if (base === null) return description;
 
-  if (mode === "casual") {
+  if (mode === "casual" || mode === "anything_goes") {
     return description;
   }
 
@@ -117,7 +118,7 @@ export function combinePenalties(penalties: string[]): string[] {
         const sgMatch = p.match(SHOTGUN_N_BEERS);
         if (sgMatch) {
           shotgunCount += parseInt(sgMatch[1], 10);
-        } else if (p === "Finish your drink") {
+        } else if (FINISH_YOUR_DRINK.test(p)) {
           finishCount += 1;
         } else if (p === "Finish your drink + 1/2 another") {
           finishAndHalfCount += 1;

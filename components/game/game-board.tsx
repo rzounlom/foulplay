@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { RoomEvent, useRoomChannel } from "@/lib/ably/useRoomChannel";
+import { useRoomState } from "@/lib/hooks/useRoomState";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -97,7 +98,8 @@ export interface Room {
 interface GameBoardProps {
   roomCode: string;
   currentUserId: string;
-  initialRoom: Room;
+  /** Initial room for first paint (optional). useRoomState snapshot is the authoritative source. */
+  initialRoom?: Room;
   /** When true, show tour on mount (e.g. coming from lobby after game start). Tour otherwise only triggers on game_started event. */
   showTourOnMount?: boolean;
 }
@@ -133,17 +135,113 @@ interface Submission {
   }>;
 }
 
+/** Convert RoomSnapshot to Room shape for game-board compatibility */
+function snapshotToRoom(snapshot: {
+  roomId: string;
+  roomCode: string;
+  version?: number;
+  status: string;
+  mode: string | null;
+  sport: string | null;
+  showPoints: boolean;
+  allowJoinInProgress?: boolean;
+  allowQuarterClearing: boolean;
+  canTurnInCards?: boolean;
+  currentQuarter: string | null;
+  quarterIntermissionEndsAt: string | Date | null;
+  pendingQuarterDiscardSelections?: Record<string, string[]> | null;
+  quarterDiscardDonePlayerIds?: string[] | null;
+  suggestEndRoundPlayerIds?: string[] | null;
+  handSize?: number;
+  players: Array<{ id: string; userId: string; points: number; isHost: boolean; nickname?: string | null; user: { id: string; name: string } }>;
+  currentTurnPlayerId: string | null;
+  activeCardInstance: unknown;
+}): Room {
+  return {
+    id: snapshot.roomId,
+    code: snapshot.roomCode,
+    status: snapshot.status,
+    mode: snapshot.mode,
+    sport: snapshot.sport,
+    showPoints: snapshot.showPoints,
+    allowJoinInProgress: snapshot.allowJoinInProgress ?? false,
+    handSize: snapshot.handSize ?? 6,
+    allowQuarterClearing: snapshot.allowQuarterClearing,
+    currentQuarter: snapshot.currentQuarter,
+    quarterIntermissionEndsAt: snapshot.quarterIntermissionEndsAt,
+    pendingQuarterDiscardSelections: snapshot.pendingQuarterDiscardSelections,
+    quarterDiscardDonePlayerIds: snapshot.quarterDiscardDonePlayerIds,
+    suggestEndRoundPlayerIds: snapshot.suggestEndRoundPlayerIds,
+    canTurnInCards: snapshot.canTurnInCards ?? true,
+    players: snapshot.players.map((p) => ({
+      ...p,
+      user: p.user,
+      roomId: snapshot.roomId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })),
+    gameState: snapshot.currentTurnPlayerId
+      ? {
+          id: "gs",
+          currentTurnPlayerId: snapshot.currentTurnPlayerId,
+          currentTurnPlayer: { id: snapshot.currentTurnPlayerId, user: { id: "", name: "" } },
+          activeCardInstanceId: (snapshot.activeCardInstance as { id?: string })?.id ?? null,
+          activeCardInstance: snapshot.activeCardInstance as CardInstance | null,
+        }
+      : null,
+  };
+}
+
 export function GameBoard({
   roomCode,
   currentUserId,
   initialRoom,
   showTourOnMount = false,
 }: GameBoardProps) {
-  const [room, setRoom] = useState<Room>(initialRoom);
+  const {
+    snapshot,
+    isLoading: snapshotLoading,
+    resyncRoomSnapshot,
+    isStateChannelConnected,
+  } = useRoomState(roomCode, currentUserId);
+
+  const room = useMemo(() => {
+    if (snapshot) return snapshotToRoom(snapshot);
+    if (initialRoom) return initialRoom;
+    return null;
+  }, [snapshot, initialRoom]);
+
+  const hand = useMemo(
+    () =>
+      (snapshot?.hand ?? []).map((c) => ({
+        id: c.id,
+        card: c.card as Card,
+        status: c.status,
+      })) as HandCard[],
+    [snapshot?.hand]
+  );
+
+  const submissions = useMemo(
+    () => (snapshot?.submissions ?? []) as Submission[],
+    [snapshot?.submissions]
+  );
+
+  const myPendingSubmission = useMemo(
+    () =>
+      submissions.find(
+        (s) =>
+          s.status === "pending" &&
+          s.submittedBy?.user?.id === currentUserId
+      ),
+    [submissions, currentUserId]
+  );
+  const hasPendingSubmission = !!myPendingSubmission;
+  const pendingSubmissionAutoAcceptAt =
+    (myPendingSubmission as { autoAcceptAt?: string } | undefined)
+      ?.autoAcceptAt ?? null;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hand, setHand] = useState<HandCard[]>([]);
-  const [handLoading, setHandLoading] = useState(true);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const handLoading = snapshotLoading;
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [startTour, setStartTour] = useState(false);
   const [showEndGameModal, setShowEndGameModal] = useState(false);
@@ -195,21 +293,6 @@ export function GameBoard({
   // Keep roomRef in sync for event handlers (avoids stale closures on rapid events)
   roomRef.current = room;
 
-  const fetchRoom = useCallback(async (): Promise<Room | null> => {
-    try {
-      const response = await fetch(`/api/rooms/${roomCode}`);
-      if (response.ok) {
-        const roomData = await response.json();
-        setRoom(roomData);
-        return roomData;
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === "development")
-        console.error("Failed to fetch room:", error);
-    }
-    return null;
-  }, [roomCode]);
-
   const fetchMessages = useCallback(async () => {
     try {
       const response = await fetch(`/api/chat/messages?roomCode=${roomCode}`);
@@ -222,42 +305,6 @@ export function GameBoard({
         console.error("Failed to fetch messages:", error);
     }
   }, [roomCode]);
-
-  const fetchHand = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/game/hand?roomCode=${roomCode}`);
-      if (response.ok) {
-        const data = await response.json();
-        setHand(data.cards || []);
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === "development")
-        console.error("Failed to fetch hand:", error);
-    } finally {
-      setHandLoading(false);
-    }
-  }, [roomCode]);
-
-  const fetchSubmissions = useCallback(async () => {
-    try {
-      const response = await fetch(
-        `/api/game/submissions?roomCode=${roomCode}`,
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setSubmissions(data.submissions || []);
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === "development")
-        console.error("Failed to fetch submissions:", error);
-    }
-  }, [roomCode]);
-
-  // Fetch initial data
-  useEffect(() => {
-    fetchHand();
-    fetchSubmissions();
-  }, [fetchHand, fetchSubmissions]);
 
   // Tour only on showTourOnMount (from lobby after game start) — never on plain page load/refresh
   useEffect(() => {
@@ -285,16 +332,16 @@ export function GameBoard({
   }, [showTourOnMount]);
 
   // Derive intermission countdown from room.quarterIntermissionEndsAt
-  const endsAt = room.quarterIntermissionEndsAt
+  const endsAt = room?.quarterIntermissionEndsAt
     ? new Date(room.quarterIntermissionEndsAt).getTime()
     : null;
   const isQuarterIntermission = !!endsAt && endsAt > Date.now();
-  const isHost = room.players.some(
+  const isHost = (room?.players ?? []).some(
     (p) => p.user.id === currentUserId && p.isHost,
   );
 
   // Subscribe to game events; fall back to polling when Ably is disconnected
-  const { isConnected } = useRoomChannel(
+  useRoomChannel(
     roomCode,
     (event: RoomEvent, data: Record<string, unknown>) => {
       // If we're redirecting to end-game, ignore all further events (don't start tour, don't fetch)
@@ -342,6 +389,7 @@ export function GameBoard({
         const points = payload.pointsAwarded ?? 0;
         const submitterPlayerId = payload.submittedBy?.id;
         const r = roomRef.current;
+        if (!r) return;
         const currentPlayerId = r.players.find(
           (p) => p.user.id === currentUserId,
         )?.id;
@@ -385,10 +433,13 @@ export function GameBoard({
         const payload = data as {
           pointsAwarded?: number;
           submittedBy?: { id: string };
+          cards?: Array<{ description: string }>;
         };
         const points = payload.pointsAwarded ?? 0;
         const recipientPlayerId = payload.submittedBy?.id;
-        const currentPlayerId = roomRef.current.players.find(
+        const r2 = roomRef.current;
+        if (!r2) return;
+        const currentPlayerId = r2.players.find(
           (p) => p.user.id === currentUserId,
         )?.id;
         const isRecipient =
@@ -406,6 +457,25 @@ export function GameBoard({
             });
           });
           setTimeout(() => setPointsAwardedPopup(null), 2200);
+          // After points animation, show drink penalty reminder (skip in non-drinking mode)
+          if (
+            !isNonDrinkingMode(r2.mode) &&
+            payload.cards &&
+            payload.cards.length > 0
+          ) {
+            const penalties = payload.cards.map((c) =>
+              getCardDescriptionForDisplay(c.description, r2.mode),
+            );
+            const combined = combinePenalties(penalties);
+            const penaltyText =
+              combined.length === 1
+                ? formatPenaltyReminder(combined[0])
+                : `Don't forget to ${combined.map(formatPenaltyPartForCombined).join(" AND ")}!`;
+            setTimeout(() => {
+              setPenaltyReminderPopup(penaltyText);
+              setTimeout(() => setPenaltyReminderPopup(null), 3500);
+            }, 2200);
+          }
         }
       }
       if (event === "card_rejected" && data) {
@@ -414,7 +484,9 @@ export function GameBoard({
           cardCount?: number;
         };
         const submitterPlayerId = payload.submittedBy?.id;
-        const currentPlayerId = roomRef.current.players.find(
+        const r3 = roomRef.current;
+        if (!r3) return;
+        const currentPlayerId = r3.players.find(
           (p) => p.user.id === currentUserId,
         )?.id;
         const isSubmitter =
@@ -427,16 +499,21 @@ export function GameBoard({
           setTimeout(() => setCardsRejectedPopup(null), 2200);
         }
       }
-      if (
+      // Events with state channel equivalents: no resync — useRoomState patches from room:{roomCode}:state
+      const stateChannelHandled = [
+        "card_submitted",
+        "vote_cast",
+        "card_approved",
+        "card_rejected",
+        "submission_approved",
+        "submission_rejected",
+        "turn_changed",
+      ];
+      if (stateChannelHandled.includes(event)) {
+        // UI popups (card_approved, card_rejected) handled above; state patching via useRoomState
+      } else if (
         event === "game_started" ||
         event === "card_drawn" ||
-        event === "card_submitted" ||
-        event === "vote_cast" ||
-        event === "card_approved" ||
-        event === "card_rejected" ||
-        event === "submission_approved" ||
-        event === "submission_rejected" ||
-        event === "turn_changed" ||
         event === "room_settings_updated" ||
         event === "points_reset" ||
         event === "card_discarded" ||
@@ -453,7 +530,8 @@ export function GameBoard({
         if (event === "suggest_end_round_declined" && data) {
           const payload = data as { declinedPlayerIds?: string[] };
           const declinedIds = payload.declinedPlayerIds ?? [];
-          const currentPlayerId = roomRef.current.players.find(
+          const r4 = roomRef.current;
+          const currentPlayerId = r4?.players.find(
             (p) => p.user.id === currentUserId
           )?.id;
           if (
@@ -466,11 +544,8 @@ export function GameBoard({
         if (event === "suggest_end_round_updated") {
           setSuggestEndRoundBannerDismissed(false);
         }
-        fetchRoom();
-        fetchHand();
-        fetchSubmissions();
+        resyncRoomSnapshot();
 
-        // Start tour when a new game starts (if user hasn't opted out)
         if (event === "game_started") {
           const checkAndStartTour = async () => {
             try {
@@ -496,20 +571,18 @@ export function GameBoard({
     },
   );
 
-  // Polling fallback when Ably is disconnected — start after 2s grace, poll every 3s
+  // Polling fallback when state channel is disconnected — start after 2s grace, poll every 3s
   useEffect(() => {
-    if (isConnected) return;
+    if (isStateChannelConnected) return;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     const graceTimer = setTimeout(() => {
       const poll = async () => {
-        const roomData = await fetchRoom();
-        if (roomData?.status === "ended" && !isRedirectingToEndGame.current) {
+        const data = await resyncRoomSnapshot();
+        if (data?.status === "ended" && !isRedirectingToEndGame.current) {
           isRedirectingToEndGame.current = true;
           router.push(`/game/${roomCode}/end-game`);
           return;
         }
-        fetchHand();
-        fetchSubmissions();
         fetchMessages();
       };
       void poll();
@@ -520,28 +593,27 @@ export function GameBoard({
       if (pollInterval) clearInterval(pollInterval);
     };
   }, [
-    isConnected,
-    fetchRoom,
-    fetchHand,
-    fetchSubmissions,
+    isStateChannelConnected,
+    resyncRoomSnapshot,
     fetchMessages,
     roomCode,
     router,
   ]);
 
-  const currentPlayer = room.players.find((p) => p.user.id === currentUserId);
-  const rawDone = room.quarterDiscardDonePlayerIds;
+  // Derive values before early return (hooks must run unconditionally)
+  const currentPlayer = room?.players?.find((p) => p.user.id === currentUserId);
+  const rawDone = room?.quarterDiscardDonePlayerIds;
   const donePlayerIds = Array.isArray(rawDone)
     ? rawDone
     : rawDone && typeof rawDone === "object"
       ? Object.values(rawDone)
       : [];
   const doneCount = donePlayerIds.length;
-  const totalPlayers = room.players.length;
+  const totalPlayers = room?.players?.length ?? 0;
   const allPlayersDone = totalPlayers > 0 && doneCount >= totalPlayers;
   const iAmDone = currentPlayer && donePlayerIds.includes(currentPlayer.id);
 
-  const rawSuggestIds = room.suggestEndRoundPlayerIds;
+  const rawSuggestIds = room?.suggestEndRoundPlayerIds;
   const suggestEndRoundIds = Array.isArray(rawSuggestIds)
     ? rawSuggestIds
     : rawSuggestIds && typeof rawSuggestIds === "object"
@@ -554,7 +626,7 @@ export function GameBoard({
   const iHaveSuggested =
     currentPlayer && suggestEndRoundIds.includes(currentPlayer.id);
 
-  const activeCard = room.gameState?.activeCardInstance;
+  const activeCard = room?.gameState?.activeCardInstance;
 
   // Reset banner dismissed when round ends (intermission starts)
   useEffect(() => {
@@ -579,8 +651,8 @@ export function GameBoard({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ roomCode }),
-    }).then(() => fetchRoom());
-  }, [allDoneCountdown, isHost, roomCode]);
+    }).then(() => resyncRoomSnapshot()); // Event will also trigger resync; this ensures immediate feedback
+  }, [allDoneCountdown, isHost, roomCode, resyncRoomSnapshot]);
 
   // Countdown timer for quarter intermission; when it hits 0, only host calls finalize-quarter (avoids duplicate calls from all clients)
   // Skip when all-done countdown is active (that path handles finalize)
@@ -599,13 +671,13 @@ export function GameBoard({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ roomCode }),
-        }).then(() => fetchRoom());
+        }).then(() => resyncRoomSnapshot()); // Event will also trigger resync
       }
     };
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [endsAt, roomCode, isHost, allDoneCountdown]);
+  }, [endsAt, roomCode, isHost, allDoneCountdown, resyncRoomSnapshot]);
 
   // All-done 5-second countdown tick
   useEffect(() => {
@@ -613,6 +685,36 @@ export function GameBoard({
     const t = setTimeout(() => setAllDoneCountdown((c) => (c != null && c > 0 ? c - 1 : null)), 1000);
     return () => clearTimeout(t);
   }, [allDoneCountdown]);
+
+  const submissionsToVote = useMemo(
+    () =>
+      submissions.filter(
+        (s) =>
+          s.status === "pending" &&
+          s.submittedBy?.user?.id !== currentUserId,
+      ),
+    [submissions, currentUserId],
+  );
+
+  useEffect(() => {
+    if (submissionsToVote.length > 0) {
+      if (submissionsToVote.length > prevSubmissionsToVoteCount.current) {
+        setVotingDismissed(false);
+      }
+      setVotingPanelOpen(true);
+    } else {
+      setVotingDismissed(false);
+    }
+    prevSubmissionsToVoteCount.current = submissionsToVote.length;
+  }, [submissionsToVote.length]);
+
+  if (!room) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center text-neutral-600 dark:text-neutral-400">
+        Loading game…
+      </div>
+    );
+  }
   const chatUnreadCount = chatOpen
     ? 0
     : lastSeenMessageCount == null
@@ -637,10 +739,8 @@ export function GameBoard({
         const error = await response.json();
         toast.addToast(error.error || "Failed to submit card", "error");
       } else {
-        // Clear selection and refresh
+        // Clear selection; state updates via useRoomState (submission.created event)
         setSelectedCardIds([]);
-        fetchHand();
-        fetchSubmissions();
       }
     } catch (error) {
       if (process.env.NODE_ENV === "development")
@@ -666,12 +766,8 @@ export function GameBoard({
       if (!response.ok) {
         const error = await response.json();
         toast.addToast(error.error || "Failed to vote", "error");
-      } else {
-        // Refresh all data after voting
-        fetchSubmissions();
-        fetchRoom();
-        fetchHand();
       }
+      // State updates via useRoomState (submission.vote_cast / submission.accepted)
     } catch (error) {
       if (process.env.NODE_ENV === "development")
         console.error("Failed to vote:", error);
@@ -753,7 +849,7 @@ export function GameBoard({
         throw new Error(data.error || "Failed to end round");
       }
       setShowEndRoundModal(false);
-      fetchRoom();
+      // State updates via legacy channel event (quarter_advanced)
     } catch (error) {
       if (process.env.NODE_ENV === "development")
         console.error("Failed to end round:", error);
@@ -778,8 +874,8 @@ export function GameBoard({
         const data = await response.json();
         throw new Error(data.error || "Failed to suggest end round");
       }
-      fetchRoom();
       setPlayersPanelOpen(false);
+      // State updates via legacy channel event (suggest_end_round_updated)
     } catch (error) {
       if (process.env.NODE_ENV === "development")
         console.error("Failed to suggest end round:", error);
@@ -804,7 +900,7 @@ export function GameBoard({
         const data = await response.json();
         throw new Error(data.error || "Failed to mark done");
       }
-      fetchRoom();
+      // State updates via legacy channel event (quarter_discard_done_updated)
     } catch (error) {
       if (process.env.NODE_ENV === "development")
         console.error("Failed to mark done:", error);
@@ -830,7 +926,7 @@ export function GameBoard({
         throw new Error(data.error || "Failed to end intermission");
       }
       setShowEndRoundEarlyModal(false);
-      fetchRoom();
+      // State updates via legacy channel event (quarter_intermission_ended)
     } catch (error) {
       if (process.env.NODE_ENV === "development")
         console.error("Failed to end intermission:", error);
@@ -857,7 +953,7 @@ export function GameBoard({
       }
 
       setSelectedCardIds([]);
-      fetchHand();
+      // State updates via legacy channel event (card_discarded)
     } catch (error) {
       if (process.env.NODE_ENV === "development")
         console.error("Failed to discard cards:", error);
@@ -879,7 +975,7 @@ export function GameBoard({
       }
 
       setSelectedCardIds([]);
-      fetchRoom();
+      // State updates via legacy channel event (quarter_discard_selection_updated)
     } catch (error) {
       if (process.env.NODE_ENV === "development")
         console.error("Failed to save quarter discard selection:", error);
@@ -909,27 +1005,6 @@ export function GameBoard({
     room.allowQuarterClearing && isFootballOrBasketball;
 
   const roundLabel = room.currentQuarter?.replace(/^Q/, "") ?? null;
-
-  const submissionsToVote = useMemo(
-    () =>
-      submissions.filter(
-        (s) =>
-          s.status === "pending" && s.submittedBy.user.id !== currentUserId,
-      ),
-    [submissions, currentUserId],
-  );
-
-  useEffect(() => {
-    if (submissionsToVote.length > 0) {
-      if (submissionsToVote.length > prevSubmissionsToVoteCount.current) {
-        setVotingDismissed(false);
-      }
-      setVotingPanelOpen(true);
-    } else {
-      setVotingDismissed(false);
-    }
-    prevSubmissionsToVoteCount.current = submissionsToVote.length;
-  }, [submissionsToVote.length]);
 
   const myPendingDiscardCount =
     currentPlayer && showQuarterControls && isQuarterIntermission
@@ -1149,11 +1224,6 @@ export function GameBoard({
             setVotingPanelOpen(false);
             setVotingDismissed(true);
           }}
-          onRefresh={() => {
-            fetchSubmissions();
-            fetchRoom();
-            fetchHand();
-          }}
           votingPaused={isQuarterIntermission}
           roomMode={room.mode}
         />
@@ -1208,7 +1278,7 @@ export function GameBoard({
                         checked={room.showPoints}
                         onChange={async (e) => {
                           try {
-                            const response = await fetch(
+                            await fetch(
                               `/api/rooms/${roomCode}`,
                               {
                                 method: "PATCH",
@@ -1218,10 +1288,7 @@ export function GameBoard({
                                 }),
                               },
                             );
-                            if (response.ok) {
-                              const updatedRoom = await response.json();
-                              setRoom(updatedRoom);
-                            }
+                            // State updates via room_settings_updated event
                           } catch (err) {
                             if (process.env.NODE_ENV === "development")
                               console.error(
@@ -1240,20 +1307,14 @@ export function GameBoard({
                         checked={room.allowJoinInProgress ?? false}
                         onChange={async (e) => {
                           try {
-                            const response = await fetch(
-                              `/api/rooms/${roomCode}`,
-                              {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  allowJoinInProgress: e.target.checked,
-                                }),
-                              },
-                            );
-                            if (response.ok) {
-                              const updatedRoom = await response.json();
-                              setRoom(updatedRoom);
-                            }
+                            await fetch(`/api/rooms/${roomCode}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                allowJoinInProgress: e.target.checked,
+                              }),
+                            });
+                            // State updates via room_settings_updated event
                           } catch (err) {
                             if (process.env.NODE_ENV === "development")
                               console.error(
@@ -1432,8 +1493,7 @@ export function GameBoard({
                           }),
                         });
                         if (response.ok) {
-                          const updatedRoom = await response.json();
-                          setRoom(updatedRoom);
+                          // State updates via room_settings_updated event
                         }
                       } catch (error) {
                         if (process.env.NODE_ENV === "development")
@@ -1458,8 +1518,7 @@ export function GameBoard({
                           }),
                         });
                         if (response.ok) {
-                          const updatedRoom = await response.json();
-                          setRoom(updatedRoom);
+                          // State updates via room_settings_updated event
                         }
                       } catch (error) {
                         if (process.env.NODE_ENV === "development")
@@ -1653,7 +1712,7 @@ export function GameBoard({
                         );
                         if (response.ok) {
                           setSuggestEndRoundBannerDismissed(true);
-                          fetchRoom();
+                          // State updates via suggest_end_round_declined event
                         } else {
                           const data = await response.json();
                           toast.addToast(
@@ -1791,7 +1850,7 @@ export function GameBoard({
               {handLoading ? (
                 <div className="bg-surface rounded-lg p-3 md:p-6 lg:p-5 border border-border shadow-sm dark:shadow-none flex flex-col min-h-0 max-h-[calc(100vh-12rem)]">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4 overflow-y-auto min-h-0 flex-1">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                    {Array.from({ length: room?.handSize ?? 6 }, (_, i) => i + 1).map((i) => (
                       <div
                         key={i}
                         className="h-[150px] md:h-[120px] lg:h-[220px] rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse"
@@ -1833,6 +1892,8 @@ export function GameBoard({
                     ((isEndingRound || isEndingRoundEarly) && isHost) ||
                     allDoneCountdown != null
                   }
+                  hasPendingSubmission={hasPendingSubmission}
+                  pendingSubmissionAutoAcceptAt={pendingSubmissionAutoAcceptAt}
                 />
               )}
             </div>
