@@ -6,7 +6,7 @@ export default async function SignInPage({
   searchParams: Promise<{ redirect_url?: string }>;
 }) {
   const params = await searchParams;
-  const redirectUrl = params.redirect_url || "/";
+  const redirectUrl = params.redirect_url || "/games";
 
   return (
     <div className="flex min-h-screen items-center justify-center">
