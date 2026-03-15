@@ -227,7 +227,7 @@ export function GameBoard({
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const handLoading = snapshotLoading && !initialRoom;
+  const handLoading = snapshotLoading;
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [startTour, setStartTour] = useState(false);
   const [showEndGameModal, setShowEndGameModal] = useState(false);
@@ -1816,7 +1816,7 @@ export function GameBoard({
               {handLoading ? (
                 <div className="bg-surface rounded-lg p-3 md:p-6 lg:p-5 border border-border shadow-sm dark:shadow-none flex flex-col min-h-0 max-h-[calc(100vh-12rem)]">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4 overflow-y-auto min-h-0 flex-1">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                    {Array.from({ length: room?.handSize ?? 6 }, (_, i) => i + 1).map((i) => (
                       <div
                         key={i}
                         className="h-[150px] md:h-[120px] lg:h-[220px] rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse"
