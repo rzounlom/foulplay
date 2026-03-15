@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRoomStateChannel } from "@/lib/ably/useRoomStateChannel";
-import { applyRoomEvent, type RoomSnapshot } from "@/lib/realtime/apply-room-event";
+import {
+  applyRoomEvent,
+  type RoomSnapshot,
+} from "@/lib/realtime/apply-room-event";
 import type { RoomEvent } from "@/lib/realtime/room-events";
 
 export interface UseRoomStateResult {
@@ -20,7 +23,7 @@ export interface UseRoomStateResult {
  */
 export function useRoomState(
   roomCode: string | null,
-  currentUserId: string
+  currentUserId: string,
 ): UseRoomStateResult {
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [lastSeenVersion, setLastSeenVersion] = useState(0);
@@ -32,29 +35,32 @@ export function useRoomState(
   lastSeenVersionRef.current = lastSeenVersion;
   snapshotRef.current = snapshot;
 
-  const resyncRoomSnapshot = useCallback(async (): Promise<RoomSnapshot | null> => {
-    if (!roomCode || resyncInProgressRef.current) return null;
-    resyncInProgressRef.current = true;
-    try {
-      const response = await fetch(`/api/rooms/${roomCode}/snapshot`);
-      if (!response.ok) throw new Error("Failed to fetch snapshot");
-      const data = await response.json();
-      setSnapshot(data);
-      const v = data.version ?? 0;
-      setLastSeenVersion(v);
-      lastSeenVersionRef.current = v;
-      setError(null);
-      return data;
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("Snapshot fetch failed"));
-      if (process.env.NODE_ENV === "development") {
-        console.error("[useRoomState] Resync failed:", err);
+  const resyncRoomSnapshot =
+    useCallback(async (): Promise<RoomSnapshot | null> => {
+      if (!roomCode || resyncInProgressRef.current) return null;
+      resyncInProgressRef.current = true;
+      try {
+        const response = await fetch(`/api/rooms/${roomCode}/snapshot`);
+        if (!response.ok) throw new Error("Failed to fetch snapshot");
+        const data = await response.json();
+        setSnapshot(data);
+        const v = data.version ?? 0;
+        setLastSeenVersion(v);
+        lastSeenVersionRef.current = v;
+        setError(null);
+        return data;
+      } catch (err) {
+        setError(
+          err instanceof Error ? err : new Error("Snapshot fetch failed"),
+        );
+        if (process.env.NODE_ENV === "development") {
+          console.error("[useRoomState] Resync failed:", err);
+        }
+        return null;
+      } finally {
+        resyncInProgressRef.current = false;
       }
-      return null;
-    } finally {
-      resyncInProgressRef.current = false;
-    }
-  }, [roomCode]);
+    }, [roomCode]);
 
   // Initial snapshot fetch
   useEffect(() => {
@@ -92,9 +98,15 @@ export function useRoomState(
       });
 
       // hand.replenished: event has no card data; targeted refetch of our hand only
-      if (event.type === "hand.replenished" && roomCode && "playerId" in event) {
+      if (
+        event.type === "hand.replenished" &&
+        roomCode &&
+        "playerId" in event
+      ) {
         const ev = event as { playerId: string };
-        const currentPlayer = snapshotRef.current?.players?.find((p) => p.userId === currentUserId);
+        const currentPlayer = snapshotRef.current?.players?.find(
+          (p) => p.userId === currentUserId,
+        );
         if (currentPlayer?.id === ev.playerId) {
           fetch(`/api/game/hand?roomCode=${roomCode}`)
             .then((r) => (r.ok ? r.json() : null))
@@ -113,7 +125,9 @@ export function useRoomState(
           .then((r) => (r.ok ? r.json() : null))
           .then((data) => {
             if (data?.submissions) {
-              setSnapshot((s) => (s ? { ...s, submissions: data.submissions } : s));
+              setSnapshot((s) =>
+                s ? { ...s, submissions: data.submissions } : s,
+              );
             }
           })
           .catch(() => {});
@@ -125,23 +139,33 @@ export function useRoomState(
           .then((r) => (r.ok ? r.json() : null))
           .then((data) => {
             if (data?.submissions) {
-              setSnapshot((s) => (s ? { ...s, submissions: data.submissions } : s));
+              setSnapshot((s) =>
+                s ? { ...s, submissions: data.submissions } : s,
+              );
             }
           })
           .catch(() => {});
       }
 
       // player.joined / player.left: player list changed; resync full snapshot
-      if ((event.type === "player.joined" || event.type === "player.left") && roomCode) {
+      if (
+        (event.type === "player.joined" || event.type === "player.left") &&
+        roomCode
+      ) {
+        resyncRoomSnapshot();
+      }
+
+      // submission.accepted: points were awarded; refetch to get updated player points
+      if (event.type === "submission.accepted" && roomCode) {
         resyncRoomSnapshot();
       }
     },
-    [roomCode, currentUserId, resyncRoomSnapshot]
+    [roomCode, currentUserId, resyncRoomSnapshot],
   );
 
   const { isConnected: isStateChannelConnected } = useRoomStateChannel(
     roomCode,
-    handleStateEvent
+    handleStateEvent,
   );
 
   return {
