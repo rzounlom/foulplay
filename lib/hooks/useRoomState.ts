@@ -20,10 +20,12 @@ export interface UseRoomStateResult {
 /**
  * Fetches authoritative room snapshot and subscribes to room:{roomCode}:state.
  * Applies version-aware event patching. Triggers resync on version gap.
+ * @param shouldConnect - When false, do not keep an active Ably connection (default: true)
  */
 export function useRoomState(
   roomCode: string | null,
   currentUserId: string,
+  shouldConnect: boolean = true,
 ): UseRoomStateResult {
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [lastSeenVersion, setLastSeenVersion] = useState(0);
@@ -166,6 +168,7 @@ export function useRoomState(
   const { isConnected: isStateChannelConnected } = useRoomStateChannel(
     roomCode,
     handleStateEvent,
+    shouldConnect,
   );
 
   return {

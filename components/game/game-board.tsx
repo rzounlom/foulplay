@@ -198,12 +198,86 @@ export function GameBoard({
   initialRoom,
   showTourOnMount = false,
 }: GameBoardProps) {
+  const HIDDEN_DISCONNECT_MS = 15 * 60 * 1000;
+  const IDLE_DISCONNECT_MS = 60 * 60 * 1000;
+
+  const [shouldConnect, setShouldConnect] = useState(true);
+  const lastInteractionAtRef = useRef(Date.now());
+  const tabHiddenSinceRef = useRef<number | null>(null);
+
   const {
     snapshot,
     isLoading: snapshotLoading,
     resyncRoomSnapshot,
     isStateChannelConnected,
-  } = useRoomState(roomCode, currentUserId);
+  } = useRoomState(roomCode, currentUserId, shouldConnect);
+
+  const resyncRef = useRef(resyncRoomSnapshot);
+  resyncRef.current = resyncRoomSnapshot;
+
+  // Track tab visibility for hidden-tab disconnect
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        tabHiddenSinceRef.current = null;
+        lastInteractionAtRef.current = Date.now();
+      } else {
+        tabHiddenSinceRef.current = Date.now();
+      }
+    };
+    if (document.hidden) tabHiddenSinceRef.current = Date.now();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
+
+  // Interaction handlers: update last interaction, reconnect + resync when idle-disconnected
+  useEffect(() => {
+    const onInteraction = () => {
+      lastInteractionAtRef.current = Date.now();
+      setShouldConnect((prev) => {
+        if (!prev) {
+          resyncRef.current();
+          return true;
+        }
+        return prev;
+      });
+    };
+    document.addEventListener("pointerdown", onInteraction);
+    document.addEventListener("keydown", onInteraction);
+    document.addEventListener("touchstart", onInteraction);
+    return () => {
+      document.removeEventListener("pointerdown", onInteraction);
+      document.removeEventListener("keydown", onInteraction);
+      document.removeEventListener("touchstart", onInteraction);
+    };
+  }, []);
+
+  // Idle check: disconnect after hidden 15min or visible idle 60min
+  useEffect(() => {
+    const check = () => {
+      setShouldConnect((prev) => {
+        if (!prev) return prev;
+        const now = Date.now();
+        if (document.hidden) {
+          const hiddenSince = tabHiddenSinceRef.current;
+          if (
+            hiddenSince !== null &&
+            now - hiddenSince >= HIDDEN_DISCONNECT_MS
+          ) {
+            return false;
+          }
+        } else {
+          if (now - lastInteractionAtRef.current >= IDLE_DISCONNECT_MS) {
+            return false;
+          }
+        }
+        return prev;
+      });
+    };
+    const id = setInterval(check, 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const room = useMemo(() => {
     if (snapshot) return snapshotToRoom(snapshot);
@@ -569,11 +643,13 @@ export function GameBoard({
         }
       }
     },
+    shouldConnect,
   );
 
   // Polling fallback when state channel is disconnected — start after 2s grace, poll every 3s
+  // Suppress polling when idle-disconnected (shouldConnect === false)
   useEffect(() => {
-    if (isStateChannelConnected) return;
+    if (isStateChannelConnected || !shouldConnect) return;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     const graceTimer = setTimeout(() => {
       const poll = async () => {
@@ -594,6 +670,7 @@ export function GameBoard({
     };
   }, [
     isStateChannelConnected,
+    shouldConnect,
     resyncRoomSnapshot,
     fetchMessages,
     roomCode,
@@ -1017,6 +1094,15 @@ export function GameBoard({
   return (
     <div className="container mx-auto px-2 py-4 md:p-6 lg:p-4 max-w-6xl min-h-screen bg-background overflow-x-hidden">
       <GameTour startTour={startTour} onTourStart={() => setStartTour(false)} />
+
+      {!shouldConnect && (
+        <div
+          role="status"
+          className="sticky top-0 z-40 bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-200 px-4 py-2 text-center text-sm"
+        >
+          Disconnected due to inactivity. Click anywhere to reconnect.
+        </div>
+      )}
 
       <div className="sticky top-0 z-30 bg-background pb-6">
         <div className="flex items-center justify-center md:justify-start gap-2 mb-2 min-w-0">

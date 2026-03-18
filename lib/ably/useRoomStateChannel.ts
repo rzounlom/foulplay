@@ -7,10 +7,12 @@ import type { RoomEvent } from "@/lib/realtime/room-events";
 /**
  * Subscribe to room:{roomCode}:state for authoritative gameplay events.
  * Events are published with name "event" and payload is a RoomEvent.
+ * @param shouldConnect - When false, do not keep an active connection (default: true)
  */
 export function useRoomStateChannel(
   roomCode: string | null,
-  onEvent?: (event: RoomEvent) => void
+  onEvent?: (event: RoomEvent) => void,
+  shouldConnect: boolean = true
 ) {
   const [isConnected, setIsConnected] = useState(false);
   const onEventRef = useRef(onEvent);
@@ -21,7 +23,7 @@ export function useRoomStateChannel(
   }, [onEvent]);
 
   useEffect(() => {
-    if (!roomCode) return;
+    if (!roomCode || !shouldConnect) return;
 
     const apiKey = process.env.NEXT_PUBLIC_ABLY_API_KEY;
     const useTokenAuth =
@@ -64,7 +66,7 @@ export function useRoomStateChannel(
       channel.detach().catch(() => {});
       client.close();
     };
-  }, [roomCode]);
+  }, [roomCode, shouldConnect]);
 
   return { isConnected };
 }

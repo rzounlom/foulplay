@@ -40,11 +40,13 @@ export interface RoomEventData {
  * React hook for subscribing to Ably room channels
  * @param roomCode - The room code to subscribe to
  * @param onEvent - Callback function for handling events
+ * @param shouldConnect - When false, do not keep an active connection (default: true)
  * @returns Object with connection state and methods
  */
 export function useRoomChannel(
   roomCode: string | null,
-  onEvent?: (event: RoomEvent, data: RoomEventData) => void
+  onEvent?: (event: RoomEvent, data: RoomEventData) => void,
+  shouldConnect: boolean = true
 ) {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<Error | null>(null);
@@ -59,7 +61,7 @@ export function useRoomChannel(
   }, [onEvent]);
 
   useEffect(() => {
-    if (!roomCode) {
+    if (!roomCode || !shouldConnect) {
       return;
     }
 
@@ -235,7 +237,7 @@ export function useRoomChannel(
         // Silently ignore all cleanup errors
       });
     };
-  }, [roomCode]);
+  }, [roomCode, shouldConnect]);
 
   /**
    * Publish an event to the room channel
