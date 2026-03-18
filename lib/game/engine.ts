@@ -20,21 +20,21 @@ export interface GameState {
 
 /**
  * Returns the maximum number of severe cards a player can have in hand.
- * - Casual: max 1
- * - Party: max 1 when hand size 4–6, max 2 when hand size > 6
- * - Lit: max 2 (4–6), max 3 (7–9), max 4 (10–12)
+ * - Casual: max 2 (increased so severe cards show up more)
+ * - Party: max 2 when hand size 4–6, max 3 when hand size > 6
+ * - Lit: max 3 (4–6), max 4 (7–9), max 5 (10–12)
  * - Anything Goes: no cap (Infinity)
  */
 export function getMaxSevereCardsInHand(
   mode: string | null,
   handSize: number
 ): number {
-  if (mode === "casual") return 1;
-  if (mode === "party") return handSize <= 6 ? 1 : 2;
+  if (mode === "casual") return 2;
+  if (mode === "party") return handSize <= 6 ? 2 : 3;
   if (mode === "lit") {
-    if (handSize <= 6) return 2;
-    if (handSize <= 9) return 3;
-    return 4;
+    if (handSize <= 6) return 3;
+    if (handSize <= 9) return 4;
+    return 5;
   }
   if (mode === "anything_goes") return Infinity;
   return Infinity;
@@ -53,18 +53,18 @@ export function getTargetTierCounts(handSize: number): {
   rare: number;
 } {
   const s = Math.max(4, Math.min(12, handSize));
-  // Tier mix: rare increased for more severe opportunities; severe caps unchanged
-  let hfPct = 0.55;
-  let commonPct = 0.35;
-  let rarePct = 0.1;
+  // Tier mix: more hf (reduce getting stuck), more rare (big moments); take from common
+  let hfPct = 0.6;
+  let commonPct = 0.28;
+  let rarePct = 0.12;
   if (s >= 7 && s <= 9) {
-    hfPct = 0.45;
-    commonPct = 0.4;
-    rarePct = 0.15;
+    hfPct = 0.52;
+    commonPct = 0.3;
+    rarePct = 0.18;
   } else if (s >= 10) {
-    hfPct = 0.4;
-    commonPct = 0.4;
-    rarePct = 0.2;
+    hfPct = 0.45;
+    commonPct = 0.32;
+    rarePct = 0.23;
   }
   let hf = Math.floor(s * hfPct);
   let common = Math.floor(s * commonPct);

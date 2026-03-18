@@ -13,32 +13,32 @@ import {
 
 describe("Game Engine", () => {
   describe("getMaxSevereCardsInHand", () => {
-    it("returns 1 for casual mode", () => {
-      expect(getMaxSevereCardsInHand("casual", 4)).toBe(1);
-      expect(getMaxSevereCardsInHand("casual", 6)).toBe(1);
-      expect(getMaxSevereCardsInHand("casual", 8)).toBe(1);
+    it("returns 2 for casual mode", () => {
+      expect(getMaxSevereCardsInHand("casual", 4)).toBe(2);
+      expect(getMaxSevereCardsInHand("casual", 6)).toBe(2);
+      expect(getMaxSevereCardsInHand("casual", 8)).toBe(2);
     });
 
-    it("returns 1 for party when hand size <= 6", () => {
-      expect(getMaxSevereCardsInHand("party", 4)).toBe(1);
-      expect(getMaxSevereCardsInHand("party", 6)).toBe(1);
+    it("returns 2 for party when hand size <= 6", () => {
+      expect(getMaxSevereCardsInHand("party", 4)).toBe(2);
+      expect(getMaxSevereCardsInHand("party", 6)).toBe(2);
     });
 
-    it("returns 2 for party when hand size > 6", () => {
-      expect(getMaxSevereCardsInHand("party", 7)).toBe(2);
-      expect(getMaxSevereCardsInHand("party", 10)).toBe(2);
+    it("returns 3 for party when hand size > 6", () => {
+      expect(getMaxSevereCardsInHand("party", 7)).toBe(3);
+      expect(getMaxSevereCardsInHand("party", 10)).toBe(3);
     });
 
-    it("returns 2/3/4 for lit mode by hand size", () => {
-      expect(getMaxSevereCardsInHand("lit", 4)).toBe(2);
-      expect(getMaxSevereCardsInHand("lit", 5)).toBe(2);
-      expect(getMaxSevereCardsInHand("lit", 6)).toBe(2);
-      expect(getMaxSevereCardsInHand("lit", 7)).toBe(3);
-      expect(getMaxSevereCardsInHand("lit", 8)).toBe(3);
-      expect(getMaxSevereCardsInHand("lit", 9)).toBe(3);
-      expect(getMaxSevereCardsInHand("lit", 10)).toBe(4);
-      expect(getMaxSevereCardsInHand("lit", 11)).toBe(4);
-      expect(getMaxSevereCardsInHand("lit", 12)).toBe(4);
+    it("returns 3/4/5 for lit mode by hand size", () => {
+      expect(getMaxSevereCardsInHand("lit", 4)).toBe(3);
+      expect(getMaxSevereCardsInHand("lit", 5)).toBe(3);
+      expect(getMaxSevereCardsInHand("lit", 6)).toBe(3);
+      expect(getMaxSevereCardsInHand("lit", 7)).toBe(4);
+      expect(getMaxSevereCardsInHand("lit", 8)).toBe(4);
+      expect(getMaxSevereCardsInHand("lit", 9)).toBe(4);
+      expect(getMaxSevereCardsInHand("lit", 10)).toBe(5);
+      expect(getMaxSevereCardsInHand("lit", 11)).toBe(5);
+      expect(getMaxSevereCardsInHand("lit", 12)).toBe(5);
     });
 
     it("returns Infinity for anything_goes mode", () => {
@@ -103,7 +103,7 @@ describe("Game Engine", () => {
       expect(indices).toHaveLength(3);
     });
 
-    it("respects casual limit (max 1 severe)", () => {
+    it("respects casual limit (max 2 severe)", () => {
       for (let run = 0; run < 20; run++) {
         const indices = drawRandomCardIndicesRespectingSevere(
           cards,
@@ -112,11 +112,11 @@ describe("Game Engine", () => {
           6
         );
         const severeCount = indices.filter((i) => cards[i].severity === "severe").length;
-        expect(severeCount).toBeLessThanOrEqual(1);
+        expect(severeCount).toBeLessThanOrEqual(2);
       }
     });
 
-    it("respects party limit with hand size 7 (max 2 severe)", () => {
+    it("respects party limit with hand size 7 (max 3 severe)", () => {
       for (let run = 0; run < 20; run++) {
         const indices = drawRandomCardIndicesRespectingSevere(
           cards,
@@ -125,7 +125,7 @@ describe("Game Engine", () => {
           7
         );
         const severeCount = indices.filter((i) => cards[i].severity === "severe").length;
-        expect(severeCount).toBeLessThanOrEqual(2);
+        expect(severeCount).toBeLessThanOrEqual(3);
       }
     });
 
@@ -182,7 +182,7 @@ describe("Game Engine", () => {
       expect(Object.keys(t)).toHaveLength(3);
     });
 
-    it("matches new tier mix for 4–6: rare ~10%", () => {
+    it("matches tier mix for 4–6: hf 60%, common 28%, rare 12%", () => {
       for (let s = 4; s <= 6; s++) {
         const t = getTargetTierCounts(s);
         expect(t.rare).toBeGreaterThanOrEqual(0);
@@ -190,7 +190,7 @@ describe("Game Engine", () => {
       }
     });
 
-    it("matches new tier mix for 7–9: rare ~15%", () => {
+    it("matches tier mix for 7–9: hf 52%, common 30%, rare 18%", () => {
       for (let s = 7; s <= 9; s++) {
         const t = getTargetTierCounts(s);
         expect(t.rare).toBeGreaterThanOrEqual(1);
@@ -198,7 +198,7 @@ describe("Game Engine", () => {
       }
     });
 
-    it("matches new tier mix for 10–12: rare ~20%", () => {
+    it("matches tier mix for 10–12: hf 45%, common 32%, rare 23%", () => {
       for (let s = 10; s <= 12; s++) {
         const t = getTargetTierCounts(s);
         expect(t.rare).toBeGreaterThanOrEqual(2);
