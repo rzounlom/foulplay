@@ -4,6 +4,7 @@ import { RoomEvent, useRoomChannel } from "@/lib/ably/useRoomChannel";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,10 +46,27 @@ interface LobbyProps {
 
 export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   const router = useRouter();
+  const { addToast } = useToast();
   const [room, setRoom] = useState<Room>(initialRoom);
   const [isStarting, setIsStarting] = useState(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  /** Subtle invite CTA pulse until user engages with invite UI */
+  const [inviteAttentionActive, setInviteAttentionActive] = useState(true);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mq.matches);
+    const onChange = () => setPrefersReducedMotion(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  const stopInviteAttention = useCallback(() => {
+    setInviteAttentionActive(false);
+  }, []);
 
   const updateRoomSettings = async (payload: Record<string, unknown>) => {
     setIsUpdatingSettings(true);
@@ -161,46 +179,102 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
       ? `${window.location.origin}/join?code=${roomCode}`
       : "";
 
+  const handleCopyInviteLink = async () => {
+    stopInviteAttention();
+    try {
+      await navigator.clipboard.writeText(roomUrl);
+      addToast("Link copied — send it 🔥", "success");
+    } catch {
+      addToast("Couldn’t copy — select the link and copy manually", "error");
+    }
+  };
+
+  const showInvitePulse =
+    inviteAttentionActive && !prefersReducedMotion && roomUrl.length > 0;
+
+  const playersNeeded = 2;
+  const missingPlayers = Math.max(0, playersNeeded - room.players.length);
+  const startGameLabel =
+    missingPlayers <= 0
+      ? "Start Game"
+      : missingPlayers === 1
+        ? "Waiting for 1 more player…"
+        : `Waiting for ${missingPlayers} more players…`;
+
   return (
     <div className="container mx-auto px-4 py-6 md:p-6 max-w-4xl min-h-screen bg-background">
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-xl md:text-page-title text-foreground mb-3 md:mb-4">
-          Room {room.code}
+      <div className="mb-6 md:mb-8 text-center sm:text-left">
+        <h1 className="text-xl md:text-page-title text-foreground mb-2 md:mb-3">
+          Send the link. Let the chaos begin.
         </h1>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 md:p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
+        <p className="text-sm font-mono tracking-wide text-neutral-600 dark:text-neutral-400 mb-2">
+          Room {room.code}
+        </p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4 md:mb-5">
+          You need at least 2 players to start
+        </p>
+
+        <Label className="mb-2 block text-left text-neutral-700 dark:text-neutral-200">
+          Send this to your friends
+        </Label>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch p-3 md:p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
           <Input
             type="text"
             value={roomUrl}
             readOnly
-            className="flex-1 min-w-0 border-0 bg-transparent p-0 text-sm md:text-base focus:ring-0 focus:ring-offset-0"
-            onClick={(e) => (e.target as HTMLInputElement).select()}
+            aria-label="Invite link"
+            className="flex-1 min-w-0 border-0 bg-transparent py-2 px-0 sm:px-1 text-sm md:text-base focus:ring-0 focus:ring-offset-0"
+            onClick={(e) => {
+              stopInviteAttention();
+              (e.target as HTMLInputElement).select();
+            }}
+            onFocus={stopInviteAttention}
+            onPointerDown={stopInviteAttention}
           />
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => setShareModalOpen(true)}
-            className="whitespace-nowrap min-h-[44px] sm:min-h-0 shrink-0"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden
+          <div className="flex gap-2 shrink-0 sm:items-stretch">
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={() => void handleCopyInviteLink()}
+              className="flex-1 sm:flex-none whitespace-nowrap min-h-[44px]"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-              />
-            </svg>
-            Share
-          </Button>
+              Copy
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={() => {
+                stopInviteAttention();
+                setShareModalOpen(true);
+              }}
+              className={`whitespace-nowrap min-h-[44px] sm:min-h-0 shrink-0 ${showInvitePulse ? "lobby-invite-pulse" : ""}`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                />
+              </svg>
+              Invite Friends 🔥
+            </Button>
+          </div>
         </div>
-        <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-          Share this link with friends to join the room
+        <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400 text-left">
+          They join instantly — no setup
+        </p>
+        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 text-left font-medium">
+          Drop it in your group chat
         </p>
         <ShareModal
           isOpen={shareModalOpen}
@@ -363,9 +437,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
               isLoading={isStarting}
               className="min-h-[48px]"
             >
-              {room.players.length < 2
-                ? "Need at least 2 players"
-                : "Start Game"}
+              {startGameLabel}
             </Button>
           )}
         </div>

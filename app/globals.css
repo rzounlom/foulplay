@@ -358,3 +358,30 @@ textarea:focus-visible {
 .penalty-reminder-popup {
   animation: penalty-reminder-enter 3.5s ease-out forwards;
 }
+
+/* Lobby: subtle invite CTA pulse — long pause between cycles; disabled via prefers-reduced-motion */
+@keyframes lobby-invite-pulse {
+  0% {
+    transform: scale3d(1, 1, 1);
+    box-shadow: 0 0 0 0 rgb(255 102 0 / 0);
+  }
+  18% {
+    transform: scale3d(1.03, 1.03, 1);
+    box-shadow: 0 4px 28px rgb(255 102 0 / 0.38);
+  }
+  36% {
+    transform: scale3d(1, 1, 1);
+    box-shadow: 0 0 0 0 rgb(255 102 0 / 0);
+  }
+  100% {
+    transform: scale3d(1, 1, 1);
+    box-shadow: 0 0 0 0 rgb(255 102 0 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lobby-invite-pulse {
+    animation: lobby-invite-pulse 3.5s ease-in-out infinite;
+    will-change: transform, box-shadow;
+  }
+}

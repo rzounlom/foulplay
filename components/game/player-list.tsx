@@ -20,7 +20,16 @@ interface PlayerListProps {
 export function PlayerList({ players, currentUserId, showPoints = false }: PlayerListProps) {
   return (
     <div className="space-y-2">
-      <h3 className="text-lg font-semibold mb-4">Players ({players.length})</h3>
+      <h3
+        className={`text-lg font-semibold ${players.length === 1 ? "mb-2" : "mb-4"}`}
+      >
+        Players ({players.length})
+      </h3>
+      {players.length === 1 && (
+        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+          Waiting for players…
+        </p>
+      )}
       <div className="space-y-2">
         {players.map((player) => {
           const isCurrentUser = player.user.id === currentUserId;
