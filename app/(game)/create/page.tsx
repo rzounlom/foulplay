@@ -134,6 +134,14 @@ export default function CreateRoomPage() {
               value={sport}
               onChange={(e) => {
                 const newSport = e.target.value;
+                // Only selectable sports; ignore disabled "coming soon" values if ever received
+                if (
+                  newSport !== "" &&
+                  newSport !== "football" &&
+                  newSport !== "basketball"
+                ) {
+                  return;
+                }
                 setSport(newSport);
                 if (newSport !== "football" && newSport !== "basketball") {
                   setAllowQuarterClearing(false);
@@ -144,7 +152,24 @@ export default function CreateRoomPage() {
               <option value="">Select sport</option>
               <option value="football">Football</option>
               <option value="basketball">Basketball</option>
+              <option
+                value="soccer"
+                disabled
+                title="Coming soon after beta"
+              >
+                Soccer (Coming Soon)
+              </option>
+              <option
+                value="baseball"
+                disabled
+                title="Coming soon after beta"
+              >
+                Baseball (Coming Soon)
+              </option>
             </Select>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+              Soccer and Baseball are coming soon after beta.
+            </p>
           </div>
 
           {(sport === "football" || sport === "basketball") && (
