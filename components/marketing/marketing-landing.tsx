@@ -10,6 +10,9 @@ export function MarketingLanding() {
   const appUrl = getAppUrl();
   const shareUrl =
     typeof window !== "undefined" ? window.location.href : "https://foulplay.io";
+  const appBase = appUrl.replace(/\/$/, "");
+  const createRoomUrl = `${appBase}/create`;
+  const joinRoomUrl = `${appBase}/join`;
 
   return (
     <div className="h-screen flex flex-col text-white overflow-hidden relative bg-neutral-950">
@@ -64,41 +67,32 @@ export function MarketingLanding() {
             aria-hidden
           />
           <div className="pt-[30px] flex flex-col items-center gap-3 px-4 pb-4">
-            <p className="text-base text-neutral-200 text-center">
-              Real-time social card games with friends
+            <h1 className="text-2xl font-extrabold tracking-tight text-white text-center px-1">
+              Turn every game into chaos.
+            </h1>
+            <p className="text-base text-neutral-200 text-center max-w-md">
+              Compete with your friends in real time while you watch. Every play
+              matters.
             </p>
             <div className="flex flex-col gap-3 w-full max-w-md">
               <Link
-                href={appUrl}
+                href={createRoomUrl}
                 className="flex-1 min-h-[48px] flex items-center justify-center py-4 px-6 bg-primary text-white rounded-lg font-semibold text-center hover:bg-primary/90 transition-colors"
               >
-                Play on Web
+                Start a Room
               </Link>
-              <button
-                type="button"
-                onClick={() => setShareModalOpen(true)}
-                className="flex-1 min-h-[48px] flex items-center justify-center gap-2 py-4 px-6 border-2 border-white/80 text-white rounded-lg font-semibold hover:bg-white/15 transition-colors"
-                aria-label="Share FoulPlay"
+              <Link
+                href={joinRoomUrl}
+                className="flex-1 min-h-[48px] flex items-center justify-center py-4 px-6 border-2 border-white/80 text-white rounded-lg font-semibold text-center hover:bg-white/15 transition-colors"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                  />
-                </svg>
-                Share
-              </button>
+                Join a Room
+              </Link>
             </div>
-            <p className="text-sm text-neutral-300 text-center px-2">
-              Create rooms, play together, and compete. No downloads required for the web app.
+            <p className="text-sm text-neutral-400 text-center px-2">
+              Takes 10 seconds. No downloads.
+            </p>
+            <p className="text-xs text-neutral-500 text-center px-2">
+              Play with friends during live NFL & NBA games
             </p>
             <div className="mt-4 text-center w-full">
               <h2 className="text-lg font-bold mb-3">Coming soon to mobile</h2>
@@ -141,41 +135,32 @@ export function MarketingLanding() {
         <div className="flex flex-col items-center justify-center w-full max-w-4xl flex-1 min-h-0 pt-40 px-4 py-4">
           <div className="max-w-4xl mx-auto text-center space-y-2 sm:space-y-4 md:space-y-5">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight">
-              Real-time social card games with friends
+              Turn every game into chaos.
             </h1>
             <p className="text-base md:text-lg text-neutral-300 max-w-2xl mx-auto">
-              Create rooms, play together, and compete. No downloads required for the web app.
+              Compete with your friends in real time while you watch. Every play
+              matters.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
               <Link
-                href={appUrl}
+                href={createRoomUrl}
                 className="inline-flex items-center justify-center min-h-[48px] px-6 py-2.5 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors"
               >
-                Play on Web
+                Start a Room
               </Link>
-              <button
-                type="button"
-                onClick={() => setShareModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2 min-h-[48px] px-6 py-2.5 border-2 border-white/60 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors"
-                aria-label="Share FoulPlay"
+              <Link
+                href={joinRoomUrl}
+                className="inline-flex items-center justify-center min-h-[48px] px-6 py-2.5 border-2 border-white/60 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                  />
-                </svg>
-                Share
-              </button>
+                Join a Room
+              </Link>
             </div>
+            <p className="text-sm text-neutral-400 max-w-xl mx-auto">
+              Takes 10 seconds. No downloads.
+            </p>
+            <p className="text-xs text-neutral-500 max-w-xl mx-auto">
+              Play with friends during live NFL & NBA games
+            </p>
           </div>
           {/* App Store badges - inline with hero */}
           <div className="mt-4 md:mt-6 text-center shrink-0">
