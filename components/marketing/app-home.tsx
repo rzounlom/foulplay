@@ -11,28 +11,44 @@ export function AppHome() {
     return () => document.body.classList.remove("landing-no-scroll");
   }, []);
 
+  const steps = [
+    "Start a room",
+    "Send the code",
+    "Play during the game",
+  ] as const;
+
   const contentSection = (
     <div className="flex flex-col items-center gap-3 md:gap-5 px-4 py-4 md:px-6 md:py-6">
-      <p className="text-base md:text-3xl lg:text-4xl xl:text-5xl md:font-extrabold md:tracking-tight text-neutral-200 md:text-neutral-100 text-center">
-        Real-time social card games with friends
-      </p>
+      <h1 className="text-base md:text-3xl lg:text-4xl xl:text-5xl md:font-extrabold md:tracking-tight text-neutral-200 md:text-neutral-100 text-center max-w-3xl">
+        Start a game. Invite your friends. Let chaos happen.
+      </h1>
       <div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full max-w-md">
         <Link
           href="/create"
           className="flex-1 min-h-[48px] flex items-center justify-center py-4 px-6 bg-primary text-white rounded-lg font-semibold text-center hover:bg-primary/90 transition-colors duration-200 ease-out cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-90 shadow-lg"
         >
-          Create Room
+          Start a Game
         </Link>
         <Link
           href="/join"
           className="flex-1 min-h-[48px] flex items-center justify-center py-4 px-6 border-2 border-white/80 text-white rounded-lg font-semibold text-center hover:bg-white/15 transition-colors duration-200 ease-out cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:opacity-90 backdrop-blur-sm"
         >
-          Join Room
+          Join a Game
         </Link>
       </div>
-      <p className="text-sm md:text-base text-neutral-300 text-center px-2">
-        Create a room, share the code, and start playing—no downloads required
+      <p className="text-sm text-neutral-400 text-center px-2">
+        No signup required to join
       </p>
+      <ol className="flex flex-col gap-2 text-center text-sm text-neutral-300 list-none max-w-xs">
+        {steps.map((label, i) => (
+          <li key={label} className="flex justify-center items-baseline gap-2">
+            <span className="font-medium text-neutral-400 tabular-nums w-4 shrink-0 text-right">
+              {i + 1}.
+            </span>
+            <span>{label}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 
