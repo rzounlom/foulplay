@@ -2,17 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { GAME_MODES, MODE_LABELS } from "@/lib/game/modes";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CreateRoomCardSkeleton } from "@/components/create/create-room-card-skeleton";
+import { useClerkInFlowSignIn } from "@/lib/auth/use-clerk-in-flow-sign-in";
 
 export default function CreateRoomPage() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useUser();
+  const { openSignInForReturn, authLoaded } = useClerkInFlowSignIn();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<string>("");
@@ -20,18 +22,12 @@ export default function CreateRoomPage() {
   const [handSize, setHandSize] = useState<number>(6);
   const [allowQuarterClearing, setAllowQuarterClearing] = useState<boolean>(false);
 
-  // Redirect to sign-in if not authenticated, preserving the current path
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      const currentPath = window.location.pathname;
-      router.push(`/sign-in?redirect_url=${encodeURIComponent(currentPath)}`);
-    }
-  }, [isLoaded, isSignedIn, router]);
-
   const handleCreateRoom = async () => {
     if (!isSignedIn) {
-      const currentPath = window.location.pathname;
-      router.push(`/sign-in?redirect_url=${encodeURIComponent(currentPath)}`);
+      openSignInForReturn("/create", {
+        title: "Sign in to start a game",
+        subtitle: "Quick sign-in with Google or email",
+      });
       return;
     }
 
@@ -59,7 +55,6 @@ export default function CreateRoomPage() {
       });
 
       if (!response.ok) {
-        // Try to parse JSON error, fallback to status text
         let errorMessage = "Failed to create room";
         try {
           const data = await response.json();
@@ -79,7 +74,7 @@ export default function CreateRoomPage() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || !authLoaded) {
     return (
       <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
         <CreateRoomCardSkeleton />
@@ -88,7 +83,38 @@ export default function CreateRoomPage() {
   }
 
   if (!isSignedIn) {
-    return null; // Will redirect via useEffect
+    return (
+      <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
+        <div className="w-full max-w-2xl mx-auto my-auto">
+          <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
+            <h1 className="text-xl md:text-page-title text-foreground mb-3 md:mb-4">Create a Room</h1>
+            <p className="text-body-muted text-sm md:text-base mb-3">
+              Start a new game room and invite your friends to join.
+            </p>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
+              Join in seconds — no account setup
+            </p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-6">
+              Quick sign-in with Google or email
+            </p>
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              className="min-h-[48px]"
+              onClick={() =>
+                openSignInForReturn("/create", {
+                  title: "Sign in to start a game",
+                  subtitle: "Quick sign-in with Google or email",
+                })
+              }
+            >
+              Sign in to create a room
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -134,7 +160,6 @@ export default function CreateRoomPage() {
               value={sport}
               onChange={(e) => {
                 const newSport = e.target.value;
-                // Only selectable sports; ignore disabled "coming soon" values if ever received
                 if (
                   newSport !== "" &&
                   newSport !== "football" &&

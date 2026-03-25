@@ -8,13 +8,13 @@ export default async function EndGamePage({
 }: {
   params: Promise<{ code: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) {
-    redirect("/");
-  }
-
   const { code } = await params;
   const roomCode = code.toUpperCase();
+
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect(`/join?code=${roomCode}`);
+  }
 
   const room = await prisma.room.findUnique({
     where: { code: roomCode },

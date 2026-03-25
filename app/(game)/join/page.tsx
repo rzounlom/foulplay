@@ -7,11 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { JoinRoomCardSkeleton } from "@/components/join/join-room-card-skeleton";
+import { useClerkInFlowSignIn } from "@/lib/auth/use-clerk-in-flow-sign-in";
+
+/** Prefer 6-char typed code so return URL survives the auth round-trip (state is lost on reload). */
+function buildJoinReturnPath(
+  typedCode: string,
+  queryCode: string | null,
+): string {
+  const path = "/join";
+  const raw =
+    typedCode.length === 6
+      ? typedCode.toUpperCase()
+      : queryCode?.slice(0, 6)?.toUpperCase() ?? "";
+  return raw ? `${path}?code=${encodeURIComponent(raw)}` : path;
+}
 
 function JoinRoomForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isSignedIn, isLoaded } = useUser();
+  const { openSignInForReturn, authLoaded } = useClerkInFlowSignIn();
   const [code, setCode] = useState("");
   const [nickname, setNickname] = useState("");
   const [isJoining, setIsJoining] = useState(false);
@@ -39,7 +54,6 @@ function JoinRoomForm() {
           }
         }
       } catch (err) {
-        // Silently fail - user can still enter nickname manually
         if (process.env.NODE_ENV === "development") console.error("Failed to fetch default nickname:", err);
       }
     };
@@ -47,28 +61,20 @@ function JoinRoomForm() {
     fetchProfile();
   }, [isLoaded, isSignedIn]);
 
-  // Redirect to sign-in if not authenticated, preserving the current path and code
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      const currentPath = window.location.pathname;
-      const codeParam = searchParams.get("code");
-      const redirectUrl = codeParam 
-        ? `${currentPath}?code=${codeParam}`
-        : currentPath;
-      router.push(`/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`);
-    }
-  }, [isLoaded, isSignedIn, router, searchParams]);
+  const ensureSignedInForJoin = (): boolean => {
+    if (isSignedIn) return true;
+    const returnPath = buildJoinReturnPath(code, searchParams.get("code"));
+    openSignInForReturn(returnPath, {
+      title: "Sign in to join the game",
+      subtitle: "Quick sign-in with Google or email",
+    });
+    return false;
+  };
 
   const handleJoinRoom = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!isSignedIn) {
-      const currentPath = window.location.pathname;
-      const codeParam = searchParams.get("code");
-      const redirectUrl = codeParam 
-        ? `${currentPath}?code=${codeParam}`
-        : currentPath;
-      router.push(`/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`);
+
+    if (!ensureSignedInForJoin()) {
       return;
     }
 
@@ -79,14 +85,13 @@ function JoinRoomForm() {
       const response = await fetch("/api/rooms/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           code: code.toUpperCase(),
           nickname: nickname.trim() || undefined,
         }),
       });
 
       if (!response.ok) {
-        // Try to parse JSON error, fallback to status text
         let errorMessage = "Failed to join room";
         try {
           const data = await response.json();
@@ -106,7 +111,7 @@ function JoinRoomForm() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || !authLoaded) {
     return (
       <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
         <JoinRoomCardSkeleton />
@@ -114,17 +119,16 @@ function JoinRoomForm() {
     );
   }
 
-  if (!isSignedIn) {
-    return null; // Will redirect via useEffect
-  }
-
   return (
     <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
       <div className="w-full max-w-2xl mx-auto my-auto">
         <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
           <h1 className="text-xl md:text-page-title text-foreground mb-3 md:mb-4">Join a Room</h1>
-          <p className="text-body-muted text-sm md:text-base mb-4 md:mb-6">
+          <p className="text-body-muted text-sm md:text-base mb-2 md:mb-3">
             Enter the 6-character room code to join a game.
+          </p>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4 md:mb-6">
+            Join in seconds — no account setup
           </p>
 
           <form onSubmit={handleJoinRoom} className="space-y-4">
@@ -154,9 +158,12 @@ function JoinRoomForm() {
                 placeholder="Enter a nickname for this game"
                 maxLength={30}
                 className="min-h-[48px]"
+                disabled={!isSignedIn}
               />
               <p className="text-caption mt-1">
-                Leave blank to use your account name
+                {isSignedIn
+                  ? "Leave blank to use your account name"
+                  : "You can set this after you sign in"}
               </p>
             </div>
 
@@ -164,6 +171,12 @@ function JoinRoomForm() {
               <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-sm">
                 {error}
               </div>
+            )}
+
+            {!isSignedIn && (
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                Quick sign-in with Google or email
+              </p>
             )}
 
             <Button
@@ -175,7 +188,7 @@ function JoinRoomForm() {
               isLoading={isJoining}
               className="min-h-[48px]"
             >
-              Join Room
+              {isSignedIn ? "Join Room" : "Sign in to join"}
             </Button>
           </form>
         </div>

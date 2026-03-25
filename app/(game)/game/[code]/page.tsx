@@ -11,13 +11,14 @@ export default async function GameRoomPage({
   params: Promise<{ code: string }>;
   searchParams: Promise<{ tour?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) {
-    redirect("/");
-  }
-
   const { code } = await params;
   const roomCode = code.toUpperCase();
+
+  const user = await getCurrentUser();
+  if (!user) {
+    // Preserve room context for invite links; join page uses in-flow Clerk sign-in
+    redirect(`/join?code=${roomCode}`);
+  }
 
   // Fetch room data with game state
   const room = await prisma.room.findUnique({
