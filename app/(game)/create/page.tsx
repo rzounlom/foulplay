@@ -35,7 +35,7 @@ export default function CreateRoomPage() {
     setError(null);
 
     if (!mode || !sport) {
-      setError("Please select both mode and sport");
+      setError("Almost there — pick your settings");
       setIsCreating(false);
       return;
     }
@@ -87,9 +87,14 @@ export default function CreateRoomPage() {
       <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
         <div className="w-full max-w-2xl mx-auto my-auto">
           <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
-            <h1 className="text-xl md:text-page-title text-foreground mb-3 md:mb-4">Create a Room</h1>
-            <p className="text-body-muted text-sm md:text-base mb-3">
-              Start a new game room and invite your friends to join.
+            <h1 className="text-xl md:text-page-title text-foreground mb-2 md:mb-3">
+              Let&apos;s set the game up
+            </h1>
+            <p className="text-base md:text-lg font-medium text-foreground/90 mb-1">
+              10 seconds and you&apos;re playing.
+            </p>
+            <p className="text-body-muted text-sm md:text-base mb-4">
+              You&apos;ll get a code to invite your friends.
             </p>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
               Join in seconds — no account setup
@@ -121,9 +126,14 @@ export default function CreateRoomPage() {
     <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
       <div className="w-full max-w-2xl mx-auto my-auto">
         <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
-          <h1 className="text-xl md:text-page-title text-foreground mb-3 md:mb-4">Create a Room</h1>
+          <h1 className="text-xl md:text-page-title text-foreground mb-2 md:mb-3">
+            Let&apos;s set the game up
+          </h1>
+          <p className="text-base md:text-lg font-medium text-foreground/90 mb-1">
+            10 seconds and you&apos;re playing.
+          </p>
           <p className="text-body-muted text-sm md:text-base mb-4 md:mb-6">
-            Start a new game room and invite your friends to join.
+            You&apos;ll get a code to invite your friends.
           </p>
 
           {error && (
@@ -149,7 +159,7 @@ export default function CreateRoomPage() {
               ))}
             </Select>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-              Mode affects the mix of card severities (mild / moderate / severe) in the deck.
+              How intense do you want this to get?
             </p>
           </div>
 
@@ -193,6 +203,9 @@ export default function CreateRoomPage() {
               </option>
             </Select>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+              What are you watching?
+            </p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
               Soccer and Baseball are coming soon after beta.
             </p>
           </div>
@@ -234,10 +247,21 @@ export default function CreateRoomPage() {
               <option value={12}>12 cards</option>
             </Select>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-              Number of cards each player starts with
+              More cards = more chaos
             </p>
           </div>
         </div>
+
+          <div className="text-center space-y-1 mb-3">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              Takes 10 seconds. No setup.
+            </p>
+            {(!mode || !sport) && (
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                Almost there — pick your settings
+              </p>
+            )}
+          </div>
 
           <Button
             variant="primary"
@@ -248,7 +272,7 @@ export default function CreateRoomPage() {
             isLoading={isCreating}
             className="min-h-[48px]"
           >
-            Create Room
+            Start Game 🔥
           </Button>
         </div>
       </div>
