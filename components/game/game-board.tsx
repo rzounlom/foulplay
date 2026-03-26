@@ -3,7 +3,16 @@
 import { useRouter } from "next/navigation";
 import { RoomEvent, useRoomChannel } from "@/lib/ably/useRoomChannel";
 import { useRoomState } from "@/lib/hooks/useRoomState";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+const FOULPLAY_HAND_HIGHLIGHT_SESSION_KEY =
+  "foulplay-hand-highlight-dismissed";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -318,6 +327,11 @@ export function GameBoard({
   const handLoading = snapshotLoading;
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [startTour, setStartTour] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
+  const [gameplayGuidanceEnabled, setGameplayGuidanceEnabled] =
+    useState(false);
+  const tourEverActiveRef = useRef(false);
+  const [handHighlightDismissed, setHandHighlightDismissed] = useState(false);
   const [showEndGameModal, setShowEndGameModal] = useState(false);
   const [showResetPointsModal, setShowResetPointsModal] = useState(false);
   const [showEndRoundModal, setShowEndRoundModal] = useState(false);
@@ -404,6 +418,50 @@ export function GameBoard({
     };
     void checkAndStartTour();
   }, [showTourOnMount]);
+
+  // Inline gameplay guidance: enable when tour is skipped in profile, after tour ends, or if tour never runs.
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/user/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d?.profile?.skipTour) return;
+        setGameplayGuidanceEnabled(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (tourActive) tourEverActiveRef.current = true;
+  }, [tourActive]);
+
+  useEffect(() => {
+    if (!tourActive && tourEverActiveRef.current) {
+      setGameplayGuidanceEnabled(true);
+    }
+  }, [tourActive]);
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (!tourEverActiveRef.current) setGameplayGuidanceEnabled(true);
+    }, 15_000);
+    return () => clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setHandHighlightDismissed(
+      sessionStorage.getItem(FOULPLAY_HAND_HIGHLIGHT_SESSION_KEY) === "1",
+    );
+  }, []);
+
+  useEffect(() => {
+    if (handHighlightDismissed || selectedCardIds.length === 0) return;
+    sessionStorage.setItem(FOULPLAY_HAND_HIGHLIGHT_SESSION_KEY, "1");
+    setHandHighlightDismissed(true);
+  }, [selectedCardIds.length, handHighlightDismissed]);
 
   // Derive intermission countdown from room.quarterIntermissionEndsAt
   const endsAt = room?.quarterIntermissionEndsAt
@@ -773,6 +831,28 @@ export function GameBoard({
     [submissions, currentUserId],
   );
 
+  const hasSubmittedAtLeastOnce = useMemo(
+    () =>
+      submissions.some(
+        (s) => s.submittedBy?.user?.id === currentUserId,
+      ),
+    [submissions, currentUserId],
+  );
+
+  const gameplayGuidanceDynamicText = useMemo(() => {
+    if (submissionsToVote.length > 0) return "Vote on this play";
+    if (hasPendingSubmission) return "Waiting for votes…";
+    if (isQuarterIntermission) return "Waiting for something to happen…";
+    if (!hasSubmittedAtLeastOnce)
+      return "Pick a card and play it when it happens";
+    return "Waiting for something to happen…";
+  }, [
+    submissionsToVote.length,
+    hasPendingSubmission,
+    isQuarterIntermission,
+    hasSubmittedAtLeastOnce,
+  ]);
+
   useEffect(() => {
     if (submissionsToVote.length > 0) {
       if (submissionsToVote.length > prevSubmissionsToVoteCount.current) {
@@ -797,6 +877,10 @@ export function GameBoard({
     : lastSeenMessageCount == null
       ? messages.length
       : Math.max(0, messages.length - lastSeenMessageCount);
+
+  const showGameplayGuidance = gameplayGuidanceEnabled && !tourActive;
+  const showHandHighlight =
+    showGameplayGuidance && !!currentPlayer && !handHighlightDismissed;
 
   const handleSubmitCard = async (cardInstanceIds: string | string[]) => {
     setIsSubmitting(true);
@@ -1093,7 +1177,11 @@ export function GameBoard({
 
   return (
     <div className="container mx-auto px-2 py-4 md:p-6 lg:p-4 max-w-6xl min-h-screen bg-background overflow-x-hidden">
-      <GameTour startTour={startTour} onTourStart={() => setStartTour(false)} />
+      <GameTour
+        startTour={startTour}
+        onTourStart={() => setStartTour(false)}
+        onTourActiveChange={setTourActive}
+      />
 
       {!shouldConnect && (
         <div
@@ -1249,6 +1337,23 @@ export function GameBoard({
             </span>
           </div>
         </div>
+
+        {showGameplayGuidance && (
+          <div
+            className="mt-3 pt-3 border-t border-border/60 space-y-1.5"
+            aria-live="polite"
+          >
+            <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 text-center md:text-left">
+              Play cards when events happen. Get votes. Score points.
+            </p>
+            <p className="text-sm font-medium text-foreground text-center md:text-left">
+              {gameplayGuidanceDynamicText}
+            </p>
+            <p className="text-[11px] sm:text-xs text-neutral-400 dark:text-neutral-500 italic text-center md:text-left">
+              The crazier the play, the more votes you get
+            </p>
+          </div>
+        )}
       </div>
 
       {pointsAwardedPopup && (
@@ -1931,8 +2036,22 @@ export function GameBoard({
           {currentPlayer && (
             <div
               data-tour="your-cards"
-              className="space-y-4 min-w-0 overflow-x-hidden"
+              className={`relative space-y-4 min-w-0 overflow-x-hidden rounded-xl ${
+                showHandHighlight
+                  ? "ring-2 ring-primary/45 shadow-[0_0_28px_rgba(255,102,0,0.22)] motion-safe:transition-[box-shadow,ring-color] motion-reduce:shadow-none motion-reduce:ring-primary/35 p-1 -m-1 pt-8 sm:pt-9"
+                  : ""
+              }`}
             >
+              {showHandHighlight && (
+                <div
+                  className="absolute -top-0.5 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 z-10 pointer-events-none"
+                  role="tooltip"
+                >
+                  <span className="inline-block rounded-md border border-primary/35 bg-primary/10 px-2.5 py-1 text-[11px] sm:text-xs font-medium text-primary shadow-sm whitespace-nowrap">
+                    Start here — pick a card
+                  </span>
+                </div>
+              )}
               {handLoading ? (
                 <div className="bg-surface rounded-lg p-3 md:p-6 lg:p-5 border border-border shadow-sm dark:shadow-none flex flex-col min-h-0 max-h-[calc(100vh-12rem)]">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4 overflow-y-auto min-h-0 flex-1">

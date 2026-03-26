@@ -36,9 +36,17 @@ interface GameTourProps {
   onSkip?: () => void;
   startTour?: boolean;
   onTourStart?: () => void;
+  /** Fires whenever the tour overlay is shown or hidden (for suppressing inline gameplay hints). */
+  onTourActiveChange?: (active: boolean) => void;
 }
 
-export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTourProps) {
+export function GameTour({
+  onComplete,
+  onSkip,
+  startTour,
+  onTourStart,
+  onTourActiveChange,
+}: GameTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -84,6 +92,10 @@ export function GameTour({ onComplete, onSkip, startTour, onTourStart }: GameTou
       position: "top",
     },
   ], []);
+
+  useEffect(() => {
+    onTourActiveChange?.(isActive);
+  }, [isActive, onTourActiveChange]);
 
   const updateSpotlight = useCallback(() => {
     if (!isActive || currentStep >= steps.length) return;
