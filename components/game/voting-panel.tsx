@@ -170,17 +170,26 @@ export function VotingPanel({
 
   const panelContent = (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <h2 className="text-lg font-bold text-foreground">Vote on Submissions</h2>
-        {hasVotedOnAll ? (
-          <Button variant="primary" size="sm" onClick={onClose}>
-            Done
-          </Button>
-        ) : (
-          <span className="text-sm text-neutral-500 dark:text-neutral-400">
-            Vote on all cards to continue
-          </span>
-        )}
+      <div className="flex flex-col gap-1 p-4 border-b border-border">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-foreground">
+              Decide if this happened 👀
+            </h2>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+              Vote before time runs out — or it auto-accepts
+            </p>
+          </div>
+          {hasVotedOnAll ? (
+            <Button variant="primary" size="sm" onClick={onClose} className="shrink-0">
+              Done
+            </Button>
+          ) : (
+            <span className="text-sm text-neutral-500 dark:text-neutral-400 shrink-0 text-right max-w-[11rem]">
+              Vote on all cards to continue
+            </span>
+          )}
+        </div>
       </div>
       <div className="p-4 space-y-6">
         {submissionsToVote.map((submission) => {
@@ -193,35 +202,40 @@ export function VotingPanel({
               key={submission.id}
               className="bg-surface-muted rounded-lg p-4 border border-border"
             >
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Submitted by: {submitterName}
-                </p>
-                {canVoteThis && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline-success"
-                      size="sm"
-                      onClick={() => handleVoteAll(submission, true)}
-                      disabled={isVoting[`all-${submission.id}`] || isAnyVoteInProgress}
-                      isLoading={isVoting[`all-${submission.id}`]}
-                    >
-                      Accept All
-                    </Button>
-                    <Button
-                      variant="outline-destructive"
-                      size="sm"
-                      onClick={() => handleVoteAll(submission, false)}
-                      disabled={isVoting[`all-${submission.id}`] || isAnyVoteInProgress}
-                      isLoading={isVoting[`all-${submission.id}`]}
-                    >
-                      Reject All
-                    </Button>
-                  </div>
-                )}
+              <div className="flex flex-col gap-2 mb-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                    Submitted by: {submitterName}
+                  </p>
+                  {canVoteThis && (
+                    <div className="flex gap-2 shrink-0">
+                      <Button
+                        variant="outline-success"
+                        size="sm"
+                        onClick={() => handleVoteAll(submission, true)}
+                        disabled={isVoting[`all-${submission.id}`] || isAnyVoteInProgress}
+                        isLoading={isVoting[`all-${submission.id}`]}
+                        title="Approve every card in this submission"
+                      >
+                        ✅ All happened
+                      </Button>
+                      <Button
+                        variant="outline-destructive"
+                        size="sm"
+                        onClick={() => handleVoteAll(submission, false)}
+                        disabled={isVoting[`all-${submission.id}`] || isAnyVoteInProgress}
+                        isLoading={isVoting[`all-${submission.id}`]}
+                        title="Reject every card in this submission"
+                      >
+                        ❌ No to all
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 {canVoteThis && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Auto accept in {autoAcceptCountdown[submission.id] ?? getSecondsRemaining(submission)}s
+                    Auto-accepting in{" "}
+                    {autoAcceptCountdown[submission.id] ?? getSecondsRemaining(submission)}s ⏳
                   </p>
                 )}
               </div>
@@ -294,9 +308,9 @@ export function VotingPanel({
                                 }
                                 disabled={isVoting[`${submission.id}-${cardInstance.id}`] || isAnyVoteInProgress}
                                 isLoading={isVoting[`${submission.id}-${cardInstance.id}`]}
-                                className="flex-1"
+                                className="flex-1 text-xs sm:text-sm"
                               >
-                                Accept
+                                ✅ That happened
                               </Button>
                               <Button
                                 variant="outline-destructive"
@@ -306,9 +320,9 @@ export function VotingPanel({
                                 }
                                 disabled={isVoting[`${submission.id}-${cardInstance.id}`] || isAnyVoteInProgress}
                                 isLoading={isVoting[`${submission.id}-${cardInstance.id}`]}
-                                className="flex-1"
+                                className="flex-1 text-xs sm:text-sm"
                               >
-                                Reject
+                                ❌ No way
                               </Button>
                             </div>
                           )}
@@ -335,7 +349,7 @@ export function VotingPanel({
         className="fixed top-0 right-0 h-full w-[min(100%,400px)] lg:hidden bg-surface border-l border-border shadow-xl z-[9101] flex flex-col animate-slide-in-right"
         role="dialog"
         aria-modal="true"
-        aria-label="Vote on submissions"
+        aria-label="Decide if this happened — vote on submissions"
       >
         {panelContent}
       </div>
@@ -343,7 +357,7 @@ export function VotingPanel({
         className="hidden lg:flex fixed inset-0 z-[9101] items-center justify-center p-4"
         role="dialog"
         aria-modal="true"
-        aria-label="Vote on submissions"
+        aria-label="Decide if this happened — vote on submissions"
       >
         <div className="bg-surface rounded-xl border border-border shadow-2xl w-full max-w-2xl sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           {panelContent}

@@ -140,7 +140,10 @@ export function VotingUI({
   return (
     <div className="bg-surface rounded-lg p-4 md:p-6 border border-border shadow-sm dark:shadow-none">
       <div className="mb-4">
-        <h3 className="text-section-title mb-2">Vote on Submission</h3>
+        <h3 className="text-section-title mb-1">Decide if this happened 👀</h3>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-2">
+          Vote before time runs out — or it auto-accepts
+        </p>
         <p className="text-body-muted">
           Submitted by: {submission.submittedBy.nickname || submission.submittedBy.user.name}
         </p>
@@ -161,8 +164,9 @@ export function VotingUI({
             onClick={() => handleVoteAll(true)}
             disabled={Object.values(isVoting).some((v) => v)}
             fullWidth
+            title="Approve every card in this submission"
           >
-            Accept All
+            ✅ All happened
           </Button>
           <Button
             variant="outline-destructive"
@@ -170,8 +174,9 @@ export function VotingUI({
             onClick={() => handleVoteAll(false)}
             disabled={Object.values(isVoting).some((v) => v)}
             fullWidth
+            title="Reject every card in this submission"
           >
-            Reject All
+            ❌ No to all
           </Button>
         </div>
       )}
@@ -251,7 +256,7 @@ export function VotingUI({
                     isLoading={cardIsVoting}
                     className="min-w-0 flex-1 shrink px-2 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-xs"
                   >
-                    Accept
+                    ✅ That happened
                   </Button>
                   <Button
                     variant="outline-destructive"
@@ -261,7 +266,7 @@ export function VotingUI({
                     isLoading={cardIsVoting}
                     className="min-w-0 flex-1 shrink px-2 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-xs"
                   >
-                    Reject
+                    ❌ No way
                   </Button>
                 </div>
               )}

@@ -30,10 +30,13 @@ import { ShareModal } from "./share-modal";
 import {
   getCardDescriptionForDisplay,
   isNonDrinkingMode,
-  formatPenaltyReminder,
-  formatPenaltyPartForCombined,
   combinePenalties,
 } from "@/lib/game/display";
+import {
+  pickPointsAwardedMessage,
+  pickCardsRejectedMessage,
+  pickFunPenaltyMessage,
+} from "@/lib/game/feedback-messages";
 import { useScreenWakeLock } from "@/lib/hooks/useScreenWakeLock";
 
 interface Player {
@@ -358,13 +361,18 @@ export function GameBoard({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pointsAwardedPopup, setPointsAwardedPopup] = useState<{
     points: number;
+    message: string;
   } | null>(null);
   const [penaltyReminderPopup, setPenaltyReminderPopup] = useState<string | null>(
     null
   );
   const [cardsRejectedPopup, setCardsRejectedPopup] = useState<{
     cardCount: number;
+    message: string;
   } | null>(null);
+  const lastPointsAwardMsgIndexRef = useRef<number | null>(null);
+  const lastRejectionMsgIndexRef = useRef<number | null>(null);
+  const lastPenaltyMsgIndexRef = useRef<number | null>(null);
   const [playersPanelOpen, setPlayersPanelOpen] = useState(false);
   const [votingPanelOpen, setVotingPanelOpen] = useState(false);
   const [votingDismissed, setVotingDismissed] = useState(false);
@@ -530,7 +538,12 @@ export function GameBoard({
           currentPlayerId &&
           submitterPlayerId === currentPlayerId;
         if (points > 0 && isRecipient) {
-          setPointsAwardedPopup({ points });
+          const { text: ptsMsg, index: ptsIdx } = pickPointsAwardedMessage(
+            points,
+            lastPointsAwardMsgIndexRef.current,
+          );
+          lastPointsAwardMsgIndexRef.current = ptsIdx;
+          setPointsAwardedPopup({ points, message: ptsMsg });
           import("canvas-confetti").then(({ default: confetti }) => {
             confetti({
               particleCount: 50,
@@ -550,10 +563,11 @@ export function GameBoard({
               getCardDescriptionForDisplay(c.description, r.mode),
             );
             const combined = combinePenalties(penalties);
-            const penaltyText =
-              combined.length === 1
-                ? formatPenaltyReminder(combined[0])
-                : `Don't forget to ${combined.map(formatPenaltyPartForCombined).join(" AND ")}!`;
+            const { text: penaltyText, index: penIdx } = pickFunPenaltyMessage(
+              combined,
+              lastPenaltyMsgIndexRef.current,
+            );
+            lastPenaltyMsgIndexRef.current = penIdx;
             setTimeout(() => {
               setPenaltyReminderPopup(penaltyText);
               setTimeout(() => setPenaltyReminderPopup(null), 3500);
@@ -579,7 +593,12 @@ export function GameBoard({
           currentPlayerId &&
           recipientPlayerId === currentPlayerId;
         if (points > 0 && isRecipient) {
-          setPointsAwardedPopup({ points });
+          const { text: ptsMsg, index: ptsIdx } = pickPointsAwardedMessage(
+            points,
+            lastPointsAwardMsgIndexRef.current,
+          );
+          lastPointsAwardMsgIndexRef.current = ptsIdx;
+          setPointsAwardedPopup({ points, message: ptsMsg });
           import("canvas-confetti").then(({ default: confetti }) => {
             confetti({
               particleCount: 50,
@@ -599,10 +618,11 @@ export function GameBoard({
               getCardDescriptionForDisplay(c.description, r2.mode),
             );
             const combined = combinePenalties(penalties);
-            const penaltyText =
-              combined.length === 1
-                ? formatPenaltyReminder(combined[0])
-                : `Don't forget to ${combined.map(formatPenaltyPartForCombined).join(" AND ")}!`;
+            const { text: penaltyText, index: penIdx } = pickFunPenaltyMessage(
+              combined,
+              lastPenaltyMsgIndexRef.current,
+            );
+            lastPenaltyMsgIndexRef.current = penIdx;
             setTimeout(() => {
               setPenaltyReminderPopup(penaltyText);
               setTimeout(() => setPenaltyReminderPopup(null), 3500);
@@ -627,7 +647,11 @@ export function GameBoard({
           submitterPlayerId === currentPlayerId;
         const cardCount = payload.cardCount ?? 1;
         if (isSubmitter && cardCount > 0) {
-          setCardsRejectedPopup({ cardCount });
+          const { text: rejMsg, index: rejIdx } = pickCardsRejectedMessage(
+            lastRejectionMsgIndexRef.current,
+          );
+          lastRejectionMsgIndexRef.current = rejIdx;
+          setCardsRejectedPopup({ cardCount, message: rejMsg });
           setTimeout(() => setCardsRejectedPopup(null), 2200);
         }
       }
@@ -841,7 +865,7 @@ export function GameBoard({
 
   const gameplayGuidanceDynamicText = useMemo(() => {
     if (submissionsToVote.length > 0) return "Vote on this play";
-    if (hasPendingSubmission) return "Waiting for votes…";
+    if (hasPendingSubmission) return "Waiting for votes... 👀";
     if (isQuarterIntermission) return "Waiting for something to happen…";
     if (!hasSubmittedAtLeastOnce)
       return "Pick a card and play it when it happens";
@@ -1361,8 +1385,8 @@ export function GameBoard({
           className="fixed left-1/2 bottom-[40%] -translate-x-1/2 z-50 pointer-events-none"
           aria-live="polite"
         >
-          <div className="points-awarded-popup rounded-xl bg-emerald-600 text-white px-6 py-4 shadow-xl border-2 border-emerald-500/50 text-2xl font-bold">
-            +{pointsAwardedPopup.points} pts
+          <div className="points-awarded-popup rounded-xl bg-emerald-600 text-white px-6 py-4 shadow-xl border-2 border-emerald-500/50 text-2xl font-bold text-center max-w-[min(100vw-2rem,28rem)]">
+            {pointsAwardedPopup.message}
           </div>
         </div>
       )}
@@ -1373,9 +1397,7 @@ export function GameBoard({
           aria-live="polite"
         >
           <div className="cards-rejected-popup rounded-xl bg-red-600 text-white px-6 py-4 shadow-xl border-2 border-red-500/50 text-xl font-bold text-center max-w-[90vw]">
-            {cardsRejectedPopup.cardCount === 1
-              ? "Card rejected"
-              : `${cardsRejectedPopup.cardCount} cards rejected`}
+            {cardsRejectedPopup.message}
           </div>
         </div>
       )}

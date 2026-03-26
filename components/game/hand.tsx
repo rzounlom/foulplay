@@ -161,6 +161,13 @@ export function Hand({
     !submissionDisabled &&
     !hasPendingSubmission;
 
+  const selectedSubmissionPotentialPoints = useMemo(() => {
+    if (!canSubmitCards || selectedIds.length === 0) return 0;
+    return cardsToDisplay
+      .filter((c) => selectedIds.includes(c.id))
+      .reduce((sum, c) => sum + c.card.points, 0);
+  }, [canSubmitCards, selectedIds, cardsToDisplay]);
+
   // Ensure layout is valid for current card count (e.g. user had 6 cards with 6v, then drew down to 3)
   const validLayouts = getLayoutsForCardCount(cardsToDisplay.length);
   const effectiveLayout = validLayouts.includes(handLayout)
@@ -351,7 +358,15 @@ export function Hand({
       (isQuarterIntermission &&
         onQuarterDiscardSelection &&
         selectedIds.length > 0) ? (
-        <div className="mb-4 lg:mb-6 flex gap-2 shrink-0">
+        <div className="mb-4 lg:mb-6 flex flex-col gap-2 shrink-0">
+          {canSubmitCards && selectedIds.length > 0 && (
+            <p className="text-sm font-medium text-primary dark:text-primary">
+              {selectedIds.length}{" "}
+              {selectedIds.length === 1 ? "card" : "cards"} → potential +
+              {selectedSubmissionPotentialPoints} pts 😏
+            </p>
+          )}
+          <div className="flex gap-2">
           {canSubmitCards && selectedIds.length > 0 && (
             <Button
               variant="outline-primary"
@@ -386,6 +401,7 @@ export function Hand({
                 {selectedIds.length !== 1 ? "s" : ""} for discard
               </Button>
             )}
+          </div>
         </div>
       ) : null}
       <div

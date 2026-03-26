@@ -46,7 +46,7 @@ export function SubmitterPendingBadge({
       <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-4 flex items-center gap-2 shrink-0">
         Your submissions
         <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-medium">
-          Vote pending
+          Waiting for votes 👀
         </span>
       </h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 overflow-y-auto min-h-0">
@@ -60,7 +60,7 @@ export function SubmitterPendingBadge({
                 {card.title}
               </h4>
               <span className="shrink-0 px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-medium whitespace-nowrap">
-                Vote pending
+                Waiting for votes 👀
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-1.5 mb-2">
