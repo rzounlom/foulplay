@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,22 @@ function JoinRoomForm() {
   const [nickname, setNickname] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hostInviteName, setHostInviteName] = useState<string | null>(null);
+  const [joinCtaAttentionActive, setJoinCtaAttentionActive] = useState(true);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mq.matches);
+    const onChange = () => setPrefersReducedMotion(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  const stopJoinCtaAttention = useCallback(() => {
+    setJoinCtaAttentionActive(false);
+  }, []);
 
   // Auto-fill code from URL query parameter
   useEffect(() => {
@@ -39,6 +55,36 @@ function JoinRoomForm() {
       setCode(codeParam.toUpperCase().slice(0, 6));
     }
   }, [searchParams]);
+
+  // Host name for invite copy (public preview)
+  useEffect(() => {
+    const fromQuery = searchParams.get("code")?.trim().toUpperCase().slice(0, 6) ?? "";
+    const effective = code.length === 6 ? code.toUpperCase() : fromQuery;
+    if (effective.length !== 6) {
+      setHostInviteName(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/rooms/invite-preview?code=${encodeURIComponent(effective)}`,
+        );
+        if (cancelled) return;
+        if (res.ok) {
+          const data = (await res.json()) as { hostName?: string | null };
+          setHostInviteName(data.hostName?.trim() || null);
+        } else {
+          setHostInviteName(null);
+        }
+      } catch {
+        if (!cancelled) setHostInviteName(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [code, searchParams]);
 
   // Fetch user's default nickname once (prefill only when nickname is still empty)
   useEffect(() => {
@@ -66,13 +112,14 @@ function JoinRoomForm() {
     const returnPath = buildJoinReturnPath(code, searchParams.get("code"));
     openSignInForReturn(returnPath, {
       title: "Sign in to join the game",
-      subtitle: "Quick sign-in with Google or email",
+      subtitle: "Quick sign-in. No setup.",
     });
     return false;
   };
 
   const handleJoinRoom = async (e: React.FormEvent) => {
     e.preventDefault();
+    stopJoinCtaAttention();
 
     if (!ensureSignedInForJoin()) {
       return;
@@ -111,6 +158,16 @@ function JoinRoomForm() {
     }
   };
 
+  const inviterLine = hostInviteName
+    ? `${hostInviteName} invited you to play`
+    : "A friend invited you to play";
+
+  const showJoinPulse =
+    joinCtaAttentionActive &&
+    !prefersReducedMotion &&
+    code.length === 6 &&
+    !isJoining;
+
   if (!isLoaded || !authLoaded) {
     return (
       <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
@@ -123,22 +180,38 @@ function JoinRoomForm() {
     <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
       <div className="w-full max-w-2xl mx-auto my-auto">
         <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
-          <h1 className="text-xl md:text-page-title text-foreground mb-3 md:mb-4">Join a Room</h1>
-          <p className="text-body-muted text-sm md:text-base mb-2 md:mb-3">
-            Enter the 6-character room code to join a game.
-          </p>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4 md:mb-6">
-            Join in seconds — no account setup
-          </p>
+          <div className="mb-4 md:mb-6 space-y-2 text-center sm:text-left">
+            <h1 className="text-xl md:text-page-title text-foreground">
+              You&apos;ve been invited to a game 🔥
+            </h1>
+            <p className="text-base md:text-lg font-medium text-foreground">
+              {inviterLine}
+            </p>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              Game is waiting for players…
+            </p>
+            <p className="text-body-muted text-sm md:text-base">
+              Join in seconds and start playing
+            </p>
+            {!isSignedIn && (
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                Quick sign-in. No setup.
+              </p>
+            )}
+          </div>
 
           <form onSubmit={handleJoinRoom} className="space-y-4">
             <div>
-              <Label htmlFor="code" className="mb-2">Room Code</Label>
+              <Label htmlFor="code" className="mb-2">
+                Your game code
+              </Label>
               <Input
                 id="code"
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 6))}
+                onFocus={stopJoinCtaAttention}
+                onPointerDown={stopJoinCtaAttention}
                 placeholder="ABCD12"
                 maxLength={6}
                 className="text-center text-xl md:text-2xl font-mono tracking-widest uppercase min-h-[48px]"
@@ -148,7 +221,10 @@ function JoinRoomForm() {
 
             <div>
               <Label htmlFor="nickname" className="mb-2">
-                Nickname <span className="text-neutral-500 dark:text-neutral-400 text-xs font-normal">(optional)</span>
+                Pick a name for this game{" "}
+                <span className="text-neutral-500 dark:text-neutral-400 text-xs font-normal">
+                  (optional)
+                </span>
               </Label>
               <Input
                 id="nickname"
@@ -186,10 +262,13 @@ function JoinRoomForm() {
               fullWidth
               disabled={code.length !== 6}
               isLoading={isJoining}
-              className="min-h-[48px]"
+              className={`min-h-[48px] ${showJoinPulse ? "lobby-invite-pulse" : ""}`}
             >
-              {isSignedIn ? "Join Room" : "Sign in to join"}
+              {isSignedIn ? "Join Game 🔥" : "Sign in to join"}
             </Button>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+              Takes 5 seconds
+            </p>
           </form>
         </div>
       </div>
