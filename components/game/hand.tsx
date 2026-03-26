@@ -149,6 +149,12 @@ export function Hand({
       isMultiSelect ? selectedCardIds : selectedCardId ? [selectedCardId] : [],
     [isMultiSelect, selectedCardIds, selectedCardId],
   );
+
+  /** Cards queued for discard + current selection (each = one penalty). */
+  const discardPenaltyPreviewCount = useMemo(() => {
+    if (!isQuarterIntermission) return 0;
+    return new Set([...myQuarterSelectionIds, ...selectedIds]).size;
+  }, [isQuarterIntermission, myQuarterSelectionIds, selectedIds]);
   const canSubmitCards =
     canTurnInCards &&
     !isQuarterIntermission &&
@@ -319,9 +325,26 @@ export function Hand({
         </div>
       )}
       {isQuarterIntermission && (
-        <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm shrink-0">
-          Select cards from your hand and click Submit for discard. Highlighted cards are in Cards to Discard below. Remove any to keep them. When the timer ends, cards in Cards to Discard are discarded and replaced.{roomMode === "non-drinking" ? " Points apply." : " Drink penalty applies."}
+        <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-sm shrink-0 space-y-1">
+          <p className="font-medium leading-snug">
+            Pick cards to discard
+            <br />
+            Get new ones after the timer
+            <br />
+            More cards = more penalty
+          </p>
         </div>
+      )}
+      {isQuarterIntermission && discardPenaltyPreviewCount > 0 && (
+        <p
+          className="mb-4 text-sm font-semibold text-amber-900 dark:text-amber-100 shrink-0"
+          aria-live="polite"
+        >
+          {discardPenaltyPreviewCount} card
+          {discardPenaltyPreviewCount !== 1 ? "s" : ""} selected →{" "}
+          {discardPenaltyPreviewCount} penalty
+          {discardPenaltyPreviewCount !== 1 ? "ies" : ""}
+        </p>
       )}
 
       {(canSubmitCards && selectedIds.length > 0) ||

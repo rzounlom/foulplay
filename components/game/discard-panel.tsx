@@ -55,8 +55,8 @@ export function DiscardPanel({
       <div className="flex-1 overflow-y-auto p-4 min-h-0">
         <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
           {cardInstances.length > 0
-            ? `These cards will be discarded when the round ends. Time left: ${timeStr}. Remove any you want to keep.`
-            : `Select cards from your hand and submit for discard. Time left: ${timeStr}.`}
+            ? `Discarded when the timer hits zero — new cards after. ${timeStr} left. Remove to keep.`
+            : `Submit from your hand to queue cards here. Timer: ${timeStr}.`}
         </p>
         {cardInstances.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -100,7 +100,7 @@ export function DiscardPanel({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-neutral-500">No cards in pending discard.</p>
+          <p className="text-sm text-neutral-500">No cards queued yet.</p>
         )}
       </div>
     </>

@@ -75,7 +75,7 @@ export function CardsToDiscardSection({
         )}
       </div>
       <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-4 shrink-0">
-        These will be discarded when the round ends. Click Remove to keep a card.
+        Gone when the timer ends — Remove to keep a card.
       </p>
       <div
         className={

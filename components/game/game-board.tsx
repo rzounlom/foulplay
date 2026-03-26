@@ -1639,10 +1639,13 @@ export function GameBoard({
                       fullWidth
                       onClick={handleSuggestEndRound}
                       disabled={isSuggestingEndRound}
+                      title={
+                        iHaveSuggested
+                          ? "Undo your request"
+                          : "Ask the host to start a discard round"
+                      }
                     >
-                      {iHaveSuggested
-                        ? "Undo suggest end round"
-                        : "Suggest end round"}
+                      {iHaveSuggested ? "Undo" : "Want new cards?"}
                     </Button>
                   </div>
                 )}
@@ -1847,10 +1850,13 @@ export function GameBoard({
                   fullWidth
                   onClick={handleSuggestEndRound}
                   disabled={isSuggestingEndRound}
+                  title={
+                    iHaveSuggested
+                      ? "Undo your request"
+                      : "Ask the host to start a discard round"
+                  }
                 >
-                  {iHaveSuggested
-                    ? "Undo suggest end round"
-                    : "Suggest end round"}
+                  {iHaveSuggested ? "Undo" : "Want new cards?"}
                 </Button>
               </div>
             )}
@@ -1980,12 +1986,23 @@ export function GameBoard({
             )}
           {/* Round intermission callout — above Pending Submissions/Discard, compact like heading row */}
           {showQuarterControls && isQuarterIntermission && (
+            <>
+            <p className="text-[13px] sm:text-sm text-neutral-500 dark:text-neutral-400 text-center sm:text-left mb-1">
+              Nothing happening? Force a refresh round.
+            </p>
             <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border-2 border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/30">
-              <span className="font-semibold text-amber-800 dark:text-amber-200">
-                {allDoneCountdown != null
-                  ? `All players have submitted cards, ending round in ${allDoneCountdown}`
-                  : "Round ending — select cards to turn in"}
-              </span>
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <span className="block font-semibold text-amber-800 dark:text-amber-200">
+                  {allDoneCountdown != null
+                    ? `All players have submitted cards, ending round in ${allDoneCountdown}`
+                    : "Discard cards to get new ones 🔥"}
+                </span>
+                {allDoneCountdown == null && (
+                  <span className="block text-sm text-amber-800/90 dark:text-amber-200/90">
+                    Each card = take the penalty 😏
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-3 flex-wrap">
                 {isHost && allDoneCountdown == null && (
                   <span className="text-sm text-amber-800 dark:text-amber-200">
@@ -2015,7 +2032,7 @@ export function GameBoard({
                     onClick={handleMarkDone}
                     disabled={isMarkingDone}
                   >
-                    {iAmDone ? "Undo" : "Done"}
+                    {iAmDone ? "Unlock" : "Lock In"}
                   </Button>
                 )}
                 {isHost && (
@@ -2025,11 +2042,12 @@ export function GameBoard({
                     size="sm"
                     onClick={() => setShowEndRoundEarlyModal(true)}
                   >
-                    End round early
+                    Start next round
                   </Button>
                 )}
               </div>
             </div>
+            </>
           )}
 
           {/* Your hand — front and center */}
@@ -2321,13 +2339,12 @@ export function GameBoard({
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-surface rounded-lg p-6 max-w-md w-full border border-border shadow-lg dark:shadow-none">
             <h3 className="text-section-title font-bold mb-4">
-              End Round Early?
+              Start next round?
             </h3>
             <p className="text-body-muted mb-6">
-              This will end the intermission now. All pending card turn-ins will
-              be processed and players will receive new cards. Players who
-              haven&apos;t selected cards to turn in will keep their current
-              hand.
+              Ends the discard window now. Chosen discards are processed
+              (penalties apply); everyone gets new cards. Anyone who
+              hasn&apos;t locked in keeps their hand.
             </p>
             <div className="flex gap-3">
               <Button
@@ -2343,7 +2360,7 @@ export function GameBoard({
                 onClick={handleEndRoundEarly}
                 isLoading={isEndingRoundEarly}
               >
-                End Round Early
+                Start next round
               </Button>
             </div>
           </div>
