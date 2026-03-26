@@ -4,7 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import { AUTO_ACCEPT_SECONDS } from "@/lib/game/constants";
 
 import { Button } from "@/components/ui/button";
-import { getCardDescriptionForDisplay } from "@/lib/game/display";
+import {
+  getCardDescriptionForDisplay,
+  isNonDrinkingMode,
+} from "@/lib/game/display";
+import { buildIdentityGroups, getCardIdentityKey } from "@/lib/game/card-identity";
+import {
+  computeDuplicateSelectionHint,
+  getRiskLabel,
+  isHighRewardSeverity,
+  sumCombinedPenaltyDrinkUnits,
+} from "@/lib/game/selection-metrics";
 import {
   HandLayoutGrid,
   getLayoutsForCardCount,
@@ -69,6 +79,8 @@ interface Card {
   severity: string;
   type: string;
   points: number;
+  /** Optional shared definition id when present on API payload */
+  templateId?: string | null;
 }
 
 interface CardInstance {
@@ -167,6 +179,52 @@ export function Hand({
       .filter((c) => selectedIds.includes(c.id))
       .reduce((sum, c) => sum + c.card.points, 0);
   }, [canSubmitCards, selectedIds, cardsToDisplay]);
+
+  const identityGroups = useMemo(
+    () => buildIdentityGroups(cardsToDisplay),
+    [cardsToDisplay],
+  );
+
+  /** Stable across parent re-renders when hand content is unchanged (avoids duplicate-hint effect loops). */
+  const handFingerprint = useMemo(
+    () =>
+      cardsToDisplay
+        .map((c) => `${c.id}:${getCardIdentityKey(c.card)}`)
+        .sort()
+        .join("|"),
+    [cardsToDisplay],
+  );
+
+  const selectedSig = useMemo(
+    () => [...selectedIds].sort().join(","),
+    [selectedIds],
+  );
+
+  const selectedCombinedDrinkUnits = useMemo(() => {
+    if (!canSubmitCards || selectedIds.length === 0) return 0;
+    const descs = cardsToDisplay
+      .filter((c) => selectedIds.includes(c.id))
+      .map((c) => c.card.description);
+    return sumCombinedPenaltyDrinkUnits(descs, roomMode);
+  }, [canSubmitCards, selectedIds, cardsToDisplay, roomMode]);
+
+  const duplicateSelectionHint = useMemo(
+    () =>
+      computeDuplicateSelectionHint(
+        canSubmitCards,
+        selectedIds,
+        cardsToDisplay,
+        selectedSig,
+        handFingerprint,
+      ),
+    [
+      canSubmitCards,
+      selectedIds,
+      cardsToDisplay,
+      selectedSig,
+      handFingerprint,
+    ],
+  );
 
   // Ensure layout is valid for current card count (e.g. user had 6 cards with 6v, then drew down to 3)
   const validLayouts = getLayoutsForCardCount(cardsToDisplay.length);
@@ -360,11 +418,40 @@ export function Hand({
         selectedIds.length > 0) ? (
         <div className="mb-4 lg:mb-6 flex flex-col gap-2 shrink-0">
           {canSubmitCards && selectedIds.length > 0 && (
-            <p className="text-sm font-medium text-primary dark:text-primary">
-              {selectedIds.length}{" "}
-              {selectedIds.length === 1 ? "card" : "cards"} → potential +
-              {selectedSubmissionPotentialPoints} pts 😏
-            </p>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">
+                {selectedIds.length}{" "}
+                {selectedIds.length === 1 ? "card" : "cards"} → +
+                {selectedSubmissionPotentialPoints} pts
+                {!isNonDrinkingMode(roomMode) && (
+                  <>
+                    {" "}
+                    / {selectedCombinedDrinkUnits} drinks ⚖️
+                  </>
+                )}
+                {isNonDrinkingMode(roomMode) && " ⚖️"}
+              </p>
+              <p className="text-xs text-primary dark:text-primary/90 font-medium">
+                {selectedIds.length}{" "}
+                {selectedIds.length === 1 ? "card" : "cards"} → potential +
+                {selectedSubmissionPotentialPoints} pts 😏
+              </p>
+              {selectedIds.length >= 2 && (
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                  🔥 Combo potential
+                </p>
+              )}
+              {selectedIds.length >= 3 && (
+                <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                  Big swing if these hit 😈
+                </p>
+              )}
+              {duplicateSelectionHint && (
+                <p className="text-[11px] text-neutral-600 dark:text-neutral-400">
+                  {duplicateSelectionHint}
+                </p>
+              )}
+            </div>
           )}
           <div className="flex gap-2">
           {canSubmitCards && selectedIds.length > 0 && (
@@ -421,6 +508,10 @@ export function Hand({
             isSmallViewport,
             true
           );
+          const identityKey = getCardIdentityKey(cardInstance.card);
+          const groupSize = identityGroups.get(identityKey)?.length ?? 1;
+          const isDupGroup = groupSize >= 2;
+          const highRewardCard = isHighRewardSeverity(cardInstance.card.severity);
           return (
             <div
               key={cardInstance.id}
@@ -429,7 +520,7 @@ export function Hand({
                 (!hasPendingSubmission || isQuarterIntermission) &&
                 onCardSelect?.(cardInstance.id)
               }
-              className={`${cardClasses} ${submissionDisabled || (hasPendingSubmission && !isQuarterIntermission) ? "pointer-events-none opacity-75" : ""} ${
+              className={`relative group ${cardClasses} ${submissionDisabled || (hasPendingSubmission && !isQuarterIntermission) ? "pointer-events-none opacity-75" : ""} ${
                 isSelected
                   ? isSmallViewport
                     ? "border-primary bg-primary/10 shadow-md"
@@ -437,11 +528,19 @@ export function Hand({
                   : isInDiscardSelection
                     ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/30 shadow-md"
                     : "border-neutral-200 dark:border-neutral-800 hover:border-primary/50"
-              }`}
+              } ${isDupGroup && !isSelected ? "ring-1 ring-amber-500/40 shadow-[inset_0_0_14px_rgba(245,158,11,0.07)]" : ""}`}
               style={{ animationDelay: `${index * 40}ms` }}
             >
+              {isDupGroup && (
+                <span
+                  className="absolute top-1.5 right-1.5 z-10 rounded-md bg-amber-950/85 text-amber-100 text-[10px] font-bold px-1.5 py-0.5 tabular-nums shadow-sm"
+                  aria-hidden
+                >
+                  x{groupSize}
+                </span>
+              )}
               <h4
-                className={`font-semibold leading-tight break-words ${isSmallViewport ? "text-base mb-2" : "text-base md:text-sm lg:text-xl mb-2 md:mb-1.5 lg:mb-3"}`}
+                className={`font-semibold leading-tight break-words pr-8 ${isSmallViewport ? "text-base mb-2" : "text-base md:text-sm lg:text-xl mb-2 md:mb-1.5 lg:mb-3"}`}
               >
                 {cardInstance.card.title}
               </h4>
@@ -464,6 +563,13 @@ export function Hand({
                   {cardInstance.card.severity}
                 </span>
                 <span
+                  className={`px-2 py-0.5 rounded font-medium whitespace-nowrap border border-border/60 text-neutral-700 dark:text-neutral-300 ${
+                    isSmallViewport ? "text-[10px]" : "text-[10px] md:text-[11px] lg:text-xs"
+                  }`}
+                >
+                  {getRiskLabel(cardInstance.card.severity)}
+                </span>
+                <span
                   className={`px-2 py-0.5 bg-accent/20 text-accent rounded font-medium whitespace-nowrap ${isSmallViewport ? "text-xs" : "text-xs md:text-[11px] lg:text-sm lg:px-3 lg:py-1"}`}
                 >
                   {cardInstance.card.points} pts
@@ -477,6 +583,17 @@ export function Hand({
                   roomMode,
                 )}
               </p>
+              {highRewardCard && (
+                <p
+                  className={`mt-1.5 text-[10px] sm:text-[11px] italic text-center text-neutral-500 dark:text-neutral-400 transition-opacity ${
+                    isSelected
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100"
+                  }`}
+                >
+                  High reward if this hits 😈
+                </p>
+              )}
             </div>
           );
         })}

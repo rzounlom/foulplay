@@ -289,7 +289,7 @@ export function GameBoard({
     };
     const id = setInterval(check, 30_000);
     return () => clearInterval(id);
-  }, []);
+  }, [HIDDEN_DISCONNECT_MS, IDLE_DISCONNECT_MS]);
 
   const room = useMemo(() => {
     if (snapshot) return snapshotToRoom(snapshot);

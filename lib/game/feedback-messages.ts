@@ -6,6 +6,7 @@ const POINTS_TEMPLATES = [
   (p: number) => `+${p} pts 🔥 that counts`,
   (p: number) => `+${p} pts 👏 good eye`,
   (p: number) => `+${p} pts 😤 that definitely happened`,
+  (p: number) => `+${p} pts 🎯 perfect call`,
 ];
 
 function pickIndexAvoidingRepeat(
@@ -32,7 +33,8 @@ export function pickPointsAwardedMessage(
 
 const REJECTION_MESSAGES = [
   "❌ Cards rejected — back to your hand",
-  "❌ Nope. Try again 😅",
+  "❌ Too early — hold that one",
+  "❌ Not this time 😅",
 ];
 
 export function pickCardsRejectedMessage(lastIndex: number | null): {
@@ -71,7 +73,11 @@ const FUN_PENALTY_WITH_COUNT = [
     const w = u === "drink" ? (c === 1 ? "drink" : "drinks") : c === 1 ? "shot" : "shots";
     return `Time to pay up — ${c} ${w} 🥤`;
   },
-  (c: number, _u: "drink" | "shot") => `You earned it… unfortunately 😂`,
+  (c: number, u: "drink" | "shot") => {
+    void c;
+    void u;
+    return `You earned it… unfortunately 😂`;
+  },
 ];
 
 const FUN_PENALTY_GENERIC = [
