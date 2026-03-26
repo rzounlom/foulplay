@@ -101,6 +101,8 @@ interface HandProps {
   hasPendingSubmission?: boolean;
   /** ISO string when user's pending submission will auto-accept (for countdown display) */
   pendingSubmissionAutoAcceptAt?: string | null;
+  /** First-session hint beside the “Your Hand” heading (inline gameplay guidance) */
+  showStartHereHint?: boolean;
 }
 
 export function Hand({
@@ -119,6 +121,7 @@ export function Hand({
   submissionDisabled = false,
   hasPendingSubmission = false,
   pendingSubmissionAutoAcceptAt = null,
+  showStartHereHint = false,
 }: HandProps) {
   const [handLayout, setHandLayout] = useHandLayout();
   const isSmallViewport = useIsSmallViewport();
@@ -229,10 +232,20 @@ export function Hand({
             />
           </svg>
         </div>
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300">
-            Your Hand
-          </h3>
+        <div className="flex items-start sm:items-center justify-between gap-2 mb-1 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1 min-w-0 flex-1">
+            <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 shrink-0">
+              Your Hand
+            </h3>
+            {showStartHereHint && (
+              <span
+                className="inline-flex items-center rounded-md border border-primary/35 bg-primary/10 px-2.5 py-1 text-[11px] sm:text-xs font-medium text-primary shadow-sm"
+                role="status"
+              >
+                Start here — pick a card
+              </span>
+            )}
+          </div>
           {currentUserPoints !== undefined && (
             <span
               className="text-sm font-medium text-neutral-600 dark:text-neutral-400 lg:hidden"
@@ -252,11 +265,21 @@ export function Hand({
 
   return (
     <div className="bg-surface rounded-lg p-3 md:p-6 lg:p-5 border border-border shadow-sm dark:shadow-none flex flex-col min-h-0 min-w-0 max-h-[calc(100vh-12rem)] overflow-x-hidden">
-      <div className="flex items-center justify-between gap-2 mb-4 lg:mb-6 flex-wrap shrink-0">
-        <h3 className="text-lg font-semibold lg:text-xl">
-          Your Hand ({cardsToDisplay.length}/{handSize})
-        </h3>
-        <div className="flex items-center gap-1">
+      <div className="flex items-start sm:items-center justify-between gap-x-3 gap-y-2 mb-4 lg:mb-6 flex-wrap shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1 min-w-0 flex-1">
+          <h3 className="text-lg font-semibold lg:text-xl shrink-0">
+            Your Hand ({cardsToDisplay.length}/{handSize})
+          </h3>
+          {showStartHereHint && (
+            <span
+              className="inline-flex items-center rounded-md border border-primary/35 bg-primary/10 px-2.5 py-1 text-[11px] sm:text-xs font-medium text-primary shadow-sm"
+              role="status"
+            >
+              Start here — pick a card
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
           {currentUserPoints !== undefined && (
             <span
               className="text-sm font-medium text-neutral-600 dark:text-neutral-400 min-[821px]:hidden"

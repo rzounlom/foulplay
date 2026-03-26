@@ -2036,22 +2036,12 @@ export function GameBoard({
           {currentPlayer && (
             <div
               data-tour="your-cards"
-              className={`relative space-y-4 min-w-0 overflow-x-hidden rounded-xl ${
+              className={`space-y-4 min-w-0 overflow-x-hidden rounded-xl ${
                 showHandHighlight
-                  ? "ring-2 ring-primary/45 shadow-[0_0_28px_rgba(255,102,0,0.22)] motion-safe:transition-[box-shadow,ring-color] motion-reduce:shadow-none motion-reduce:ring-primary/35 p-1 -m-1 pt-8 sm:pt-9"
+                  ? "ring-2 ring-primary/45 shadow-[0_0_28px_rgba(255,102,0,0.22)] motion-safe:transition-[box-shadow,ring-color] motion-reduce:shadow-none motion-reduce:ring-primary/35 p-1 -m-1"
                   : ""
               }`}
             >
-              {showHandHighlight && (
-                <div
-                  className="absolute -top-0.5 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 z-10 pointer-events-none"
-                  role="tooltip"
-                >
-                  <span className="inline-block rounded-md border border-primary/35 bg-primary/10 px-2.5 py-1 text-[11px] sm:text-xs font-medium text-primary shadow-sm whitespace-nowrap">
-                    Start here — pick a card
-                  </span>
-                </div>
-              )}
               {handLoading ? (
                 <div className="bg-surface rounded-lg p-3 md:p-6 lg:p-5 border border-border shadow-sm dark:shadow-none flex flex-col min-h-0 max-h-[calc(100vh-12rem)]">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 lg:gap-4 overflow-y-auto min-h-0 flex-1">
@@ -2099,6 +2089,7 @@ export function GameBoard({
                   }
                   hasPendingSubmission={hasPendingSubmission}
                   pendingSubmissionAutoAcceptAt={pendingSubmissionAutoAcceptAt}
+                  showStartHereHint={showHandHighlight}
                 />
               )}
             </div>
