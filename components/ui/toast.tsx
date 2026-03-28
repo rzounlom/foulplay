@@ -16,11 +16,17 @@ export interface ToastItem {
   message: string;
   type: ToastType;
   createdAt: number;
+  /** Optional action (e.g. “Join anyway”) — toast stays longer when set */
+  action?: { label: string; onClick: () => void };
 }
 
 interface ToastContextValue {
   toasts: ToastItem[];
-  addToast: (message: string, type?: ToastType) => void;
+  addToast: (
+    message: string,
+    type?: ToastType,
+    action?: { label: string; onClick: () => void },
+  ) => void;
   removeToast: (id: string) => void;
 }
 
@@ -35,12 +41,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const addToast = useCallback((message: string, type: ToastType = "info") => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    const item: ToastItem = { id, message, type, createdAt: Date.now() };
-    setToasts((prev) => [...prev, item]);
-    setTimeout(() => removeToast(id), TOAST_DURATION_MS);
-  }, [removeToast]);
+  const addToast = useCallback(
+    (
+      message: string,
+      type: ToastType = "info",
+      action?: { label: string; onClick: () => void },
+    ) => {
+      const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      const item: ToastItem = {
+        id,
+        message,
+        type,
+        createdAt: Date.now(),
+        ...(action ? { action } : {}),
+      };
+      setToasts((prev) => [...prev, item]);
+      const duration = action ? 8000 : TOAST_DURATION_MS;
+      setTimeout(() => removeToast(id), duration);
+    },
+    [removeToast],
+  );
 
   const value = useMemo(
     () => ({ toasts, addToast, removeToast }),
@@ -74,7 +94,13 @@ function Toaster() {
   );
 }
 
-function ToastItem({ item }: { item: ToastItem; onDismiss: () => void }) {
+function ToastItem({
+  item,
+  onDismiss,
+}: {
+  item: ToastItem;
+  onDismiss: () => void;
+}) {
   const styleByType = {
     success:
       "bg-emerald-600 text-white border-emerald-700 dark:bg-emerald-700 dark:border-emerald-600",
@@ -88,7 +114,19 @@ function ToastItem({ item }: { item: ToastItem; onDismiss: () => void }) {
       className={`animate-fade-in-up rounded-lg border px-4 py-3 shadow-lg text-sm font-medium ${styleByType[item.type]}`}
       role="alert"
     >
-      <p className="break-words">{item.message}</p>
+      <p className="wrap-break-word whitespace-pre-line">{item.message}</p>
+      {item.action && (
+        <button
+          type="button"
+          className="mt-2 w-full rounded-md bg-white/15 hover:bg-white/25 py-1.5 text-xs font-semibold transition-colors"
+          onClick={() => {
+            item.action?.onClick();
+            onDismiss();
+          }}
+        >
+          {item.action.label}
+        </button>
+      )}
     </div>
   );
 }

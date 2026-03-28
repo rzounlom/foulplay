@@ -9,6 +9,8 @@ export type RoomEvent =
   | "player_left"
   | "game_started"
   | "game_ended"
+  | "rematch_ready_updated"
+  | "rematch_started"
   | "card_drawn"
   | "card_submitted"
   | "card_discarded"

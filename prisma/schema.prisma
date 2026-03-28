@@ -42,6 +42,9 @@ model Room {
   quarterDiscardDonePlayerIds Json? // string[] — player IDs who clicked "Done" for this intermission
   suggestEndRoundPlayerIds Json? // string[] — player IDs who clicked "Suggest end round" (non-host only)
   lastGameEndResult   Json?    // { winnerId, winnerName, leaderboard: [{ playerId, name, nickname, points }] } — shown on end-game page
+  rematchReadyUserIds Json?    // string[] User.id — players who tapped "Run it back" on end screen (ended rooms only)
+  rematchSpawnCode    String?  // New lobby code after host starts rematch (ended rooms; for poll fallback)
+  rematchSpawnMembers Json?    // string[] User.id in that lobby when spawned
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   players             Player[]

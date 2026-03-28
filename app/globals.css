@@ -385,3 +385,69 @@ textarea:focus-visible {
     will-change: transform, box-shadow;
   }
 }
+
+/* End-game: Run it back primary CTA — soft glow pulse */
+@keyframes rematch-cta-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 4px 14px rgb(255 102 0 / 0.25),
+      0 0 0 0 rgb(255 102 0 / 0.35);
+  }
+  50% {
+    box-shadow:
+      0 6px 24px rgb(255 102 0 / 0.4),
+      0 0 28px 4px rgb(255 102 0 / 0.2);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rematch-cta-pulse {
+    animation: rematch-cta-glow 2.4s ease-in-out infinite;
+    will-change: box-shadow;
+  }
+}
+
+/* End-game: ready count bump when value changes */
+@keyframes rematch-count-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rematch-count-pop {
+    animation: rematch-count-pop 0.48s cubic-bezier(0.34, 1.3, 0.64, 1);
+  }
+}
+
+@keyframes rematch-join-flash {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  88% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rematch-join-flash {
+    animation: rematch-join-flash 3.2s ease-out forwards;
+  }
+}

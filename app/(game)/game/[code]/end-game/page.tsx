@@ -5,6 +5,7 @@ import {
   EndGameScreen,
   type LastGameEndResult,
 } from "@/components/game/end-game-screen";
+import { parseRematchReadyUserIds } from "@/lib/rooms/rematch";
 
 export default async function EndGamePage({
   params,
@@ -45,10 +46,22 @@ export default async function EndGamePage({
     redirect(`/game/${roomCode}`);
   }
 
+  const rematchRoster = room.players.map((p) => ({
+    userId: p.userId,
+    displayName: p.nickname?.trim() || p.user.name,
+    isHost: p.isHost,
+  }));
+
   return (
     <EndGameScreen
       roomCode={roomCode}
       lastGameEndResult={lastGameEndResult}
+      rematch={{
+        roster: rematchRoster,
+        currentUserId: user.id,
+        hostUserId: room.hostId,
+        initialReadyUserIds: parseRematchReadyUserIds(room.rematchReadyUserIds),
+      }}
     />
   );
 }

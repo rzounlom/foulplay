@@ -128,6 +128,7 @@ export async function POST(request: NextRequest) {
       data: {
         lastGameEndResult: lastGameEndResult as object,
         status: "ended",
+        rematchReadyUserIds: [],
       },
     });
 
