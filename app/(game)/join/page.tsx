@@ -8,6 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { JoinRoomCardSkeleton } from "@/components/join/join-room-card-skeleton";
 import { useClerkInFlowSignIn } from "@/lib/auth/use-clerk-in-flow-sign-in";
+import {
+  clearStreakNudge,
+  readStreakNudge,
+  type StreakNudgePayload,
+} from "@/lib/game/party-streak-nudge";
 
 /** Prefer 6-char typed code so return URL survives the auth round-trip (state is lost on reload). */
 function buildJoinReturnPath(
@@ -34,6 +39,13 @@ function JoinRoomForm() {
   const [hostInviteName, setHostInviteName] = useState<string | null>(null);
   const [joinCtaAttentionActive, setJoinCtaAttentionActive] = useState(true);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [streakNudge, setStreakNudge] = useState<StreakNudgePayload | null>(
+    null,
+  );
+
+  useEffect(() => {
+    setStreakNudge(readStreakNudge());
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -48,11 +60,16 @@ function JoinRoomForm() {
     setJoinCtaAttentionActive(false);
   }, []);
 
-  // Auto-fill code from URL query parameter
+  // Auto-fill code from URL query parameter; mid-streak nudge fills code if URL empty
   useEffect(() => {
     const codeParam = searchParams.get("code");
     if (codeParam) {
       setCode(codeParam.toUpperCase().slice(0, 6));
+      return;
+    }
+    const nudge = readStreakNudge();
+    if (nudge?.endedRoomCode?.length === 6) {
+      setCode((prev) => (prev.length === 0 ? nudge.endedRoomCode : prev));
     }
   }, [searchParams]);
 
@@ -180,6 +197,26 @@ function JoinRoomForm() {
     <div className="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-6 md:py-8 bg-background">
       <div className="w-full max-w-2xl mx-auto my-auto">
         <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 md:p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm dark:shadow-none">
+          {streakNudge ? (
+            <div className="mb-4 md:mb-5 flex flex-col gap-2 rounded-xl border border-orange-500/35 bg-orange-500/10 dark:bg-orange-500/15 px-3 py-3 md:px-4 md:py-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-foreground text-center sm:text-left">
+                You had a {streakNudge.streakCount} game streak going… finish
+                what you started 👀
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="shrink-0 self-center sm:self-auto"
+                onClick={() => {
+                  clearStreakNudge();
+                  setStreakNudge(null);
+                }}
+              >
+                Dismiss
+              </Button>
+            </div>
+          ) : null}
           <div className="mb-4 md:mb-6 space-y-2 text-center sm:text-left">
             <h1 className="text-xl md:text-page-title text-foreground">
               You&apos;ve been invited to a game 🔥

@@ -13,8 +13,14 @@ import {
 import { useClerkInFlowSignIn } from "@/lib/auth/use-clerk-in-flow-sign-in";
 import { useRoomChannel } from "@/lib/ably/useRoomChannel";
 import { useToast } from "@/components/ui/toast";
+import type { PartyChainMeta } from "@/lib/game/party-chain";
+import {
+  getPartyStreakCosmeticTitle,
+  pickMomentumMessage,
+} from "@/lib/game/party-chain";
 import { writeRematchEntry } from "@/lib/game/rematch-entry-storage";
 import { fireRematchTransitionConfetti } from "@/lib/game/rematch-transition-confetti";
+import { recordStreakNudge, clearStreakNudge } from "@/lib/game/party-streak-nudge";
 
 interface LeaderboardEntry {
   playerId: string;
@@ -57,6 +63,7 @@ export interface RematchRosterPlayer {
 interface EndGameScreenProps {
   roomCode: string;
   lastGameEndResult: LastGameEndResult;
+  partyChain: PartyChainMeta | null;
   rematch: {
     roster: RematchRosterPlayer[];
     currentUserId: string;
@@ -313,6 +320,7 @@ function RematchSection({
       if (Array.isArray(body.readyUserIds)) {
         setReadyUserIds(body.readyUserIds);
       }
+      clearStreakNudge();
     } catch (e) {
       setReadyUserIds((prev) => prev.filter((id) => id !== currentUserId));
       toast.addToast(
@@ -571,6 +579,7 @@ function RematchSection({
 export function EndGameScreen({
   roomCode,
   lastGameEndResult,
+  partyChain,
   rematch,
 }: EndGameScreenProps) {
   const { winnerName, winnerNickname, winnerPoints, leaderboard, lastPlace, bestPlay } =
@@ -578,6 +587,13 @@ export function EndGameScreen({
   const winnerDisplayName = winnerNickname?.trim() || winnerName;
   const celebrationFired = useRef(false);
   const didScrollToRematchRef = useRef(false);
+  const streakCount = partyChain?.streakCount ?? 0;
+  const cosmeticTitle = getPartyStreakCosmeticTitle(streakCount);
+  const momIdx = useRotatingIndex(3, 5200);
+  const momentumLine =
+    streakCount >= 1
+      ? pickMomentumMessage(streakCount, momIdx + streakCount)
+      : "";
 
   const winnerLines = [
     `🏆 ${winnerDisplayName} takes it`,
@@ -639,6 +655,12 @@ export function EndGameScreen({
     return () => cancelAnimationFrame(t);
   }, []);
 
+  useEffect(() => {
+    if (streakCount >= 2) {
+      recordStreakNudge(streakCount, roomCode);
+    }
+  }, [streakCount, roomCode]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-100 to-neutral-200 dark:from-neutral-900 dark:to-neutral-800 flex flex-col items-center justify-center p-4 sm:p-6 pb-28 md:pb-6">
       <div className="w-full max-w-lg">
@@ -658,6 +680,30 @@ export function EndGameScreen({
             {winnerPoints} pts
           </p>
         </div>
+
+        {streakCount >= 1 && (
+          <div className="rounded-xl border border-orange-200/70 dark:border-orange-900/50 bg-orange-50/70 dark:bg-orange-950/25 px-4 py-3 mb-4 text-center">
+            <p className="text-lg font-bold text-orange-800 dark:text-orange-200">
+              🔥 {streakCount} Game Streak
+            </p>
+            {streakCount >= 2 ? (
+              <p className="text-sm text-orange-900/85 dark:text-orange-100/85 mt-1">
+                Don’t break it now…
+              </p>
+            ) : null}
+            {cosmeticTitle ? (
+              <p className="text-xs font-semibold text-orange-700 dark:text-orange-300 mt-2">
+                {cosmeticTitle}
+              </p>
+            ) : null}
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-2 min-h-[1.25rem]">
+              {momentumLine}
+            </p>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mt-3">
+              👑 {winnerDisplayName} is defending champion
+            </p>
+          </div>
+        )}
 
         <RematchSection
           roomCode={roomCode}

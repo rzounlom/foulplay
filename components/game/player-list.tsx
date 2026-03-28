@@ -17,8 +17,10 @@ interface PlayerListProps {
   showPoints?: boolean; // If true, show all players' points. If false, only show current user's points
   /** From rematch flow — users who opted into Run it back */
   rematchCrewUserIds?: Set<string>;
-  /** Previous game winner (User.id) for small badge */
+  /** Defending / last winner (User.id) for small badge */
   rematchChampionUserId?: string | null;
+  /** When true, label reads "Defending" instead of "Last win" */
+  championIsDefending?: boolean;
 }
 
 export function PlayerList({
@@ -27,6 +29,7 @@ export function PlayerList({
   showPoints = false,
   rematchCrewUserIds,
   rematchChampionUserId = null,
+  championIsDefending = false,
 }: PlayerListProps) {
   return (
     <div className="space-y-2">
@@ -86,7 +89,7 @@ export function PlayerList({
                   )}
                   {isPrevChampion && (
                     <span className="text-[10px] sm:text-xs px-1.5 py-0.5 bg-amber-500/15 text-amber-800 dark:text-amber-200 border border-amber-500/25 rounded whitespace-nowrap">
-                      👑 Last win
+                      {championIsDefending ? "👑 Defending" : "👑 Last win"}
                     </span>
                   )}
                 </div>

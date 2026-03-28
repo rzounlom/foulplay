@@ -7,6 +7,10 @@ import {
   parseRematchReadyUserIds,
 } from "@/lib/rooms/rematch";
 import { createRematchLobbyFromEndedRoom } from "@/lib/rooms/create-rematch-lobby";
+import {
+  buildPartyChainMetaForRematchLobby,
+  parsePartyChainMeta,
+} from "@/lib/game/party-chain";
 import { z } from "zod";
 
 const bodySchema = z.object({
@@ -62,11 +66,31 @@ export async function POST(request: NextRequest) {
       .map((p) => p.userId)
       .filter((id) => participantSet.has(id));
 
+    const lastResult = room.lastGameEndResult as {
+      winnerUserId?: string;
+      winnerName?: string;
+      winnerNickname?: string | null;
+    } | null;
+
+    const newPartyMeta = buildPartyChainMetaForRematchLobby({
+      sourcePartyMeta: parsePartyChainMeta(room.partyChainMeta),
+      lastGameEndResult: lastResult
+        ? {
+            winnerUserId: lastResult.winnerUserId,
+            winnerName: lastResult.winnerName ?? "Champion",
+            winnerNickname: lastResult.winnerNickname ?? null,
+          }
+        : null,
+      newParticipantUserIds: orderedUserIds,
+      sourceRoomCode: room.code,
+    });
+
     let created: { code: string; memberUserIds: string[] };
     try {
       created = await createRematchLobbyFromEndedRoom({
         sourceRoomId: room.id,
         participantUserIdsOrdered: orderedUserIds,
+        partyChainMeta: newPartyMeta as object,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";

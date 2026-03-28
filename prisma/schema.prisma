@@ -45,6 +45,7 @@ model Room {
   rematchReadyUserIds Json?    // string[] User.id — players who tapped "Run it back" on end screen (ended rooms only)
   rematchSpawnCode    String?  // New lobby code after host starts rematch (ended rooms; for poll fallback)
   rematchSpawnMembers Json?    // string[] User.id in that lobby when spawned
+  partyChainMeta      Json?    // Party Never Ends: streak, crew, defending champ (lobby + ended)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   players             Player[]

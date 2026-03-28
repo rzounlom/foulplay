@@ -5,6 +5,7 @@ import {
   EndGameScreen,
   type LastGameEndResult,
 } from "@/components/game/end-game-screen";
+import { parsePartyChainMeta } from "@/lib/game/party-chain";
 import { parseRematchReadyUserIds } from "@/lib/rooms/rematch";
 
 export default async function EndGamePage({
@@ -52,10 +53,13 @@ export default async function EndGamePage({
     isHost: p.isHost,
   }));
 
+  const partyChain = parsePartyChainMeta(room.partyChainMeta);
+
   return (
     <EndGameScreen
       roomCode={roomCode}
       lastGameEndResult={lastGameEndResult}
+      partyChain={partyChain}
       rematch={{
         roster: rematchRoster,
         currentUserId: user.id,

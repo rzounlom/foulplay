@@ -9,8 +9,10 @@ export async function createRematchLobbyFromEndedRoom(options: {
   sourceRoomId: string;
   /** userIds to add; typically stable order from original room.players (createdAt) */
   participantUserIdsOrdered: string[];
+  /** Party Never Ends / streak payload for the new lobby */
+  partyChainMeta?: object;
 }): Promise<{ code: string; memberUserIds: string[] }> {
-  const { sourceRoomId, participantUserIdsOrdered } = options;
+  const { sourceRoomId, participantUserIdsOrdered, partyChainMeta } = options;
   const ordered = [...participantUserIdsOrdered];
   if (ordered.length === 0) {
     throw new Error("NO_PARTICIPANTS");
@@ -72,6 +74,7 @@ export async function createRematchLobbyFromEndedRoom(options: {
         showPoints: source.showPoints,
         allowJoinInProgress: source.allowJoinInProgress,
         canTurnInCards: true,
+        ...(partyChainMeta ? { partyChainMeta: partyChainMeta as object } : {}),
       },
     });
 

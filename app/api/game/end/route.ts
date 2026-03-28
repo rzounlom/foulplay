@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
+import {
+  buildPartyMetaAfterGameEnd,
+  parsePartyChainMeta,
+} from "@/lib/game/party-chain";
 import { z } from "zod";
 
 const endGameSchema = z.object({
@@ -123,6 +127,17 @@ export async function POST(request: NextRequest) {
       ...(bestPlay ? { bestPlay } : {}),
     };
 
+    const crewUserIds = room.players.map((p) => p.userId);
+    const prevParty = parsePartyChainMeta(room.partyChainMeta);
+    const partyChainMeta = buildPartyMetaAfterGameEnd({
+      previousMeta: prevParty,
+      roomCode: room.code,
+      crewUserIds,
+      winnerUserId: winner.userId,
+      winnerDisplayName:
+        winner.nickname?.trim() || winner.user.name,
+    });
+
     // Store result and set room status to ended (end-game page will display results)
     await prisma.room.update({
       where: { id: room.id },
@@ -130,6 +145,7 @@ export async function POST(request: NextRequest) {
         lastGameEndResult: lastGameEndResult as object,
         status: "ended",
         rematchReadyUserIds: [],
+        partyChainMeta: partyChainMeta as object,
       },
     });
 

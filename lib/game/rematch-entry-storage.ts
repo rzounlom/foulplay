@@ -1,5 +1,7 @@
 /** Session payload for lobby “Round 2” UX after Run it back (same tab). */
 
+import { clearStreakNudge } from "@/lib/game/party-streak-nudge";
+
 export const REMATCH_ENTRY_STORAGE_KEY = "foulplay-rematch-entry";
 
 export type RematchEntryPayload = {
@@ -17,6 +19,7 @@ export function writeRematchEntry(payload: RematchEntryPayload): void {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.setItem(REMATCH_ENTRY_STORAGE_KEY, JSON.stringify(payload));
+    clearStreakNudge();
   } catch {
     /* ignore quota / private mode */
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import { RoomEvent, useRoomChannel } from "@/lib/ably/useRoomChannel";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -13,6 +13,11 @@ import { ShareModal } from "./share-modal";
 import { Select } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { GAME_MODES, MODE_LABELS, isValidGameMode } from "@/lib/game/modes";
+import {
+  getPartyStreakCosmeticTitle,
+  parsePartyChainMeta,
+  pickMomentumMessage,
+} from "@/lib/game/party-chain";
 import {
   clearRematchEntry,
   readRematchEntryForRoom,
@@ -41,6 +46,7 @@ interface Room {
   currentQuarter: string | null;
   canTurnInCards: boolean;
   players: Player[];
+  partyChainMeta?: unknown;
 }
 
 interface LobbyProps {
@@ -77,6 +83,14 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
     if (p) {
       setRematchEntry(p);
       clearRematchEntry();
+      try {
+        sessionStorage.setItem(
+          `foulplay-skip-tour-${roomCode.toUpperCase()}`,
+          "1",
+        );
+      } catch {
+        /* ignore */
+      }
     }
   }, [roomCode]);
 
@@ -124,6 +138,16 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
     } else if (event === "room_settings_updated") {
       fetchRoom();
     } else if (event === "game_started") {
+      const skipKey = `foulplay-skip-tour-${roomCode.toUpperCase()}`;
+      try {
+        if (sessionStorage.getItem(skipKey)) {
+          sessionStorage.removeItem(skipKey);
+          router.push(`/game/${roomCode}`);
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
       router.push(`/game/${roomCode}?tour=1`);
     }
   });
@@ -140,7 +164,17 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
             const roomData = await response.json();
             setRoom(roomData);
             if (roomData.status === "active") {
-              router.push(`/game/${roomCode}?tour=1`);
+              const skipKey = `foulplay-skip-tour-${roomCode.toUpperCase()}`;
+              try {
+                if (sessionStorage.getItem(skipKey)) {
+                  sessionStorage.removeItem(skipKey);
+                  router.push(`/game/${roomCode}`);
+                } else {
+                  router.push(`/game/${roomCode}?tour=1`);
+                }
+              } catch {
+                router.push(`/game/${roomCode}?tour=1`);
+              }
             }
           }
         } catch (error) {
@@ -189,6 +223,75 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
     (p) => p.user.id === currentUserId && p.isHost,
   );
   const canStart = room.players.length >= 2 && isHost;
+
+  const partyMeta = useMemo(
+    () => parsePartyChainMeta(room.partyChainMeta),
+    [room.partyChainMeta],
+  );
+
+  const partyMomStreak = partyMeta?.streakCount ?? 0;
+  const [partyMomTick, setPartyMomTick] = useState(0);
+  useEffect(() => {
+    if (partyMomStreak < 1) return;
+    const t = setInterval(() => setPartyMomTick((x) => x + 1), 5200);
+    return () => clearInterval(t);
+  }, [partyMomStreak]);
+  const lobbyMomentum =
+    partyMeta && partyMeta.streakCount >= 1
+      ? pickMomentumMessage(partyMeta.streakCount, partyMomTick)
+      : "";
+
+  const lobbyRematchCrewIds = useMemo(() => {
+    const ids = rematchEntry?.crewUserIds ?? [];
+    if (ids.length === 0) return undefined;
+    return new Set(ids);
+  }, [rematchEntry]);
+
+  const lobbyChampionUserId = useMemo(
+    () =>
+      partyMeta?.defendingChampionUserId ??
+      rematchEntry?.previousWinnerUserId ??
+      null,
+    [
+      partyMeta?.defendingChampionUserId,
+      rematchEntry?.previousWinnerUserId,
+    ],
+  );
+
+  const championIsDefending = !!(
+    partyMeta?.defendingChampionUserId &&
+    lobbyChampionUserId &&
+    lobbyChampionUserId === partyMeta.defendingChampionUserId
+  );
+
+  const partyCosmeticTitle = partyMeta
+    ? getPartyStreakCosmeticTitle(partyMeta.streakCount)
+    : null;
+
+  const squadFull =
+    partyMeta &&
+    typeof partyMeta.returnedFromPriorCount === "number" &&
+    typeof partyMeta.priorCrewSize === "number" &&
+    partyMeta.priorCrewSize > 0 &&
+    partyMeta.returnedFromPriorCount >= partyMeta.priorCrewSize;
+
+  const squadLine =
+    partyMeta &&
+    typeof partyMeta.returnedFromPriorCount === "number" &&
+    typeof partyMeta.priorCrewSize === "number" &&
+    partyMeta.priorCrewSize > 0
+      ? squadFull
+        ? "Full squad back. Chaos guaranteed."
+        : `👥 Same squad (${partyMeta.returnedFromPriorCount}/${partyMeta.priorCrewSize} returned)`
+      : null;
+
+  const defendingChampionLine =
+    partyMeta &&
+    partyMeta.streakCount >= 1 &&
+    (partyMeta.defendingChampionDisplayName?.trim() ||
+      rematchEntry?.previousWinnerDisplayName?.trim())
+      ? `👑 ${(partyMeta.defendingChampionDisplayName?.trim() || rematchEntry?.previousWinnerDisplayName || "Champion")} is defending champion`
+      : null;
 
   /** Host: auto-start after a brief pause when 2+ players (server validates). Key set only on success so late joiners can trigger a retry. */
   useEffect(() => {
@@ -283,6 +386,37 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
         </div>
       ) : null}
 
+      {partyMeta && partyMeta.streakCount >= 1 ? (
+        <div className="mb-5 md:mb-6 rounded-2xl border border-orange-500/35 bg-gradient-to-br from-orange-500/12 to-amber-500/8 dark:from-orange-500/18 dark:to-amber-500/10 px-4 py-4 md:px-6 md:py-5 shadow-sm">
+          <p className="text-lg md:text-xl font-bold text-foreground">
+            🔥 Streak: {partyMeta.streakCount}
+          </p>
+          <p className="text-sm text-neutral-700 dark:text-neutral-300 mt-1">
+            Same squad. Keep it going.
+          </p>
+          {partyCosmeticTitle ? (
+            <p className="text-sm font-semibold text-orange-800 dark:text-orange-200 mt-2">
+              {partyCosmeticTitle}
+            </p>
+          ) : null}
+          {lobbyMomentum ? (
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-2 italic">
+              {lobbyMomentum}
+            </p>
+          ) : null}
+          {squadLine ? (
+            <p className="text-sm text-neutral-700 dark:text-neutral-300 mt-2">
+              {squadLine}
+            </p>
+          ) : null}
+          {defendingChampionLine ? (
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-200 mt-2">
+              {defendingChampionLine}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="mb-6 md:mb-8 text-center sm:text-left">
         <h1 className="text-xl md:text-page-title text-foreground mb-2 md:mb-3">
           Send the link. Let the chaos begin.
@@ -371,12 +505,9 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
             players={room.players}
             currentUserId={currentUserId}
             showPoints={room.showPoints}
-            rematchCrewUserIds={
-              rematchEntry ? new Set(rematchEntry.crewUserIds) : undefined
-            }
-            rematchChampionUserId={
-              rematchEntry?.previousWinnerUserId ?? null
-            }
+            rematchCrewUserIds={lobbyRematchCrewIds}
+            rematchChampionUserId={lobbyChampionUserId}
+            championIsDefending={championIsDefending}
           />
         </div>
 
