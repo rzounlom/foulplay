@@ -10,8 +10,11 @@ import {
 } from "@/lib/game/display";
 import { buildIdentityGroups, getCardIdentityKey } from "@/lib/game/card-identity";
 import {
+  getCardInsightTag,
+  getSeverityRiskEmojiLabel,
+} from "@/lib/game/card-hand-hints";
+import {
   computeDuplicateSelectionHint,
-  getRiskLabel,
   isHighRewardSeverity,
   sumCombinedPenaltyDrinkUnits,
 } from "@/lib/game/selection-metrics";
@@ -225,6 +228,19 @@ export function Hand({
       handFingerprint,
     ],
   );
+
+  /** Unselected hand cards beat the max points in the current selection — nudge only, never blocks submit. */
+  const higherPointsAvailableHint = useMemo(() => {
+    if (!canSubmitCards || selectedIds.length === 0) return null;
+    const selected = cardsToDisplay.filter((c) => selectedIds.includes(c.id));
+    const unselected = cardsToDisplay.filter((c) => !selectedIds.includes(c.id));
+    if (selected.length === 0 || unselected.length === 0) return null;
+    const maxSelectedPts = Math.max(...selected.map((c) => c.card.points));
+    const maxUnselectedPts = Math.max(...unselected.map((c) => c.card.points));
+    return maxUnselectedPts > maxSelectedPts
+      ? "👀 You've got higher point cards..."
+      : null;
+  }, [canSubmitCards, selectedIds, cardsToDisplay]);
 
   // Ensure layout is valid for current card count (e.g. user had 6 cards with 6v, then drew down to 3)
   const validLayouts = getLayoutsForCardCount(cardsToDisplay.length);
@@ -451,6 +467,11 @@ export function Hand({
                   {duplicateSelectionHint}
                 </p>
               )}
+              {higherPointsAvailableHint && (
+                <p className="text-[11px] text-neutral-600 dark:text-neutral-400">
+                  {higherPointsAvailableHint}
+                </p>
+              )}
             </div>
           )}
           <div className="flex gap-2">
@@ -512,6 +533,17 @@ export function Hand({
           const groupSize = identityGroups.get(identityKey)?.length ?? 1;
           const isDupGroup = groupSize >= 2;
           const highRewardCard = isHighRewardSeverity(cardInstance.card.severity);
+          const insightTag = getCardInsightTag(
+            cardInstance.id,
+            getCardIdentityKey(cardInstance.card),
+          );
+          const sev = cardInstance.card.severity;
+          const severityChipClass =
+            sev === "severe" || sev === "wild"
+              ? "bg-red-500/20 text-red-600 dark:text-red-400"
+              : sev === "moderate"
+                ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                : "bg-green-500/20 text-green-600 dark:text-green-400";
           return (
             <div
               key={cardInstance.id}
@@ -552,22 +584,9 @@ export function Hand({
                     isSmallViewport
                       ? "text-xs"
                       : "text-xs md:text-[11px] lg:text-sm lg:px-3 lg:py-1"
-                  } ${
-                    cardInstance.card.severity === "severe"
-                      ? "bg-red-500/20 text-red-600 dark:text-red-400"
-                      : cardInstance.card.severity === "moderate"
-                        ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
-                        : "bg-green-500/20 text-green-600 dark:text-green-400"
-                  }`}
+                  } ${severityChipClass}`}
                 >
-                  {cardInstance.card.severity}
-                </span>
-                <span
-                  className={`px-2 py-0.5 rounded font-medium whitespace-nowrap border border-border/60 text-neutral-700 dark:text-neutral-300 ${
-                    isSmallViewport ? "text-[10px]" : "text-[10px] md:text-[11px] lg:text-xs"
-                  }`}
-                >
-                  {getRiskLabel(cardInstance.card.severity)}
+                  {getSeverityRiskEmojiLabel(sev)}
                 </span>
                 <span
                   className={`px-2 py-0.5 bg-accent/20 text-accent rounded font-medium whitespace-nowrap ${isSmallViewport ? "text-xs" : "text-xs md:text-[11px] lg:text-sm lg:px-3 lg:py-1"}`}
@@ -583,6 +602,13 @@ export function Hand({
                   roomMode,
                 )}
               </p>
+              {insightTag && (
+                <p
+                  className="mt-1 text-[9px] sm:text-[10px] text-neutral-500 dark:text-neutral-400"
+                >
+                  {insightTag}
+                </p>
+              )}
               {highRewardCard && (
                 <p
                   className={`mt-1.5 text-[10px] sm:text-[11px] italic text-center text-neutral-500 dark:text-neutral-400 transition-opacity ${
