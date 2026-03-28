@@ -13,6 +13,11 @@ import { ShareModal } from "./share-modal";
 import { Select } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { GAME_MODES, MODE_LABELS, isValidGameMode } from "@/lib/game/modes";
+import {
+  clearRematchEntry,
+  readRematchEntryForRoom,
+  type RematchEntryPayload,
+} from "@/lib/game/rematch-entry-storage";
 
 interface Player {
   id: string;
@@ -54,6 +59,9 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   /** Subtle invite CTA pulse until user engages with invite UI */
   const [inviteAttentionActive, setInviteAttentionActive] = useState(true);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [rematchEntry, setRematchEntry] = useState<RematchEntryPayload | null>(
+    null,
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -63,6 +71,14 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
+
+  useEffect(() => {
+    const p = readRematchEntryForRoom(roomCode);
+    if (p) {
+      setRematchEntry(p);
+      clearRematchEntry();
+    }
+  }, [roomCode]);
 
   const stopInviteAttention = useCallback(() => {
     setInviteAttentionActive(false);
@@ -174,6 +190,40 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   );
   const canStart = room.players.length >= 2 && isHost;
 
+  /** Host: auto-start after a brief pause when 2+ players (server validates). Key set only on success so late joiners can trigger a retry. */
+  useEffect(() => {
+    if (!rematchEntry || !isHost || room.players.length < 2) return;
+    const key = `foulplay-rematch-autostart-${roomCode}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+    } catch {
+      return;
+    }
+    const t = setTimeout(() => {
+      void (async () => {
+        try {
+          const response = await fetch("/api/game/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roomCode }),
+          });
+          if (response.ok) {
+            try {
+              sessionStorage.setItem(key, "1");
+            } catch {
+              /* ignore */
+            }
+            router.refresh();
+          }
+        } catch (error) {
+          if (process.env.NODE_ENV === "development")
+            console.error("Rematch auto-start failed:", error);
+        }
+      })();
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [rematchEntry, isHost, roomCode, router, room.players.length]);
+
   const roomUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/join?code=${roomCode}`
@@ -203,6 +253,36 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
 
   return (
     <div className="container mx-auto px-4 py-6 md:p-6 max-w-4xl min-h-screen bg-background">
+      {rematchEntry ? (
+        <div className="mb-5 md:mb-6 rounded-2xl border-2 border-primary/45 bg-primary/10 dark:bg-primary/15 px-4 py-4 md:px-6 md:py-5 text-center shadow-sm">
+          <p className="text-xl md:text-2xl font-bold text-foreground leading-tight">
+            Round 2. Let’s get chaotic 😈
+          </p>
+          {rematchEntry.previousWinnerDisplayName ? (
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-2">
+              <span className="font-semibold text-amber-700 dark:text-amber-400">
+                👑 Last round champ:
+              </span>{" "}
+              {rematchEntry.previousWinnerDisplayName}
+            </p>
+          ) : null}
+          {isHost ? (
+            <p className="text-xs text-neutral-600 dark:text-neutral-500 mt-2 max-w-md mx-auto leading-snug">
+              Auto-start kicks in in a few seconds with 2+ players — or tap{" "}
+              <span className="font-semibold">Start Game</span> whenever you’re
+              ready.
+            </p>
+          ) : (
+            <p className="text-xs text-neutral-600 dark:text-neutral-500 mt-2">
+              Hang tight — the host&apos;s lighting the fuse.
+            </p>
+          )}
+          <p className="text-[11px] text-neutral-500 dark:text-neutral-500 mt-2">
+            Missed the Run it back? You can still jump in with the room code.
+          </p>
+        </div>
+      ) : null}
+
       <div className="mb-6 md:mb-8 text-center sm:text-left">
         <h1 className="text-xl md:text-page-title text-foreground mb-2 md:mb-3">
           Send the link. Let the chaos begin.
@@ -291,6 +371,12 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
             players={room.players}
             currentUserId={currentUserId}
             showPoints={room.showPoints}
+            rematchCrewUserIds={
+              rematchEntry ? new Set(rematchEntry.crewUserIds) : undefined
+            }
+            rematchChampionUserId={
+              rematchEntry?.previousWinnerUserId ?? null
+            }
           />
         </div>
 

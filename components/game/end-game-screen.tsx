@@ -13,6 +13,8 @@ import {
 import { useClerkInFlowSignIn } from "@/lib/auth/use-clerk-in-flow-sign-in";
 import { useRoomChannel } from "@/lib/ably/useRoomChannel";
 import { useToast } from "@/components/ui/toast";
+import { writeRematchEntry } from "@/lib/game/rematch-entry-storage";
+import { fireRematchTransitionConfetti } from "@/lib/game/rematch-transition-confetti";
 
 interface LeaderboardEntry {
   playerId: string;
@@ -36,6 +38,8 @@ interface LastGameBestPlay {
 
 export interface LastGameEndResult {
   winnerId: string;
+  /** Prisma User.id — added when game ends; optional for older stored results */
+  winnerUserId?: string;
   winnerName: string;
   winnerNickname: string | null;
   winnerPoints: number;
@@ -90,9 +94,14 @@ type RematchStatePayload = {
 function RematchSection({
   roomCode,
   rematch,
+  transitionMeta,
 }: {
   roomCode: string;
   rematch: EndGameScreenProps["rematch"];
+  transitionMeta: {
+    winnerUserId: string | null;
+    winnerDisplayName: string;
+  };
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -119,6 +128,10 @@ function RematchSection({
   const prevReadyRef = useRef<string[] | null>(null);
   const [joinFlash, setJoinFlash] = useState<string | null>(null);
   const joinFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [transitionActive, setTransitionActive] = useState(false);
+  const transitionRedirectRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const totalPlayers = rematch.roster.length;
   const readyCount = readyUserIds.length;
@@ -129,6 +142,17 @@ function RematchSection({
       .filter((p) => !readyUserIds.includes(p.userId))
       .map((p) => p.displayName);
   }, [rematch.roster, readyUserIds]);
+
+  useEffect(() => {
+    return () => {
+      if (transitionRedirectRef.current != null) {
+        clearTimeout(transitionRedirectRef.current);
+        transitionRedirectRef.current = null;
+      }
+    };
+  }, []);
+
+  const REMATCH_REDIRECT_MS = 1650;
 
   const applySpawn = useCallback(
     (newCode: string, members: string[]) => {
@@ -150,7 +174,24 @@ function RematchSection({
 
       const inGame = members.includes(currentUserId);
       if (inGame) {
-        router.push(`/game/${newCode}`);
+        writeRematchEntry({
+          v: 1,
+          targetRoomCode: newCode,
+          sourceRoomCode: roomCode,
+          round: 2,
+          previousWinnerUserId: transitionMeta.winnerUserId,
+          previousWinnerDisplayName: transitionMeta.winnerDisplayName,
+          crewUserIds: members,
+        });
+        setTransitionActive(true);
+        void fireRematchTransitionConfetti();
+        if (transitionRedirectRef.current != null) {
+          clearTimeout(transitionRedirectRef.current);
+        }
+        transitionRedirectRef.current = setTimeout(() => {
+          transitionRedirectRef.current = null;
+          router.push(`/game/${newCode}`);
+        }, REMATCH_REDIRECT_MS);
         return;
       }
 
@@ -159,7 +200,7 @@ function RematchSection({
         onClick: () => router.push(`/join?code=${newCode}`),
       });
     },
-    [currentUserId, roomCode, router, toast],
+    [currentUserId, roomCode, router, toast, transitionMeta],
   );
 
   const mergeState = useCallback(
@@ -346,6 +387,31 @@ function RematchSection({
 
   return (
     <>
+      {transitionActive ? (
+        <div
+          className="fixed inset-0 z-[560] flex flex-col items-center justify-center bg-black/70 backdrop-blur-[3px] px-6"
+          role="alertdialog"
+          aria-busy="true"
+          aria-live="assertive"
+          aria-label="Starting rematch"
+        >
+          <div className="text-center max-w-md">
+            <p className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-md">
+              🔥 Running it back…
+            </p>
+            <p className="text-base sm:text-lg text-white/90 mb-10 drop-shadow">
+              Same players. New chaos.
+            </p>
+            <div className="flex justify-center">
+              <span
+                className="h-11 w-11 rounded-full border-2 border-white/25 border-t-white motion-safe:animate-spin"
+                aria-hidden
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <section
         id="end-game-rematch"
         className="rounded-2xl border-2 border-primary/45 bg-surface dark:bg-neutral-900 shadow-[0_8px_32px_rgba(255,102,0,0.12)] dark:shadow-[0_8px_32px_rgba(255,102,0,0.08)] p-5 mb-5 scroll-mt-4"
@@ -593,7 +659,14 @@ export function EndGameScreen({
           </p>
         </div>
 
-        <RematchSection roomCode={roomCode} rematch={rematch} />
+        <RematchSection
+          roomCode={roomCode}
+          rematch={rematch}
+          transitionMeta={{
+            winnerUserId: lastGameEndResult.winnerUserId ?? null,
+            winnerDisplayName,
+          }}
+        />
 
         <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-lg dark:shadow-none overflow-hidden mb-5">
           <h2 className="text-section-title px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 text-neutral-900 dark:text-white">

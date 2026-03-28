@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
 
     const lastGameEndResult = {
       winnerId: winner.id,
+      winnerUserId: winner.userId,
       winnerName: winner.user.name,
       winnerNickname: winner.nickname,
       winnerPoints: winner.points,
