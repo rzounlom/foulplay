@@ -1,7 +1,10 @@
 import { getCurrentUser } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { redirect } from "next/navigation";
-import { EndGameScreen } from "@/components/game/end-game-screen";
+import {
+  EndGameScreen,
+  type LastGameEndResult,
+} from "@/components/game/end-game-screen";
 
 export default async function EndGamePage({
   params,
@@ -35,18 +38,7 @@ export default async function EndGamePage({
     redirect(`/join?code=${roomCode}`);
   }
 
-  const lastGameEndResult = room.lastGameEndResult as {
-    winnerId: string;
-    winnerName: string;
-    winnerNickname: string | null;
-    winnerPoints: number;
-    leaderboard: Array<{
-      playerId: string;
-      name: string;
-      nickname: string | null;
-      points: number;
-    }>;
-  } | null;
+  const lastGameEndResult = room.lastGameEndResult as LastGameEndResult | null;
 
   // If no end result (e.g. navigated here directly), go back to game room
   if (!lastGameEndResult?.leaderboard?.length) {

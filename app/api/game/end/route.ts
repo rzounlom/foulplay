@@ -69,12 +69,57 @@ export async function POST(request: NextRequest) {
         points: p.points,
       }));
 
+    const lastEntry = leaderboard[leaderboard.length - 1];
+    const lastPlace =
+      leaderboard.length > 1 && lastEntry && lastEntry.playerId !== winner.id
+        ? {
+            playerId: lastEntry.playerId,
+            name: lastEntry.name,
+            nickname: lastEntry.nickname,
+            points: lastEntry.points,
+          }
+        : undefined;
+
+    const resolvedHits = await prisma.cardInstance.findMany({
+      where: { roomId: room.id, status: "resolved" },
+      include: {
+        card: { select: { title: true, points: true } },
+        votes: true,
+      },
+    });
+
+    let bestPlay: {
+      cardTitle: string;
+      points: number;
+      voteCount: number;
+    } | null = null;
+    if (resolvedHits.length > 0) {
+      let best = resolvedHits[0]!;
+      for (const ci of resolvedHits) {
+        const ptDiff = ci.card.points - best.card.points;
+        if (ptDiff > 0) best = ci;
+        else if (
+          ptDiff === 0 &&
+          ci.votes.length > best.votes.length
+        ) {
+          best = ci;
+        }
+      }
+      bestPlay = {
+        cardTitle: best.card.title,
+        points: best.card.points,
+        voteCount: best.votes.length,
+      };
+    }
+
     const lastGameEndResult = {
       winnerId: winner.id,
       winnerName: winner.user.name,
       winnerNickname: winner.nickname,
       winnerPoints: winner.points,
       leaderboard,
+      ...(lastPlace ? { lastPlace } : {}),
+      ...(bestPlay ? { bestPlay } : {}),
     };
 
     // Store result and set room status to ended (end-game page will display results)
