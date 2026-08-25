@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AUTO_ACCEPT_SECONDS } from "@/lib/game/constants";
+import { useHandReorder } from "@/hooks/use-hand-reorder";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -159,7 +160,8 @@ export function Hand({
   }, [hasPendingSubmission, pendingSubmissionAutoAcceptAt]);
   const isMultiSelect = !!(onCardSubmit || onQuarterDiscardSelection);
   const cardsInHand = cards.filter((c) => c.status === "drawn");
-  const cardsToDisplay = cardsInHand;
+  const reorder = useHandReorder(cardsInHand);
+  const cardsToDisplay = reorder.orderedCards;
 
   const selectedIds = useMemo(
     () =>
@@ -412,6 +414,42 @@ export function Hand({
           )}
         </div>
       </div>
+      {reorder.showReorderHint && !reorder.isRearrangeMode && (
+        <div className="mb-3 flex items-start justify-between gap-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60 px-3 py-2 shrink-0">
+          <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-snug">
+            <span className="font-medium text-neutral-800 dark:text-neutral-200">
+              Rearrange your hand:
+            </span>{" "}
+            press and hold any card for 1 second, then drag cards into the order
+            you want. Tap to select still works with a quick tap.
+          </p>
+          <button
+            type="button"
+            onClick={reorder.dismissReorderHint}
+            className="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 shrink-0"
+            aria-label="Dismiss rearrange hint"
+          >
+            Got it
+          </button>
+        </div>
+      )}
+      {reorder.isRearrangeMode && (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 shrink-0">
+          <p className="text-xs sm:text-sm font-medium text-primary leading-snug">
+            Rearrange mode — drag cards to reorder. Selection is paused until you
+            tap Done.
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="shrink-0"
+            onClick={reorder.exitRearrangeMode}
+          >
+            Done
+          </Button>
+        </div>
+      )}
       {!canTurnInCards && !isQuarterIntermission && (
         <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded text-sm shrink-0">
           Card turn-in is currently disabled by the host
@@ -541,11 +579,11 @@ export function Hand({
         </div>
       ) : null}
       <div
-        className={
+        className={`${
           isSmallViewport
             ? getGridContainerClasses(effectiveLayout)
             : "grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 lg:gap-5 p-2 overflow-y-auto min-h-0 flex-1"
-        }
+        } ${reorder.isRearrangeMode ? "touch-none select-none" : ""}`}
       >
         {cardsToDisplay.map((cardInstance, index) => {
           const isSelected = isMultiSelect
@@ -555,7 +593,7 @@ export function Hand({
           const cardClasses = getCardClasses(
             effectiveLayout,
             isSmallViewport,
-            true
+            !reorder.isRearrangeMode,
           );
           const identityKey = getCardIdentityKey(cardInstance.card);
           const groupSize = identityGroups.get(identityKey)?.length ?? 1;
@@ -574,25 +612,99 @@ export function Hand({
               : sev === "moderate"
                 ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
                 : "bg-green-500/20 text-green-600 dark:text-green-400";
+          const isHolding = reorder.holdingId === cardInstance.id;
+          const isDragging = reorder.draggingId === cardInstance.id;
+          const isDropTarget = reorder.dropTargetId === cardInstance.id;
+          const interactionDisabled =
+            submissionDisabled ||
+            (hasPendingSubmission && !isQuarterIntermission);
           return (
             <div
               key={cardInstance.id}
-              onClick={() =>
-                !submissionDisabled &&
-                (!hasPendingSubmission || isQuarterIntermission) &&
-                onCardSelect?.(cardInstance.id)
-              }
-              className={`relative group ${cardClasses} ${submissionDisabled || (hasPendingSubmission && !isQuarterIntermission) ? "pointer-events-none opacity-75" : ""} ${
-                isSelected
-                  ? isSmallViewport
-                    ? "border-primary bg-primary/10 shadow-md"
-                    : "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.02] shadow-md"
-                  : isInDiscardSelection
-                    ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/30 shadow-md"
-                    : "border-neutral-200 dark:border-neutral-800 hover:border-primary/50"
-              } ${isDupGroup && !isSelected ? "ring-1 ring-amber-500/40 shadow-[inset_0_0_14px_rgba(245,158,11,0.07)]" : ""}`}
-              style={{ animationDelay: `${index * 40}ms` }}
+              data-hand-card-id={cardInstance.id}
+              onClick={() => {
+                if (reorder.shouldSuppressClick()) return;
+                if (reorder.isRearrangeMode) return;
+                if (interactionDisabled) return;
+                onCardSelect?.(cardInstance.id);
+              }}
+              onPointerDown={(e) => {
+                if (interactionDisabled) return;
+                if (reorder.isRearrangeMode) {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  reorder.startDrag(cardInstance.id);
+                  return;
+                }
+                if (e.button !== 0) return;
+                reorder.startHold(cardInstance.id, e.clientX, e.clientY);
+              }}
+              onPointerMove={(e) => {
+                if (reorder.isRearrangeMode && reorder.draggingId) {
+                  reorder.moveDrag(e.clientX, e.clientY);
+                  return;
+                }
+                reorder.moveHold(e.clientX, e.clientY);
+              }}
+              onPointerUp={(e) => {
+                if (reorder.isRearrangeMode && reorder.draggingId) {
+                  reorder.endDrag();
+                  try {
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                  } catch {
+                    /* ignore */
+                  }
+                  return;
+                }
+                reorder.endHold();
+              }}
+              onPointerCancel={() => {
+                if (reorder.isRearrangeMode && reorder.draggingId) {
+                  reorder.endDrag();
+                  return;
+                }
+                reorder.clearHoldTimer();
+              }}
+              onContextMenu={(e) => {
+                if (isHolding || reorder.isRearrangeMode) {
+                  e.preventDefault();
+                }
+              }}
+              className={`relative group ${cardClasses} ${interactionDisabled ? "pointer-events-none opacity-75" : ""} ${
+                isDragging
+                  ? "z-20 scale-[1.03] shadow-lg opacity-95 border-primary"
+                  : isDropTarget
+                    ? "ring-2 ring-primary ring-offset-2 ring-offset-surface scale-[1.01]"
+                    : isSelected
+                      ? isSmallViewport
+                        ? "border-primary bg-primary/10 shadow-md"
+                        : "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.02] shadow-md"
+                      : isInDiscardSelection
+                        ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/30 shadow-md"
+                        : "border-neutral-200 dark:border-neutral-800 hover:border-primary/50"
+              } ${isDupGroup && !isSelected && !reorder.isRearrangeMode ? "ring-1 ring-amber-500/40 shadow-[inset_0_0_14px_rgba(245,158,11,0.07)]" : ""} ${reorder.isRearrangeMode ? "cursor-grab active:cursor-grabbing" : ""}`}
+              style={{
+                animationDelay: `${index * 40}ms`,
+                transition: reorder.isRearrangeMode
+                  ? "transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease"
+                  : undefined,
+              }}
             >
+              {isHolding && !reorder.isRearrangeMode && (
+                <div
+                  className="absolute inset-0 z-20 rounded-lg bg-primary/10 border-2 border-primary/50 pointer-events-none flex flex-col items-center justify-center gap-2 px-3"
+                  aria-live="polite"
+                >
+                  <div className="w-full max-w-[140px] h-1.5 rounded-full bg-neutral-200 dark:bg-neutral-700 overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-[width] duration-75 ease-linear"
+                      style={{ width: `${reorder.holdProgress * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-[11px] font-medium text-primary text-center leading-tight">
+                    Keep holding to rearrange…
+                  </p>
+                </div>
+              )}
               {isDupGroup && (
                 <span
                   className="absolute top-1.5 right-1.5 z-10 rounded-md bg-amber-950/85 text-amber-100 text-[10px] font-bold px-1.5 py-0.5 tabular-nums shadow-sm"

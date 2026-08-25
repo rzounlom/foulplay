@@ -1,7 +1,6 @@
 import {
   requiredApprovals,
   requiredRejections,
-  voteThreshold,
   canResolveSubmission,
   getVoteCounts,
 } from "@/lib/game/approval";
