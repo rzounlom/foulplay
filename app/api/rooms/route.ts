@@ -5,6 +5,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { gameModeSchemaOptional } from "@/lib/game/modes";
 import { emitPublicChaosEvent } from "@/lib/analytics/public-chaos-events";
+import { assertDrinkingModeAccess } from "@/lib/user/age-gate";
 import { z } from "zod";
 
 const createRoomSchema = z.object({
@@ -26,6 +27,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { mode, sport, handSize, allowQuarterClearing, isPublicChaos } =
       createRoomSchema.parse(body);
+
+    const drinkingAccess = await assertDrinkingModeAccess(user.id, mode);
+    if (!drinkingAccess.ok) {
+      return NextResponse.json({ error: drinkingAccess.error }, { status: 403 });
+    }
+
+    if (isPublicChaos) {
+      const liveAccess = await assertDrinkingModeAccess(user.id, "party");
+      if (!liveAccess.ok) {
+        return NextResponse.json({ error: liveAccess.error }, { status: 403 });
+      }
+    }
 
     // Generate unique room code
     let code: string;

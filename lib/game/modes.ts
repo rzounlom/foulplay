@@ -38,3 +38,20 @@ export const MODE_LABELS: Record<GameMode, string> = {
   anything_goes: "Anything Goes",
   "non-drinking": "Non-drinking",
 };
+
+/** Modes that show drinking penalties (require 21+ self-certification). */
+export const DRINKING_MODES = GAME_MODES.filter(
+  (mode): mode is Exclude<GameMode, "non-drinking"> => mode !== "non-drinking",
+);
+
+export function isDrinkingMode(mode: string | null | undefined): boolean {
+  return mode != null && mode !== "non-drinking";
+}
+
+/** Modes a user may select based on age self-certification. */
+export function getAvailableModes(is21Plus: boolean | null): GameMode[] {
+  if (is21Plus === false) {
+    return ["non-drinking"];
+  }
+  return [...GAME_MODES];
+}

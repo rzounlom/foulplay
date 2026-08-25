@@ -3,6 +3,8 @@ import {
   gameModeSchema,
   gameModeSchemaOptional,
   isValidGameMode,
+  isDrinkingMode,
+  getAvailableModes,
 } from "@/lib/game/modes";
 
 describe("Game Modes", () => {
@@ -77,6 +79,35 @@ describe("Game Modes", () => {
       expect(isValidGameMode("")).toBe(false);
       expect(isValidGameMode(null)).toBe(false);
       expect(isValidGameMode(123)).toBe(false);
+    });
+  });
+
+  describe("isDrinkingMode", () => {
+    it("returns true for drinking modes", () => {
+      expect(isDrinkingMode("casual")).toBe(true);
+      expect(isDrinkingMode("party")).toBe(true);
+      expect(isDrinkingMode("lit")).toBe(true);
+      expect(isDrinkingMode("anything_goes")).toBe(true);
+    });
+
+    it("returns false for non-drinking and empty modes", () => {
+      expect(isDrinkingMode("non-drinking")).toBe(false);
+      expect(isDrinkingMode(null)).toBe(false);
+      expect(isDrinkingMode(undefined)).toBe(false);
+    });
+  });
+
+  describe("getAvailableModes", () => {
+    it("returns all modes when user is 21+", () => {
+      expect(getAvailableModes(true)).toEqual([...GAME_MODES]);
+    });
+
+    it("returns only non-drinking when user is under 21", () => {
+      expect(getAvailableModes(false)).toEqual(["non-drinking"]);
+    });
+
+    it("returns all modes before age confirmation", () => {
+      expect(getAvailableModes(null)).toEqual([...GAME_MODES]);
     });
   });
 });

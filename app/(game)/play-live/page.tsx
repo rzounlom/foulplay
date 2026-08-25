@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { JoinRoomCardSkeleton } from "@/components/join/join-room-card-skeleton";
 import { useClerkInFlowSignIn } from "@/lib/auth/use-clerk-in-flow-sign-in";
 import { setLiveJoinToast } from "@/lib/game/live-dropin-session";
+import { useAgeGate } from "@/components/auth/age-gate-provider";
 
 export default function PlayLivePage() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useUser();
   const { openSignInForReturn, authLoaded } = useClerkInFlowSignIn();
+  const { is21Plus, ageGateComplete } = useAgeGate();
   const [isFinding, setIsFinding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,6 +70,12 @@ export default function PlayLivePage() {
         <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
           Jump into a game already in progress — no code, no waiting room list.
         </p>
+        {is21Plus === false ? (
+          <div className="mb-4 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100 text-sm px-3 py-2">
+            Live games use drinking modes. Create a non-drinking room instead, or
+            update your age confirmation on your profile if you are 21+.
+          </div>
+        ) : null}
         {error ? (
           <div className="mb-4 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 text-sm px-3 py-2">
             {error}
@@ -80,6 +88,7 @@ export default function PlayLivePage() {
           fullWidth
           isLoading={isFinding}
           className="min-h-[52px]"
+          disabled={!ageGateComplete || is21Plus === false}
           onClick={onPrimaryClick}
         >
           {isSignedIn ? "Find me a game 🔥" : "Sign in to play live"}

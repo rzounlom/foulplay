@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { gameModeSchemaOptional } from "@/lib/game/modes";
+import { assertDrinkingModeAccess } from "@/lib/user/age-gate";
 import { z } from "zod";
 import { getRoomChannel } from "@/lib/ably/client";
 import { effectiveAllowJoinInProgress } from "@/lib/rooms/public-chaos-invariant";
@@ -111,6 +112,11 @@ export async function PATCH(
         { error: "Only the host can update room settings" },
         { status: 403 }
       );
+    }
+
+    const drinkingAccess = await assertDrinkingModeAccess(user.id, mode);
+    if (!drinkingAccess.ok) {
+      return NextResponse.json({ error: drinkingAccess.error }, { status: 403 });
     }
 
     const isPublicChaos = room.isPublicChaos;

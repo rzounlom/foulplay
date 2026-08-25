@@ -18,6 +18,8 @@ model User {
   gamesWon       Int      @default(0) // Total number of games won
   totalPoints    Int      @default(0) // Total points accumulated across all games
   skipTour       Boolean  @default(false) // Whether to skip the interactive tour on game start
+  is21Plus         Boolean? // null = not answered; true/false = self-reported at ageConfirmedAt
+  ageConfirmedAt   DateTime? // When user confirmed 21+ status (CYA audit trail)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   players        Player[]

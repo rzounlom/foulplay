@@ -2,19 +2,22 @@
 
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { useState } from "react";
-import { GAME_MODES, MODE_LABELS } from "@/lib/game/modes";
+import { useState, useEffect } from "react";
+import { MODE_LABELS, getAvailableModes } from "@/lib/game/modes";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CreateRoomCardSkeleton } from "@/components/create/create-room-card-skeleton";
 import { useClerkInFlowSignIn } from "@/lib/auth/use-clerk-in-flow-sign-in";
+import { useAgeGate } from "@/components/auth/age-gate-provider";
 
 export default function CreateRoomPage() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useUser();
   const { openSignInForReturn, authLoaded } = useClerkInFlowSignIn();
+  const { is21Plus, ageGateComplete } = useAgeGate();
+  const availableModes = getAvailableModes(is21Plus);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<string>("");
@@ -22,6 +25,13 @@ export default function CreateRoomPage() {
   const [handSize, setHandSize] = useState<number>(6);
   const [allowQuarterClearing, setAllowQuarterClearing] = useState<boolean>(false);
   const [isPublicChaos, setIsPublicChaos] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (is21Plus === false) {
+      setMode("non-drinking");
+      setIsPublicChaos(false);
+    }
+  }, [is21Plus]);
 
   const handleCreateRoom = async () => {
     if (!isSignedIn) {
@@ -154,15 +164,21 @@ export default function CreateRoomPage() {
               required
             >
               <option value="">Select mode</option>
-              {GAME_MODES.map((m) => (
+              {availableModes.map((m) => (
                 <option key={m} value={m}>
                   {MODE_LABELS[m]}
                 </option>
               ))}
             </Select>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-              How intense do you want this to get?
-            </p>
+            {is21Plus === false ? (
+              <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mt-1">
+                Non-drinking mode only — drinking modes require 21+ confirmation.
+              </p>
+            ) : (
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                How intense do you want this to get?
+              </p>
+            )}
           </div>
 
           <div>
@@ -212,25 +228,27 @@ export default function CreateRoomPage() {
             </p>
           </div>
 
-          <div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <Checkbox
-                checked={isPublicChaos}
-                onChange={(e) => setIsPublicChaos(e.target.checked)}
-              />
-              <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                🌍 Make this a public game
-              </span>
-            </label>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-6">
-              Anyone can join this game live
-            </p>
-            {isPublicChaos ? (
-              <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mt-2 ml-6 font-medium">
-                You&apos;ll be hosting a live game — players can join anytime
+          {is21Plus !== false ? (
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={isPublicChaos}
+                  onChange={(e) => setIsPublicChaos(e.target.checked)}
+                />
+                <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                  🌍 Make this a public game
+                </span>
+              </label>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-6">
+                Anyone can join this game live
               </p>
-            ) : null}
-          </div>
+              {isPublicChaos ? (
+                <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mt-2 ml-6 font-medium">
+                  You&apos;ll be hosting a live game — players can join anytime
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           {(sport === "football" || sport === "basketball") && (
             <div>
@@ -290,7 +308,7 @@ export default function CreateRoomPage() {
             size="lg"
             fullWidth
             onClick={handleCreateRoom}
-            disabled={!mode || !sport || !handSize}
+            disabled={!mode || !sport || !handSize || !ageGateComplete}
             isLoading={isCreating}
             className="min-h-[48px]"
           >

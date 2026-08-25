@@ -9,6 +9,7 @@ import {
   emitPublicChaosEvent,
   type PublicChaosJoinSource,
 } from "@/lib/analytics/public-chaos-events";
+import { assertDrinkingModeAccess } from "@/lib/user/age-gate";
 
 export type JoinRoomUser = { id: string; name: string };
 
@@ -69,6 +70,11 @@ export async function joinRoomCore(
     const r = await fetchJoinedRoom(room.id);
     if (!r) return { ok: false, status: 500, error: "Failed to load room" };
     return { ok: true, room: r };
+  }
+
+  const drinkingAccess = await assertDrinkingModeAccess(user.id, room.mode);
+  if (!drinkingAccess.ok) {
+    return { ok: false, status: 403, error: drinkingAccess.error };
   }
 
   if (

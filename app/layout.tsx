@@ -3,6 +3,7 @@ import "./globals.css";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { ClerkProviderWrapper } from "@/components/auth/clerk-provider-wrapper";
+import { AgeGateProvider } from "@/components/auth/age-gate-provider";
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
@@ -70,13 +71,15 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <ToastProvider>
-              <div className="min-h-screen flex flex-col">
-                <DomainAwareNav />
-                <main className="flex-1 min-h-0 flex flex-col">
-                  {children}
-                </main>
-                <DomainAwareFooter />
-              </div>
+              <AgeGateProvider>
+                <div className="min-h-screen flex flex-col">
+                  <DomainAwareNav />
+                  <main className="flex-1 min-h-0 flex flex-col">
+                    {children}
+                  </main>
+                  <DomainAwareFooter />
+                </div>
+              </AgeGateProvider>
             </ToastProvider>
           </ThemeProvider>
         </body>

@@ -122,6 +122,10 @@ describe("Room API Routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetCurrentUserFromRequest.mockResolvedValue(mockUser);
+    mockPrisma.user.findUnique = jest.fn().mockResolvedValue({
+      is21Plus: true,
+      ageConfirmedAt: new Date(),
+    });
   });
 
   describe("POST /api/rooms", () => {
@@ -288,6 +292,25 @@ describe("Room API Routes", () => {
         const response = await createRoom(request, { params: Promise.resolve({ code: "" }) });
         expect(response.status).toBe(201);
       }
+    });
+
+    it("should reject drinking modes when user confirmed under 21", async () => {
+      mockPrisma.user.findUnique = jest.fn().mockResolvedValue({
+        is21Plus: false,
+        ageConfirmedAt: new Date(),
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "party",
+          sport: "football",
+          handSize: 6,
+        }),
+      });
+
+      const response = await createRoom(request, { params: Promise.resolve({ code: "" }) });
+      expect(response.status).toBe(403);
     });
 
     it("should reject invalid mode on create", async () => {

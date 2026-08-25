@@ -12,7 +12,8 @@ import { PlayerList } from "./player-list";
 import { ShareModal } from "./share-modal";
 import { Select } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
-import { GAME_MODES, MODE_LABELS, isValidGameMode } from "@/lib/game/modes";
+import { MODE_LABELS, isValidGameMode, getAvailableModes } from "@/lib/game/modes";
+import { useAgeGate } from "@/components/auth/age-gate-provider";
 import {
   getPartyStreakCosmeticTitle,
   parsePartyChainMeta,
@@ -60,6 +61,8 @@ interface LobbyProps {
 export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   const router = useRouter();
   const { addToast } = useToast();
+  const { is21Plus } = useAgeGate();
+  const availableModes = getAvailableModes(is21Plus);
   const [room, setRoom] = useState<Room>(initialRoom);
   const [isStarting, setIsStarting] = useState(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
@@ -547,7 +550,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
                     }
                   >
                     <option value="">Select mode</option>
-                    {GAME_MODES.map((mode) => (
+                    {availableModes.map((mode) => (
                       <option key={mode} value={mode}>
                         {MODE_LABELS[mode] ?? mode}
                       </option>

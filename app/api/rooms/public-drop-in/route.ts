@@ -5,6 +5,11 @@ import { prisma } from "@/lib/db/prisma";
 import { joinRoomCore } from "@/lib/rooms/join-room-core";
 import { pickPublicChaosRoom } from "@/lib/rooms/public-chaos-matchmaking";
 import { createPublicChaosLobbyRoom } from "@/lib/rooms/create-public-chaos-room";
+import {
+  LIVE_DROP_IN_ACCESS_ERROR,
+  userCanAccessDrinkingMode,
+  getUserAgeGate,
+} from "@/lib/user/age-gate";
 
 /**
  * POST — matchmake into a live public chaos room or spawn a new lobby.
@@ -14,6 +19,11 @@ export async function POST(_request: NextRequest) {
     const user = await getCurrentUserFromRequest(_request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const ageGate = await getUserAgeGate(user.id);
+    if (!userCanAccessDrinkingMode(ageGate?.is21Plus)) {
+      return NextResponse.json({ error: LIVE_DROP_IN_ACCESS_ERROR }, { status: 403 });
     }
 
     const pickedCode = await pickPublicChaosRoom(user.id);

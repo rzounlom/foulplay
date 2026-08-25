@@ -6,8 +6,25 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+/** Avoid pg v8 SSL alias deprecation warnings (require/prefer/verify-ca → verify-full). */
+function normalizePgConnectionString(connectionString: string): string {
+  try {
+    const url = new URL(connectionString);
+    const sslmode = url.searchParams.get("sslmode")?.toLowerCase();
+    if (sslmode && ["prefer", "require", "verify-ca"].includes(sslmode)) {
+      url.searchParams.set("sslmode", "verify-full");
+      return url.toString();
+    }
+  } catch {
+    // Non-URL connection strings are passed through unchanged.
+  }
+  return connectionString;
+}
+
 // Prisma 7 requires adapter or accelerateUrl
-const connectionString = process.env.DATABASE_URL;
+const connectionString = normalizePgConnectionString(
+  process.env.DATABASE_URL ?? "",
+);
 
 if (!connectionString) {
   throw new Error("DATABASE_URL environment variable is not set");

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAgeGate } from "@/components/auth/age-gate-provider";
 
 interface UserProfile {
   id: string;
@@ -16,6 +17,8 @@ interface UserProfile {
   gamesWon: number;
   totalPoints: number;
   skipTour: boolean;
+  is21Plus: boolean | null;
+  ageConfirmedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -23,9 +26,12 @@ interface UserProfile {
 export default function ProfilePage() {
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
+  const { confirmAge, refreshAgeGate } = useAgeGate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUpdatingAge, setIsUpdatingAge] = useState(false);
+  const [ageCheckbox, setAgeCheckbox] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [defaultNickname, setDefaultNickname] = useState("");
   const [skipTour, setSkipTour] = useState(false);
@@ -51,6 +57,7 @@ export default function ProfilePage() {
         setProfile(data.profile);
         setDefaultNickname(data.profile.defaultNickname || "");
         setSkipTour(data.profile.skipTour);
+        setAgeCheckbox(data.profile.is21Plus === true);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load profile");
       } finally {
@@ -87,6 +94,25 @@ export default function ProfilePage() {
       setError(err instanceof Error ? err.message : "Failed to update profile");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAgeConfirm = async (is21Plus: boolean) => {
+    setIsUpdatingAge(true);
+    setError(null);
+    try {
+      await confirmAge(is21Plus);
+      await refreshAgeGate();
+      const response = await fetch("/api/user/profile");
+      if (response.ok) {
+        const data = await response.json();
+        setProfile(data.profile);
+        setAgeCheckbox(data.profile.is21Plus === true);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update age confirmation");
+    } finally {
+      setIsUpdatingAge(false);
     }
   };
 
@@ -175,6 +201,51 @@ export default function ProfilePage() {
             <Label htmlFor="skipTour" className="cursor-pointer !mb-0">
               Don&apos;t show interactive tour when games start
             </Label>
+          </div>
+
+          <div className="rounded-lg border border-neutral-200 dark:border-neutral-700 p-4 space-y-3">
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Age confirmation</h3>
+              <p className="text-caption mt-1">
+                {profile?.is21Plus === true
+                  ? "You confirmed you are 21 or older."
+                  : profile?.is21Plus === false
+                    ? "You confirmed you are under 21 — non-drinking mode only."
+                    : "Not confirmed yet."}
+                {profile?.ageConfirmedAt
+                  ? ` Last updated ${new Date(profile.ageConfirmedAt).toLocaleString()}.`
+                  : null}
+              </p>
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox
+                checked={ageCheckbox}
+                onChange={(e) => setAgeCheckbox(e.target.checked)}
+                disabled={isUpdatingAge}
+              />
+              <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                I confirm I am 21 years of age or older.
+              </span>
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={!ageCheckbox || isUpdatingAge}
+                isLoading={isUpdatingAge && ageCheckbox}
+                onClick={() => void handleAgeConfirm(true)}
+              >
+                Save as 21+
+              </Button>
+              <Button
+                variant="tertiary"
+                size="sm"
+                disabled={isUpdatingAge}
+                onClick={() => void handleAgeConfirm(false)}
+              >
+                I am under 21
+              </Button>
+            </div>
           </div>
 
           {/* Save Button */}
