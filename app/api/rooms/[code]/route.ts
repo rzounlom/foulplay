@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { gameModeSchemaOptional } from "@/lib/game/modes";
 import { z } from "zod";
 import { getRoomChannel } from "@/lib/ably/client";
+import { effectiveAllowJoinInProgress } from "@/lib/rooms/public-chaos-invariant";
 
 const updateRoomSchema = z.object({
   mode: gameModeSchemaOptional,
@@ -63,7 +64,10 @@ export async function GET(
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
-    return NextResponse.json(room);
+    return NextResponse.json({
+      ...room,
+      allowJoinInProgress: effectiveAllowJoinInProgress(room),
+    });
   } catch (error) {
     console.error("Error fetching room:", error);
     return NextResponse.json(
@@ -109,7 +113,15 @@ export async function PATCH(
       );
     }
 
-    // Update room
+    const isPublicChaos = room.isPublicChaos;
+    const allowJoinPatch =
+      isPublicChaos
+        ? { allowJoinInProgress: true as const }
+        : allowJoinInProgress !== undefined
+          ? { allowJoinInProgress }
+          : {};
+
+    // Update room — public chaos always keeps join-in-progress enabled
     const updatedRoom = await prisma.room.update({
       where: { id: room.id },
       data: {
@@ -117,7 +129,7 @@ export async function PATCH(
         ...(sport !== undefined && { sport }),
         ...(handSize !== undefined && { handSize }),
         ...(showPoints !== undefined && { showPoints }),
-        ...(allowJoinInProgress !== undefined && { allowJoinInProgress }),
+        ...allowJoinPatch,
         ...(allowQuarterClearing !== undefined && { allowQuarterClearing }),
       },
       include: {
@@ -141,7 +153,7 @@ export async function PATCH(
         sport: updatedRoom.sport,
         handSize: updatedRoom.handSize,
         showPoints: updatedRoom.showPoints,
-        allowJoinInProgress: updatedRoom.allowJoinInProgress,
+        allowJoinInProgress: effectiveAllowJoinInProgress(updatedRoom),
         allowQuarterClearing: updatedRoom.allowQuarterClearing,
         timestamp: new Date().toISOString(),
       });
@@ -149,7 +161,10 @@ export async function PATCH(
       console.error("Failed to publish Ably event:", ablyError);
     }
 
-    return NextResponse.json(updatedRoom);
+    return NextResponse.json({
+      ...updatedRoom,
+      allowJoinInProgress: effectiveAllowJoinInProgress(updatedRoom),
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

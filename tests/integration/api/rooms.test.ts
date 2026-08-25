@@ -104,13 +104,19 @@ jest.mock("@/lib/realtime/publish-room-event", () => ({
   publishRoomEvent: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock("@/lib/analytics/public-chaos-events", () => ({
+  emitPublicChaosEvent: jest.fn(),
+}));
+
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
+import { emitPublicChaosEvent } from "@/lib/analytics/public-chaos-events";
 import { prisma } from "@/lib/db/prisma";
 import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
 
 const mockGetCurrentUserFromRequest = getCurrentUserFromRequest as jest.MockedFunction<typeof getCurrentUserFromRequest>;
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 const mockPublishRoomEvent = publishRoomEvent as jest.MockedFunction<typeof publishRoomEvent>;
+const mockEmitPublicChaos = emitPublicChaosEvent as jest.MockedFunction<typeof emitPublicChaosEvent>;
 
 describe("Room API Routes", () => {
   beforeEach(() => {
@@ -166,6 +172,65 @@ describe("Room API Routes", () => {
       expect(data).toHaveProperty("code");
       expect(data).toHaveProperty("mode", "casual");
       expect(data).toHaveProperty("sport", "football");
+    });
+
+    it("should persist isPublicChaos when public game is requested", async () => {
+      const mockTransactionPrisma = {
+        user: {
+          findUnique: jest.fn().mockResolvedValue(mockUser),
+          upsert: jest.fn().mockResolvedValue(mockUser),
+        },
+        room: {
+          create: jest.fn().mockResolvedValue({
+            ...mockRoom,
+            isPublicChaos: true,
+          }),
+        },
+        player: {
+          create: jest.fn().mockResolvedValue(mockPlayer),
+        },
+      };
+
+      mockPrisma.$transaction = jest.fn().mockImplementation(async (callback) => {
+        return callback(mockTransactionPrisma);
+      });
+
+      mockPrisma.room.findUnique = jest
+        .fn()
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          ...mockRoom,
+          isPublicChaos: true,
+          players: [mockPlayer],
+        });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "party",
+          sport: "football",
+          handSize: 6,
+          isPublicChaos: true,
+        }),
+      });
+
+      const response = await createRoom(request, {
+        params: Promise.resolve({ code: "" }),
+      });
+      expect(response.status).toBe(201);
+      expect(mockTransactionPrisma.room.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          isPublicChaos: true,
+          allowJoinInProgress: true,
+        }),
+      });
+      expect(mockEmitPublicChaos).toHaveBeenCalledWith(
+        "public_room_created",
+        expect.objectContaining({
+          createdVia: "host_create",
+          playerCount: 1,
+        }),
+      );
     });
 
     it("should return 401 when user is not authenticated", async () => {
@@ -250,13 +315,17 @@ describe("Room API Routes", () => {
         ...mockRoom,
         players: [mockPlayer],
       };
-      
+      const emptyLobby = {
+        ...mockRoom,
+        status: "lobby",
+        gameState: null,
+        players: [],
+      };
+
       mockPrisma.room.findUnique = jest
         .fn()
-        .mockResolvedValueOnce({
-          ...mockRoom,
-          players: [],
-        })
+        .mockResolvedValueOnce(emptyLobby)
+        .mockResolvedValueOnce({ ...mockRoom, players: [mockPlayer] })
         .mockResolvedValueOnce(roomWithPlayers);
       mockPrisma.room.update = jest.fn().mockResolvedValue({ version: 1 });
       mockPrisma.player.findUnique = jest.fn().mockResolvedValue(null);
@@ -495,6 +564,108 @@ describe("Room API Routes", () => {
       });
 
       expect(response.status).toBe(200);
+    });
+
+    it("forces allowJoinInProgress true when patching a public chaos room", async () => {
+      let updateData: Record<string, unknown> = {};
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        isPublicChaos: true,
+        allowJoinInProgress: false,
+        players: [mockPlayer],
+      });
+      mockPrisma.room.update = jest.fn().mockImplementation(({ data }) => {
+        updateData = data;
+        return Promise.resolve({
+          ...mockRoom,
+          isPublicChaos: true,
+          allowJoinInProgress: true,
+          players: [mockPlayer],
+          ...data,
+        });
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/ABC123", {
+        method: "PATCH",
+        body: JSON.stringify({ allowJoinInProgress: false }),
+      });
+
+      const response = await updateRoom(request, {
+        params: Promise.resolve({ code: "ABC123" }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(updateData.allowJoinInProgress).toBe(true);
+      const data = await response.json();
+      expect(data.allowJoinInProgress).toBe(true);
+    });
+
+    it("allows private room host to set allowJoinInProgress false", async () => {
+      let updateData: Record<string, unknown> = {};
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        isPublicChaos: false,
+        allowJoinInProgress: true,
+        players: [mockPlayer],
+      });
+      mockPrisma.room.update = jest.fn().mockImplementation(({ data }) => {
+        updateData = data;
+        return Promise.resolve({
+          ...mockRoom,
+          isPublicChaos: false,
+          allowJoinInProgress: false,
+          players: [mockPlayer],
+          ...data,
+        });
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/ABC123", {
+        method: "PATCH",
+        body: JSON.stringify({ allowJoinInProgress: false }),
+      });
+
+      const response = await updateRoom(request, {
+        params: Promise.resolve({ code: "ABC123" }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(updateData.allowJoinInProgress).toBe(false);
+      const data = await response.json();
+      expect(data.allowJoinInProgress).toBe(false);
+    });
+
+    it("includes allowJoinInProgress true on any public chaos PATCH (e.g. handSize only)", async () => {
+      let updateData: Record<string, unknown> = {};
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        isPublicChaos: true,
+        allowJoinInProgress: false,
+        players: [mockPlayer],
+      });
+      mockPrisma.room.update = jest.fn().mockImplementation(({ data }) => {
+        updateData = data;
+        return Promise.resolve({
+          ...mockRoom,
+          isPublicChaos: true,
+          handSize: 8,
+          allowJoinInProgress: true,
+          players: [mockPlayer],
+          ...data,
+        });
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/ABC123", {
+        method: "PATCH",
+        body: JSON.stringify({ handSize: 8 }),
+      });
+
+      const response = await updateRoom(request, {
+        params: Promise.resolve({ code: "ABC123" }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(updateData.allowJoinInProgress).toBe(true);
+      expect(updateData.handSize).toBe(8);
     });
   });
 });

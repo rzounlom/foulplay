@@ -7,11 +7,14 @@ import {
   canResolveSubmission,
   getVoteCounts,
 } from "@/lib/game/approval";
-import { AUTO_ACCEPT_SECONDS } from "@/lib/game/constants";
+import { getAutoAcceptSeconds } from "@/lib/game/constants";
 import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
 import { prisma } from "@/lib/db/prisma";
 
-export { AUTO_ACCEPT_SECONDS, AUTO_ACCEPT_DELAY } from "@/lib/game/constants";
+export {
+  AUTO_ACCEPT_SECONDS,
+  AUTO_ACCEPT_DELAY,
+} from "@/lib/game/constants";
 
 export interface ProcessAutoAcceptResult {
   ok: true;
@@ -92,7 +95,8 @@ export async function processAutoAccept(
   if (!options.skipElapsedCheck) {
     const createdAt = new Date(submission.createdAt);
     const elapsedSeconds = (Date.now() - createdAt.getTime()) / 1000;
-    if (elapsedSeconds < AUTO_ACCEPT_SECONDS) {
+    const acceptSeconds = getAutoAcceptSeconds(!!room.isPublicChaos);
+    if (elapsedSeconds < acceptSeconds) {
       return { ok: true, noop: true };
     }
   }

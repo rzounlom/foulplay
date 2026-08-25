@@ -3,6 +3,9 @@
 import * as Ably from "ably";
 import { useEffect, useRef, useState } from "react";
 import type { RoomEvent } from "@/lib/realtime/room-events";
+import {
+  releaseAblySubscription,
+} from "@/lib/ably/channel-lifecycle";
 
 /**
  * Subscribe to room:{roomCode}:state for authoritative gameplay events.
@@ -24,6 +27,8 @@ export function useRoomStateChannel(
 
   useEffect(() => {
     if (!roomCode || !shouldConnect) return;
+
+    isCleaningUpRef.current = false;
 
     const apiKey = process.env.NEXT_PUBLIC_ABLY_API_KEY;
     const useTokenAuth =
@@ -49,22 +54,23 @@ export function useRoomStateChannel(
       if (!isCleaningUpRef.current) setIsConnected(false);
     });
 
-    channel.subscribe("event", (message) => {
-      const data = message.data as RoomEvent;
-      if (data?.type && onEventRef.current) {
-        onEventRef.current(data);
-      }
+    // Defer subscribe so Strict Mode cleanup cannot close mid-attach.
+    let disposed = false;
+    queueMicrotask(() => {
+      if (disposed || isCleaningUpRef.current) return;
+      channel.subscribe("event", (message) => {
+        const data = message.data as RoomEvent;
+        if (data?.type && onEventRef.current) {
+          onEventRef.current(data);
+        }
+      });
     });
 
-    if (channel.state === "detached" || channel.state === "failed") {
-      channel.attach().catch(() => {});
-    }
-
     return () => {
+      disposed = true;
       isCleaningUpRef.current = true;
-      channel.unsubscribe();
-      channel.detach().catch(() => {});
-      client.close();
+      setIsConnected(false);
+      releaseAblySubscription(channel, client);
     };
   }, [roomCode, shouldConnect]);
 

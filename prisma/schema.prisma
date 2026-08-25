@@ -32,7 +32,7 @@ model Room {
   mode                String?
   sport               String?
   showPoints          Boolean  @default(true) // Host can toggle to show/hide other players' points (default on for non-drinking)
-  allowJoinInProgress Boolean  @default(true) // Host can allow new players to join while game is active (default on; host can uncheck)
+  allowJoinInProgress Boolean  @default(true) // When isPublicChaos, always true (enforced in API + migration); host may toggle only on private rooms
   handSize            Int      @default(6) // Number of cards dealt to each player
   allowQuarterClearing Boolean @default(false) // Enable quarter-based card clearing (football/basketball only)
   canTurnInCards       Boolean @default(true) // Always true; legacy field (host toggle removed)
@@ -46,6 +46,7 @@ model Room {
   rematchSpawnCode    String?  // New lobby code after host starts rematch (ended rooms; for poll fallback)
   rematchSpawnMembers Json?    // string[] User.id in that lobby when spawned
   partyChainMeta      Json?    // Party Never Ends: streak, crew, defending champ (lobby + ended)
+  isPublicChaos       Boolean  @default(false) // Matchmaking / drop-in live games
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   players             Player[]

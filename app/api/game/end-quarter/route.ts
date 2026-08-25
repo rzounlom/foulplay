@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 
-const INTERMISSION_MINUTES = 5;
+const INTERMISSION_MINUTES_DEFAULT = 5;
+const INTERMISSION_MINUTES_PUBLIC_CHAOS = 2;
 
 const endQuarterSchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
@@ -67,7 +68,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const endsAt = new Date(Date.now() + INTERMISSION_MINUTES * 60 * 1000);
+    const intermissionMinutes = room.isPublicChaos
+      ? INTERMISSION_MINUTES_PUBLIC_CHAOS
+      : INTERMISSION_MINUTES_DEFAULT;
+    const endsAt = new Date(
+      Date.now() + intermissionMinutes * 60 * 1000,
+    );
 
     const updatedRoom = await prisma.room.update({
       where: { id: room.id },

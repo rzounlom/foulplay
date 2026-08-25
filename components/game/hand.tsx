@@ -13,6 +13,7 @@ import {
   getCardInsightTag,
   getSeverityRiskEmojiLabel,
 } from "@/lib/game/card-hand-hints";
+import { computeSelectionComboFeedback } from "@/lib/game/combo-rules";
 import {
   computeDuplicateSelectionHint,
   isHighRewardSeverity,
@@ -82,6 +83,7 @@ interface Card {
   severity: string;
   type: string;
   points: number;
+  tier?: string | null;
   /** Optional shared definition id when present on API payload */
   templateId?: string | null;
 }
@@ -228,6 +230,32 @@ export function Hand({
       handFingerprint,
     ],
   );
+
+  const handComboCards = useMemo(
+    () => cardsToDisplay.map((c) => c.card),
+    [cardsToDisplay],
+  );
+
+  const selectionComboFeedback = useMemo(() => {
+    if (!canSubmitCards || selectedIds.length < 2) {
+      return { comboLine: null, bigSwingLine: null };
+    }
+    const selectedCards = cardsToDisplay
+      .filter((c) => selectedIds.includes(c.id))
+      .map((c) => c.card);
+    return computeSelectionComboFeedback(
+      selectedCards,
+      handComboCards,
+      identityGroups,
+      selectedIds,
+    );
+  }, [
+    canSubmitCards,
+    selectedIds,
+    cardsToDisplay,
+    handComboCards,
+    identityGroups,
+  ]);
 
   /** Unselected hand cards beat the max points in the current selection — nudge only, never blocks submit. */
   const higherPointsAvailableHint = useMemo(() => {
@@ -452,16 +480,16 @@ export function Hand({
                 {selectedIds.length === 1 ? "card" : "cards"} → potential +
                 {selectedSubmissionPotentialPoints} pts 😏
               </p>
-              {selectedIds.length >= 2 && (
+              {selectionComboFeedback.comboLine ? (
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                  🔥 Combo potential
+                  {selectionComboFeedback.comboLine}
                 </p>
-              )}
-              {selectedIds.length >= 3 && (
+              ) : null}
+              {selectionComboFeedback.bigSwingLine ? (
                 <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
-                  Big swing if these hit 😈
+                  {selectionComboFeedback.bigSwingLine}
                 </p>
-              )}
+              ) : null}
               {duplicateSelectionHint && (
                 <p className="text-[11px] text-neutral-600 dark:text-neutral-400">
                   {duplicateSelectionHint}
@@ -533,10 +561,12 @@ export function Hand({
           const groupSize = identityGroups.get(identityKey)?.length ?? 1;
           const isDupGroup = groupSize >= 2;
           const highRewardCard = isHighRewardSeverity(cardInstance.card.severity);
-          const insightTag = getCardInsightTag(
-            cardInstance.id,
-            getCardIdentityKey(cardInstance.card),
-          );
+          const insightTag = getCardInsightTag({
+            instanceId: cardInstance.id,
+            card: cardInstance.card,
+            handCards: handComboCards,
+            identityGroupSize: groupSize,
+          });
           const sev = cardInstance.card.severity;
           const severityChipClass =
             sev === "severe" || sev === "wild"

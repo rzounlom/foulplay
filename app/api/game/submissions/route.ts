@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
-import { AUTO_ACCEPT_DELAY_SECONDS } from "@/lib/game/constants";
+import { getAutoAcceptSeconds } from "@/lib/game/constants";
 import { z } from "zod";
 
 const getSubmissionsSchema = z.object({
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
 
         const createdAt = new Date(submission.createdAt).getTime();
         const autoAcceptAt = new Date(
-          createdAt + AUTO_ACCEPT_DELAY_SECONDS * 1000
+          createdAt + getAutoAcceptSeconds(!!room.isPublicChaos) * 1000
         ).toISOString();
         return {
           ...submission,

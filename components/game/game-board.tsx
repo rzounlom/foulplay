@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RoomEvent, useRoomChannel } from "@/lib/ably/useRoomChannel";
 import { useRoomState } from "@/lib/hooks/useRoomState";
@@ -38,6 +39,14 @@ import {
   pickFunPenaltyMessage,
 } from "@/lib/game/feedback-messages";
 import { useScreenWakeLock } from "@/lib/hooks/useScreenWakeLock";
+import {
+  consumeLiveJoinToast,
+  setLiveExitPrompt,
+} from "@/lib/game/live-dropin-session";
+import {
+  markPublicChaosActiveSession,
+  reportPublicChaosAbandoned,
+} from "@/lib/analytics/public-chaos-client";
 
 interface Player {
   id: string;
@@ -95,6 +104,7 @@ export interface Room {
   sport: string | null;
   showPoints: boolean;
   allowJoinInProgress: boolean;
+  isPublicChaos?: boolean;
   handSize: number;
   allowQuarterClearing: boolean;
   currentQuarter: string | null;
@@ -156,6 +166,7 @@ function snapshotToRoom(snapshot: {
   mode: string | null;
   sport: string | null;
   showPoints: boolean;
+  isPublicChaos?: boolean;
   allowJoinInProgress?: boolean;
   allowQuarterClearing: boolean;
   canTurnInCards?: boolean;
@@ -176,7 +187,10 @@ function snapshotToRoom(snapshot: {
     mode: snapshot.mode,
     sport: snapshot.sport,
     showPoints: snapshot.showPoints,
-    allowJoinInProgress: snapshot.allowJoinInProgress ?? false,
+    allowJoinInProgress: snapshot.isPublicChaos
+      ? true
+      : (snapshot.allowJoinInProgress ?? false),
+    isPublicChaos: snapshot.isPublicChaos ?? false,
     handSize: snapshot.handSize ?? 6,
     allowQuarterClearing: snapshot.allowQuarterClearing,
     currentQuarter: snapshot.currentQuarter,
@@ -210,9 +224,6 @@ export function GameBoard({
   initialRoom,
   showTourOnMount = false,
 }: GameBoardProps) {
-  const HIDDEN_DISCONNECT_MS = 15 * 60 * 1000;
-  const IDLE_DISCONNECT_MS = 60 * 60 * 1000;
-
   const [shouldConnect, setShouldConnect] = useState(true);
   const lastInteractionAtRef = useRef(Date.now());
   const tabHiddenSinceRef = useRef<number | null>(null);
@@ -265,7 +276,46 @@ export function GameBoard({
     };
   }, []);
 
-  // Idle check: disconnect after hidden 15min or visible idle 60min
+  const room = useMemo(() => {
+    if (snapshot) return snapshotToRoom(snapshot);
+    if (initialRoom) return initialRoom;
+    return null;
+  }, [snapshot, initialRoom]);
+
+  const publicChaosPlayerCountRef = useRef(0);
+  useEffect(() => {
+    publicChaosPlayerCountRef.current = room?.players?.length ?? 0;
+  }, [room?.players?.length]);
+
+  useEffect(() => {
+    if (!room?.isPublicChaos) return;
+    markPublicChaosActiveSession(room.code);
+  }, [room?.isPublicChaos, room?.code]);
+
+  useEffect(() => {
+    if (!room?.isPublicChaos) return;
+    const code = room.code;
+    const onUnload = () => {
+      reportPublicChaosAbandoned({
+        roomCode: code,
+        playerCount: publicChaosPlayerCountRef.current,
+      });
+    };
+    window.addEventListener("beforeunload", onUnload);
+    return () => window.removeEventListener("beforeunload", onUnload);
+  }, [room?.isPublicChaos, room?.code]);
+
+  const isPublicChaosRoom = !!(
+    snapshot?.isPublicChaos ?? initialRoom?.isPublicChaos
+  );
+  const hiddenDisconnectMs = isPublicChaosRoom
+    ? 10 * 60 * 1000
+    : 15 * 60 * 1000;
+  const idleDisconnectMs = isPublicChaosRoom
+    ? 30 * 60 * 1000
+    : 60 * 60 * 1000;
+
+  // Idle check: shorter thresholds for public chaos drop-in rooms
   useEffect(() => {
     const check = () => {
       setShouldConnect((prev) => {
@@ -275,12 +325,12 @@ export function GameBoard({
           const hiddenSince = tabHiddenSinceRef.current;
           if (
             hiddenSince !== null &&
-            now - hiddenSince >= HIDDEN_DISCONNECT_MS
+            now - hiddenSince >= hiddenDisconnectMs
           ) {
             return false;
           }
         } else {
-          if (now - lastInteractionAtRef.current >= IDLE_DISCONNECT_MS) {
+          if (now - lastInteractionAtRef.current >= idleDisconnectMs) {
             return false;
           }
         }
@@ -289,13 +339,7 @@ export function GameBoard({
     };
     const id = setInterval(check, 30_000);
     return () => clearInterval(id);
-  }, [HIDDEN_DISCONNECT_MS, IDLE_DISCONNECT_MS]);
-
-  const room = useMemo(() => {
-    if (snapshot) return snapshotToRoom(snapshot);
-    if (initialRoom) return initialRoom;
-    return null;
-  }, [snapshot, initialRoom]);
+  }, [hiddenDisconnectMs, idleDisconnectMs]);
 
   const hand = useMemo(
     () =>
@@ -382,6 +426,14 @@ export function GameBoard({
   const router = useRouter();
   const toast = useToast();
   const isRedirectingToEndGame = useRef(false);
+
+  useEffect(() => {
+    if (consumeLiveJoinToast()) {
+      toast.addToast("You joined a live game 🔥", "success");
+    }
+    // One-shot welcome toast for drop-in flow
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Keep screen awake during gameplay (mobile-friendly)
   useScreenWakeLock(true);
@@ -478,6 +530,10 @@ export function GameBoard({
   const isQuarterIntermission = !!endsAt && endsAt > Date.now();
   const isHost = (room?.players ?? []).some(
     (p) => p.user.id === currentUserId && p.isHost,
+  );
+  const canFinalizeIntermission = !!(
+    room &&
+    (isHost || room.isPublicChaos)
   );
 
   // Subscribe to game events; fall back to polling when Ably is disconnected
@@ -824,7 +880,7 @@ export function GameBoard({
     const update = () => {
       const left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
       setIntermissionSecondsLeft(left);
-      if (left <= 0 && !finalized && isHost) {
+      if (left <= 0 && !finalized && canFinalizeIntermission) {
         finalized = true;
         fetch("/api/game/finalize-quarter", {
           method: "POST",
@@ -836,7 +892,13 @@ export function GameBoard({
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [endsAt, roomCode, isHost, allDoneCountdown, resyncRoomSnapshot]);
+  }, [
+    endsAt,
+    roomCode,
+    canFinalizeIntermission,
+    allDoneCountdown,
+    resyncRoomSnapshot,
+  ]);
 
   // All-done 5-second countdown tick
   useEffect(() => {
@@ -1216,8 +1278,17 @@ export function GameBoard({
         </div>
       )}
 
+      {room.isPublicChaos ? (
+        <div
+          role="status"
+          className="mb-3 rounded-xl border border-orange-500/40 bg-orange-500/10 dark:bg-orange-500/15 px-3 py-2.5 text-center text-sm text-foreground"
+        >
+          Game in progress — jump in anytime
+        </div>
+      ) : null}
+
       <div className="sticky top-0 z-30 bg-background pb-6">
-        <div className="flex items-center justify-center md:justify-start gap-2 mb-2 min-w-0">
+        <div className="flex items-center justify-center md:justify-start gap-2 mb-2 min-w-0 flex-wrap">
           <h1
             className="text-lg sm:text-page-title text-foreground truncate min-w-0"
             title={`Game Room ${room.code}`}
@@ -1253,6 +1324,21 @@ export function GameBoard({
             title="Share invite link"
             shareText={`Join my FoulPlay game! Room ${roomCode}`}
           />
+          {room.isPublicChaos ? (
+            <Link
+              href="/"
+              onClick={() => {
+                reportPublicChaosAbandoned({
+                  roomCode: room.code,
+                  playerCount: room.players.length,
+                });
+                setLiveExitPrompt();
+              }}
+              className="shrink-0 text-sm font-semibold text-primary hover:text-primary/90 hover:underline"
+            >
+              Home
+            </Link>
+          ) : null}
         </div>
         <div
           data-tour="game-info"
@@ -1515,32 +1601,41 @@ export function GameBoard({
                         Show all players&apos; points
                       </span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox
-                        checked={room.allowJoinInProgress ?? false}
-                        onChange={async (e) => {
-                          try {
-                            await fetch(`/api/rooms/${roomCode}`, {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                allowJoinInProgress: e.target.checked,
-                              }),
-                            });
-                            // State updates via room_settings_updated event
-                          } catch (err) {
-                            if (process.env.NODE_ENV === "development")
-                              console.error(
-                                "Failed to update allowJoinInProgress:",
-                                err,
-                              );
-                          }
-                        }}
-                      />
-                      <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                        Allow new users to join
-                      </span>
-                    </label>
+                    {!room.isPublicChaos ? (
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={room.allowJoinInProgress ?? false}
+                          onChange={async (e) => {
+                            try {
+                              await fetch(`/api/rooms/${roomCode}`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  allowJoinInProgress: e.target.checked,
+                                }),
+                              });
+                              // State updates via room_settings_updated event
+                            } catch (err) {
+                              if (process.env.NODE_ENV === "development")
+                                console.error(
+                                  "Failed to update allowJoinInProgress:",
+                                  err,
+                                );
+                            }
+                          }}
+                        />
+                        <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                          Allow new users to join
+                        </span>
+                      </label>
+                    ) : (
+                      <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 dark:bg-orange-500/10 px-3 py-2">
+                        <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-snug">
+                          Public live games always allow players to join in
+                          progress — drop-ins stay open for active games.
+                        </p>
+                      </div>
+                    )}
                     {showQuarterControls && (
                       <>
                         <div className="pt-2 border-t border-border">
@@ -1721,34 +1816,43 @@ export function GameBoard({
                     Show all players&apos; points
                   </span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox
-                    checked={room.allowJoinInProgress ?? false}
-                    onChange={async (e) => {
-                      try {
-                        const response = await fetch(`/api/rooms/${roomCode}`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            allowJoinInProgress: e.target.checked,
-                          }),
-                        });
-                        if (response.ok) {
-                          // State updates via room_settings_updated event
+                {!room.isPublicChaos ? (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={room.allowJoinInProgress ?? false}
+                      onChange={async (e) => {
+                        try {
+                          const response = await fetch(`/api/rooms/${roomCode}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              allowJoinInProgress: e.target.checked,
+                            }),
+                          });
+                          if (response.ok) {
+                            // State updates via room_settings_updated event
+                          }
+                        } catch (error) {
+                          if (process.env.NODE_ENV === "development")
+                            console.error(
+                              "Failed to update allowJoinInProgress:",
+                              error,
+                            );
                         }
-                      } catch (error) {
-                        if (process.env.NODE_ENV === "development")
-                          console.error(
-                            "Failed to update allowJoinInProgress:",
-                            error,
-                          );
-                      }
-                    }}
-                  />
-                  <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                    Allow new users to join
-                  </span>
-                </label>
+                      }}
+                    />
+                    <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                      Allow new users to join
+                    </span>
+                  </label>
+                ) : (
+                  <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 dark:bg-orange-500/10 px-3 py-2">
+                    <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-snug">
+                      Public live games always allow players to join in progress
+                      — drop-ins stay open for active games.
+                    </p>
+                  </div>
+                )}
                 {showQuarterControls && !isQuarterIntermission && (
                   <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700">
                     <span className="text-sm text-neutral-600 dark:text-neutral-400">

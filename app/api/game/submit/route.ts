@@ -5,7 +5,10 @@ import { getRoomChannel } from "@/lib/ably/client";
 import { prisma } from "@/lib/db/prisma";
 import { enqueue } from "@/lib/queue/qstash";
 import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
-import { AUTO_ACCEPT_DELAY, AUTO_ACCEPT_DELAY_SECONDS } from "@/lib/game/constants";
+import {
+  getAutoAcceptQstashDelay,
+  getAutoAcceptSeconds,
+} from "@/lib/game/constants";
 import { z } from "zod";
 
 const submitCardSchema = z.object({
@@ -186,7 +189,7 @@ export async function POST(request: NextRequest) {
         await enqueue({
           url: `${appUrl}/api/qstash/auto-accept`,
           body: { submissionId: submission.id },
-          delay: AUTO_ACCEPT_DELAY,
+          delay: getAutoAcceptQstashDelay(!!room.isPublicChaos),
         });
       } catch (enqueueError) {
         console.error("Failed to enqueue auto-accept job:", enqueueError);
@@ -196,7 +199,7 @@ export async function POST(request: NextRequest) {
       try {
         const createdAt = new Date(submission.createdAt).getTime();
         const autoAcceptAt = new Date(
-          createdAt + AUTO_ACCEPT_DELAY_SECONDS * 1000
+          createdAt + getAutoAcceptSeconds(!!room.isPublicChaos) * 1000
         ).toISOString();
         const updatedRoom = await prisma.room.update({
           where: { id: room.id },

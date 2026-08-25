@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
-import { AUTO_ACCEPT_DELAY_SECONDS } from "@/lib/game/constants";
+import { getAutoAcceptSeconds } from "@/lib/game/constants";
+import { effectiveAllowJoinInProgress } from "@/lib/rooms/public-chaos-invariant";
 
 /**
  * GET /api/rooms/[code]/snapshot
@@ -87,12 +88,13 @@ export async function GET(
       orderBy: { createdAt: "desc" },
     });
 
+    const acceptSeconds = getAutoAcceptSeconds(!!room.isPublicChaos);
     const submissionsWithCards = pendingSubmissions
       .filter((s) => s.cardInstances.length > 0)
       .map((s) => {
         const createdAt = new Date(s.createdAt).getTime();
         const autoAcceptAt = new Date(
-          createdAt + AUTO_ACCEPT_DELAY_SECONDS * 1000
+          createdAt + acceptSeconds * 1000
         ).toISOString();
         return { ...s, autoAcceptAt };
       });
@@ -126,7 +128,8 @@ export async function GET(
       sport: room.sport,
       handSize: room.handSize,
       showPoints: room.showPoints,
-      allowJoinInProgress: room.allowJoinInProgress,
+      isPublicChaos: room.isPublicChaos,
+      allowJoinInProgress: effectiveAllowJoinInProgress(room),
       allowQuarterClearing: room.allowQuarterClearing,
       canTurnInCards: room.canTurnInCards,
       currentQuarter: room.currentQuarter,

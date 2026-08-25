@@ -2,6 +2,12 @@
  * Lightweight, client-only hints for hand cards (playability feel, no API).
  */
 
+import {
+  cardShowsComboInsight,
+  type ComboCardFields,
+} from "@/lib/game/combo-rules";
+import { getCardIdentityKey, type CardLike } from "@/lib/game/card-identity";
+
 /** FNV-1a 32-bit — stable per instance + definition. */
 export function fnv1a32(input: string): number {
   let h = 2166136261;
@@ -23,17 +29,30 @@ export function getSeverityRiskEmojiLabel(severity: string): string {
 
 const PLAYABILITY = ["🔥 Likely soon", "👀 Happens often", "🎯 Good bet"] as const;
 
+export type CardInsightInput = {
+  instanceId: string;
+  card: ComboCardFields;
+  /** Full in-hand definitions for cluster / combo rules. */
+  handCards: ComboCardFields[];
+  identityGroupSize: number;
+};
+
 /**
- * At most one optional insight per card: Hot > Combo > Playability.
- * Spreads hints across ~1/3 of hand on average without stacking.
+ * At most one optional insight per card: Hot > Combo (rules) > Playability (hash).
  */
-export function getCardInsightTag(
-  instanceId: string,
-  cardDefinitionKey: string,
-): string | null {
-  const h = fnv1a32(`${instanceId}\0${cardDefinitionKey}`);
+export function getCardInsightTag(input: CardInsightInput): string | null {
+  if (
+    cardShowsComboInsight(input.card, {
+      hand: input.handCards,
+      identityGroupSize: input.identityGroupSize,
+    })
+  ) {
+    return "🔗 Combo potential";
+  }
+
+  const definitionKey = getCardIdentityKey(input.card as CardLike);
+  const h = fnv1a32(`${input.instanceId}\0${definitionKey}`);
   if (h % 9 === 0) return "🔥 Hot right now";
-  if (h % 11 === 0) return "🔗 Combo potential";
   if (h % 6 === 0) return PLAYABILITY[h % 3] ?? null;
   return null;
 }

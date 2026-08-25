@@ -3,6 +3,9 @@
 import * as Ably from "ably";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  releaseAblySubscription,
+} from "@/lib/ably/channel-lifecycle";
 
 export type RoomEvent =
   | "player_joined"
@@ -67,6 +70,8 @@ export function useRoomChannel(
       return;
     }
 
+    isCleaningUpRef.current = false;
+
     // Prefer token auth in production (keeps API key server-side, often more reliable)
     const apiKey = process.env.NEXT_PUBLIC_ABLY_API_KEY;
     const useTokenAuth =
@@ -122,122 +127,25 @@ export function useRoomChannel(
     const channel = client.channels.get(`room:${roomCode}`);
     channelRef.current = channel;
 
-    // Subscribe to all events
-    // Use onEventRef.current to always call the latest callback without re-subscribing
-    channel.subscribe((message) => {
-      if (onEventRef.current && message.name) {
-        onEventRef.current(message.name as RoomEvent, message.data as RoomEventData);
-      }
+    // Defer subscribe so Strict Mode cleanup cannot close mid-attach.
+    let disposed = false;
+    queueMicrotask(() => {
+      if (disposed || isCleaningUpRef.current) return;
+      channel.subscribe((message) => {
+        if (onEventRef.current && message.name) {
+          onEventRef.current(message.name as RoomEvent, message.data as RoomEventData);
+        }
+      });
     });
-
-    // Attach to channel to ensure we're subscribed
-    // Check channel state first to avoid attaching when already attached or detaching
-    const channelState = channel.state;
-    if (channelState === "attached") {
-      // Already attached, no-op
-    } else if (channelState === "detached" || channelState === "failed") {
-      // Only attach if channel is detached or failed
-      channel.attach().then(() => {}).catch((err) => {
-        // Only log if it's not a state-related error (which is expected during cleanup)
-                    const errorMessage = err?.message || err?.toString() || "";
-                    if (process.env.NODE_ENV === "development" && !errorMessage.includes("state = detached") && !errorMessage.includes("state = detaching")) {
-          console.error(`[Ably] Failed to attach to channel room:${roomCode}`, err);
-        }
-      });
-    } else if (channelState === "attaching") {
-      // Channel is already attaching, wait for it to complete
-      channel.attach().then(() => {}).catch(() => {
-        // Silently ignore - channel might already be attached
-      });
-    } else {
-      // Channel is in a transitional state (detaching), wait a bit and try again
-      setTimeout(() => {
-        const currentState = channel.state;
-        if (currentState === "detached" || currentState === "failed") {
-          channel.attach().then(() => {}).catch(() => {
-            // Silently ignore retry failures
-          });
-        }
-      }, 100);
-    }
 
     // Cleanup
     return () => {
+      disposed = true;
       isCleaningUpRef.current = true;
-
-      const cleanup = async () => {
-        try {
-          // Unsubscribe and detach from channel first
-          if (channelRef.current) {
-            const channel = channelRef.current;
-            channelRef.current = null; // Clear ref first
-
-            try {
-              // Unsubscribe from all messages
-              channel.unsubscribe();
-            } catch {
-              // Ignore unsubscribe errors
-            }
-
-            // Don't await detach - just fire and forget with error handling
-            // This prevents blocking and unhandled promise rejections
-            try {
-              const channelState = channel.state;
-              // Only detach if not already detached or failed
-              if (channelState !== "detached" && channelState !== "failed" && channelState !== "detaching") {
-                // Fire and forget - don't await to avoid blocking cleanup
-                const detachPromise = channel.detach();
-                // Catch any errors immediately to prevent unhandled rejections
-                if (detachPromise && typeof detachPromise.catch === "function") {
-                  detachPromise.catch((err) => {
-                    // Silently ignore expected errors during cleanup
-                    // These are normal when component unmounts quickly
-                    const errorMessage = err?.message || err?.toString() || "";
-                    if (process.env.NODE_ENV === "development" && !errorMessage.includes("state = detached") && !errorMessage.includes("state = detaching")) {
-                      console.warn(`[Ably] Unexpected error during channel detach:`, err);
-                    }
-                  });
-                }
-              }
-            } catch {
-              // Ignore any synchronous errors
-            }
-          }
-
-          // Close client connection
-          if (clientRef.current) {
-            const client = clientRef.current;
-            clientRef.current = null; // Clear ref first to prevent re-use
-
-            // Don't await close - just fire and forget
-            // This prevents blocking cleanup and unhandled promise rejections
-            try {
-              const state = client.connection.state;
-              // Only close if not already closed or failed
-              if (state !== "closed" && state !== "failed" && state !== "closing") {
-                // Fire and forget - don't await to avoid blocking cleanup
-                // Just call close and let it happen asynchronously
-                try {
-                  client.close();
-                } catch {
-                  // Ignore any synchronous errors from close()
-                }
-              }
-            } catch {
-              // Ignore cleanup errors
-            }
-          }
-
-          setIsConnected(false);
-        } catch {
-          // Ignore all cleanup errors (client might already be closed)
-        }
-      };
-
-      // Run cleanup asynchronously and catch any unhandled errors
-      cleanup().catch(() => {
-        // Silently ignore all cleanup errors
-      });
+      channelRef.current = null;
+      clientRef.current = null;
+      setIsConnected(false);
+      releaseAblySubscription(channel, client);
     };
   }, [roomCode, shouldConnect]);
 

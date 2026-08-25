@@ -14,6 +14,8 @@ export interface RoomSnapshot {
   sport: string | null;
   handSize: number;
   showPoints: boolean;
+  /** Drop-in public chaos room (faster pacing, mid-game join UX) */
+  isPublicChaos?: boolean;
   allowJoinInProgress?: boolean;
   allowQuarterClearing: boolean;
   canTurnInCards?: boolean;

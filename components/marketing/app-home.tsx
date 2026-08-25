@@ -1,14 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { startTransition, useEffect, useState } from "react";
+import { consumeLiveExitPrompt } from "@/lib/game/live-dropin-session";
 
 const LANDING_BG = "/social-branding.png";
 
 export function AppHome() {
+  const [showLiveExitPrompt, setShowLiveExitPrompt] = useState(false);
+
   useEffect(() => {
     document.body.classList.add("landing-no-scroll");
     return () => document.body.classList.remove("landing-no-scroll");
+  }, []);
+
+  useEffect(() => {
+    if (!consumeLiveExitPrompt()) return;
+    startTransition(() => setShowLiveExitPrompt(true));
   }, []);
 
   const steps = [
@@ -22,18 +30,42 @@ export function AppHome() {
       <h1 className="text-base md:text-3xl lg:text-4xl xl:text-5xl md:font-extrabold md:tracking-tight text-neutral-200 md:text-neutral-100 text-center max-w-3xl">
         Start a game. Invite your friends. Let chaos happen.
       </h1>
-      <div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full max-w-md">
+      <div className="flex flex-col gap-3 md:gap-4 w-full max-w-md">
+        {showLiveExitPrompt ? (
+          <div className="rounded-xl border border-orange-500/40 bg-orange-500/15 px-4 py-3 text-center">
+            <p className="text-sm font-medium text-neutral-100 mb-2">
+              Jump into another live game?
+            </p>
+            <Link
+              href="/play-live"
+              className="inline-flex items-center justify-center w-full min-h-[44px] rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
+            >
+              🔥 Find another game
+            </Link>
+          </div>
+        ) : null}
+        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full">
+          <Link
+            href="/create"
+            className="flex-1 min-h-[48px] flex items-center justify-center py-4 px-6 bg-primary text-white rounded-lg font-semibold text-center hover:bg-primary/90 transition-colors duration-200 ease-out cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-90 shadow-lg"
+          >
+            Start a Game
+          </Link>
+          <Link
+            href="/join"
+            className="flex-1 min-h-[48px] flex items-center justify-center py-4 px-6 border-2 border-white/80 text-white rounded-lg font-semibold text-center hover:bg-white/15 transition-colors duration-200 ease-out cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:opacity-90 backdrop-blur-sm"
+          >
+            Join a Game
+          </Link>
+        </div>
         <Link
-          href="/create"
-          className="flex-1 min-h-[48px] flex items-center justify-center py-4 px-6 bg-primary text-white rounded-lg font-semibold text-center hover:bg-primary/90 transition-colors duration-200 ease-out cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-90 shadow-lg"
+          href="/play-live"
+          className="w-full min-h-[48px] flex flex-col items-center justify-center py-3 px-6 rounded-lg border border-white/35 bg-white/8 text-white text-sm font-semibold hover:bg-white/12 transition-colors"
         >
-          Start a Game
-        </Link>
-        <Link
-          href="/join"
-          className="flex-1 min-h-[48px] flex items-center justify-center py-4 px-6 border-2 border-white/80 text-white rounded-lg font-semibold text-center hover:bg-white/15 transition-colors duration-200 ease-out cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:opacity-90 backdrop-blur-sm"
-        >
-          Join a Game
+          <span>🔥 Join Live Game</span>
+          <span className="text-xs font-normal text-neutral-300 mt-1">
+            Jump into a game already in progress
+          </span>
         </Link>
       </div>
       <p className="text-sm text-neutral-400 text-center px-2">

@@ -21,6 +21,7 @@ export default function CreateRoomPage() {
   const [sport, setSport] = useState<string>("");
   const [handSize, setHandSize] = useState<number>(6);
   const [allowQuarterClearing, setAllowQuarterClearing] = useState<boolean>(false);
+  const [isPublicChaos, setIsPublicChaos] = useState<boolean>(false);
 
   const handleCreateRoom = async () => {
     if (!isSignedIn) {
@@ -48,6 +49,7 @@ export default function CreateRoomPage() {
           mode,
           sport,
           handSize,
+          ...(isPublicChaos ? { isPublicChaos: true } : {}),
           ...(sport === "football" || sport === "basketball"
             ? { allowQuarterClearing }
             : {}),
@@ -208,6 +210,26 @@ export default function CreateRoomPage() {
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
               Soccer and Baseball are coming soon after beta.
             </p>
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={isPublicChaos}
+                onChange={(e) => setIsPublicChaos(e.target.checked)}
+              />
+              <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                🌍 Make this a public game
+              </span>
+            </label>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-6">
+              Anyone can join this game live
+            </p>
+            {isPublicChaos ? (
+              <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mt-2 ml-6 font-medium">
+                You&apos;ll be hosting a live game — players can join anytime
+              </p>
+            ) : null}
           </div>
 
           {(sport === "football" || sport === "basketball") && (

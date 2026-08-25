@@ -4,6 +4,7 @@ import { generateRoomCode } from "@/lib/rooms/utils";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { gameModeSchemaOptional } from "@/lib/game/modes";
+import { emitPublicChaosEvent } from "@/lib/analytics/public-chaos-events";
 import { z } from "zod";
 
 const createRoomSchema = z.object({
@@ -11,6 +12,8 @@ const createRoomSchema = z.object({
   sport: z.string().optional(),
   handSize: z.number().int().min(4).max(12).optional(),
   allowQuarterClearing: z.boolean().optional(),
+  /** Public (drop-in) chaos: anyone can join live; no paywall yet — reserved for future host monetization. */
+  isPublicChaos: z.boolean().optional().default(false),
 });
 
 export async function POST(request: NextRequest) {
@@ -21,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { mode, sport, handSize, allowQuarterClearing } =
+    const { mode, sport, handSize, allowQuarterClearing, isPublicChaos } =
       createRoomSchema.parse(body);
 
     // Generate unique room code
@@ -58,6 +61,9 @@ export async function POST(request: NextRequest) {
           canTurnInCards: true,
           showPoints: true,
           allowJoinInProgress: true,
+          ...(isPublicChaos
+            ? { isPublicChaos: true, allowJoinInProgress: true }
+            : {}),
         },
       });
 
@@ -72,6 +78,16 @@ export async function POST(request: NextRequest) {
 
       return newRoom;
     });
+
+    if (isPublicChaos) {
+      emitPublicChaosEvent("public_room_created", {
+        roomId: room.id,
+        roomCode: room.code,
+        playerCount: 1,
+        createdVia: "host_create",
+        hostUserId: user.id,
+      });
+    }
 
     // Fetch room with players
     const roomWithPlayers = await prisma.room.findUnique({

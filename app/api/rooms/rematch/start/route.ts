@@ -12,6 +12,7 @@ import {
   parsePartyChainMeta,
 } from "@/lib/game/party-chain";
 import { z } from "zod";
+import { emitPublicChaosEvent } from "@/lib/analytics/public-chaos-events";
 
 const bodySchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
@@ -122,6 +123,16 @@ export async function POST(request: NextRequest) {
       });
     } catch (ablyError) {
       console.error("rematch_started publish:", ablyError);
+    }
+
+    if (room.isPublicChaos) {
+      emitPublicChaosEvent("public_room_run_it_back", {
+        previousRoomCode: room.code,
+        newRoomCode: created.code,
+        readyPlayerCount: ready.length,
+        participantPlayerCount: orderedUserIds.length,
+        hostUserId: user.id,
+      });
     }
 
     return NextResponse.json({

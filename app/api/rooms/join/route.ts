@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
-import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
-import { getRoomChannel } from "@/lib/ably/client";
-import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
-import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
+import { joinRoomCore } from "@/lib/rooms/join-room-core";
 
 const joinRoomSchema = z.object({
   code: z.string().length(6, "Room code must be 6 characters"),
@@ -21,144 +18,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { code, nickname } = joinRoomSchema.parse(body);
 
-    // Find room (include gameState to know if we need to deal cards when joining active game)
-    const room = await prisma.room.findUnique({
-      where: { code: code.toUpperCase() },
-      include: {
-        players: {
-          include: {
-            user: true,
-          },
-        },
-        gameState: true,
-      },
-    });
+    const result = await joinRoomCore(
+      { id: user.id, name: user.name },
+      code,
+      nickname,
+    );
 
-    if (!room) {
-      return NextResponse.json({ error: "Room not found" }, { status: 404 });
-    }
-
-    if (room.status === "ended") {
+    if (!result.ok) {
       return NextResponse.json(
-        { error: "This game has ended" },
-        { status: 400 }
+        { error: result.error },
+        { status: result.status },
       );
     }
 
-    if (room.status !== "lobby" && !room.allowJoinInProgress) {
-      return NextResponse.json(
-        { error: "Room is not accepting new players" },
-        { status: 400 }
-      );
-    }
-
-    // Check if user is already in the room
-    const existingPlayer = await prisma.player.findUnique({
-      where: {
-        userId_roomId: {
-          userId: user.id,
-          roomId: room.id,
-        },
-      },
-    });
-
-    if (existingPlayer) {
-      // User already in room, return room data
-      return NextResponse.json(room);
-    }
-
-    // Add player to room
-    const newPlayer = await prisma.player.create({
-      data: {
-        userId: user.id,
-        roomId: room.id,
-        isHost: false,
-        points: 0,
-        nickname: nickname?.trim() || null,
-      },
-    });
-
-    // If game is active, deal the new player a hand
-    const gameState = room.gameState;
-    if (room.status === "active" && gameState && room.sport) {
-      const cards = await prisma.card.findMany({
-        where: { sport: room.sport },
-        orderBy: { id: "asc" },
-      });
-      if (cards.length > 0) {
-        const handSize = room.handSize ?? 6;
-        const mode = room.mode ?? null;
-        const cardIndices = drawRandomCardIndicesSmart(
-          cards,
-          handSize,
-          mode,
-          handSize,
-          [] // new player, empty hand
-        );
-        const cardInstancesToCreate = cardIndices.map((cardIndex) => ({
-          roomId: room.id,
-          cardId: cards[cardIndex].id,
-          drawnById: newPlayer.id,
-          status: "drawn",
-        }));
-        if (cardInstancesToCreate.length > 0) {
-          await prisma.cardInstance.createMany({
-            data: cardInstancesToCreate,
-          });
-        }
-      }
-    }
-
-    // Increment room version for authoritative state
-    const updatedRoomForVersion = await prisma.room.update({
-      where: { id: room.id },
-      data: { version: { increment: 1 } },
-      select: { version: true },
-    });
-
-    // Emit authoritative player.joined to room:{roomCode}:state
-    try {
-      const displayName =
-        (nickname?.trim() || null) ?? user.name ?? "Player";
-      await publishRoomEvent({
-        type: "player.joined",
-        roomId: room.id,
-        roomCode: room.code,
-        version: updatedRoomForVersion.version,
-        playerId: newPlayer.id,
-        displayName,
-      });
-    } catch (publishError) {
-      console.error("Failed to publish player.joined:", publishError);
-    }
-
-    // Emit legacy player_joined to room:{roomCode} (lobby compatibility)
-    try {
-      const channel = getRoomChannel(room.code);
-      await channel.publish("player_joined", {
-        playerId: user.id,
-        playerName: user.name,
-        nickname: nickname?.trim() || null,
-        roomCode: room.code,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (ablyError) {
-      console.error("Failed to publish Ably player_joined:", ablyError);
-    }
-
-    // Fetch updated room with all players (and gameState for active games)
-    const updatedRoom = await prisma.room.findUnique({
-      where: { id: room.id },
-      include: {
-        players: {
-          include: {
-            user: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(updatedRoom, { status: 200 });
+    return NextResponse.json(result.room, { status: 200 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

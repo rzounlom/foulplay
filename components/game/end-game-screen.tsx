@@ -64,6 +64,7 @@ interface EndGameScreenProps {
   roomCode: string;
   lastGameEndResult: LastGameEndResult;
   partyChain: PartyChainMeta | null;
+  isPublicChaos?: boolean;
   rematch: {
     roster: RematchRosterPlayer[];
     currentUserId: string;
@@ -580,6 +581,7 @@ export function EndGameScreen({
   roomCode,
   lastGameEndResult,
   partyChain,
+  isPublicChaos = false,
   rematch,
 }: EndGameScreenProps) {
   const { winnerName, winnerNickname, winnerPoints, leaderboard, lastPlace, bestPlay } =
@@ -813,6 +815,19 @@ export function EndGameScreen({
           </p>
 
           <div className="pt-1 space-y-2 border-t border-neutral-200 dark:border-neutral-700">
+            {isPublicChaos ? (
+              <div className="rounded-xl border border-orange-500/35 bg-orange-500/10 dark:bg-orange-500/15 px-4 py-4 text-center mb-2">
+                <p className="text-sm font-medium text-foreground mb-3">
+                  Jump into another live game?
+                </p>
+                <Link
+                  href="/play-live"
+                  className="inline-flex items-center justify-center w-full min-h-[44px] py-2.5 px-4 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/95 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  🔥 Find another game
+                </Link>
+              </div>
+            ) : null}
             <Link href="/games" className={secondaryLinkClassName}>
               My Games
             </Link>

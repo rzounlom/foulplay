@@ -72,7 +72,10 @@ export async function createRematchLobbyFromEndedRoom(options: {
         handSize: source.handSize,
         allowQuarterClearing: source.allowQuarterClearing,
         showPoints: source.showPoints,
-        allowJoinInProgress: source.allowJoinInProgress,
+        allowJoinInProgress: source.isPublicChaos
+          ? true
+          : source.allowJoinInProgress,
+        isPublicChaos: source.isPublicChaos,
         canTurnInCards: true,
         ...(partyChainMeta ? { partyChainMeta: partyChainMeta as object } : {}),
       },

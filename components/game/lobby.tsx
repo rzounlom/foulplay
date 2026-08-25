@@ -23,6 +23,7 @@ import {
   readRematchEntryForRoom,
   type RematchEntryPayload,
 } from "@/lib/game/rematch-entry-storage";
+import { consumeLiveJoinToast } from "@/lib/game/live-dropin-session";
 
 interface Player {
   id: string;
@@ -47,6 +48,7 @@ interface Room {
   canTurnInCards: boolean;
   players: Player[];
   partyChainMeta?: unknown;
+  isPublicChaos?: boolean;
 }
 
 interface LobbyProps {
@@ -77,6 +79,12 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
+
+  useEffect(() => {
+    if (consumeLiveJoinToast()) {
+      addToast("You joined a live game 🔥", "success");
+    }
+  }, [addToast]);
 
   useEffect(() => {
     const p = readRematchEntryForRoom(roomCode);
@@ -356,6 +364,15 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
 
   return (
     <div className="container mx-auto px-4 py-6 md:p-6 max-w-4xl min-h-screen bg-background">
+      {room.isPublicChaos ? (
+        <div className="mb-5 rounded-xl border border-orange-500/40 bg-orange-500/10 dark:bg-orange-500/15 px-4 py-3 text-center text-sm text-foreground">
+          <p className="font-semibold">Live drop-in room</p>
+          <p className="text-neutral-600 dark:text-neutral-400 mt-1 text-xs sm:text-sm">
+            The game starts automatically when a second player joins — or use
+            Start Game if you&apos;re the host.
+          </p>
+        </div>
+      ) : null}
       {rematchEntry ? (
         <div className="mb-5 md:mb-6 rounded-2xl border-2 border-primary/45 bg-primary/10 dark:bg-primary/15 px-4 py-4 md:px-6 md:py-5 text-center shadow-sm">
           <p className="text-xl md:text-2xl font-bold text-foreground leading-tight">

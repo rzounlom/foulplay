@@ -60,6 +60,7 @@ export default async function EndGamePage({
       roomCode={roomCode}
       lastGameEndResult={lastGameEndResult}
       partyChain={partyChain}
+      isPublicChaos={room.isPublicChaos}
       rematch={{
         roster: rematchRoster,
         currentUserId: user.id,
