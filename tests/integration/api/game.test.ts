@@ -689,6 +689,13 @@ describe("Game API Routes", () => {
       isHost: false,
     };
 
+    const fourthPlayer = {
+      ...mockPlayer,
+      id: "player_101",
+      userId: "user_101",
+      isHost: false,
+    };
+
     it("should cast a vote successfully (pending resolution)", async () => {
       mockGetCurrentUserFromRequest.mockResolvedValue({
         ...mockUser,
@@ -727,7 +734,8 @@ describe("Game API Routes", () => {
         status: "active",
         gameState,
         quarterIntermissionEndsAt: null,
-        players: [submitterPlayer, voterPlayer, thirdPlayer],
+        // 4 players → threshold 2; one approve stays pending
+        players: [submitterPlayer, voterPlayer, thirdPlayer, fourthPlayer],
       });
       mockPrisma.cardSubmission.findUnique = jest
         .fn()

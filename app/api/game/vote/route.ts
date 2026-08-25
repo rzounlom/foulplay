@@ -243,6 +243,8 @@ export async function POST(request: NextRequest) {
     const rejectedCards: typeof updatedSubmission.cardInstances = [];
     const pendingCards: typeof updatedSubmission.cardInstances = [];
 
+    const votedCardIds = new Set(cardsToVoteOn.map((ci) => ci.id));
+
     for (const cardInstance of updatedSubmission.cardInstances) {
       // Votes are already filtered by submissionId in the query above
       const voteCounts = getVoteCounts(cardInstance.votes || []);
@@ -250,7 +252,8 @@ export async function POST(request: NextRequest) {
         totalPlayers,
         voteCounts.approvals,
         voteCounts.rejections,
-        eligibleVoters
+        eligibleVoters,
+        votedCardIds.has(cardInstance.id) ? vote : undefined
       );
       
       if (resolution === "approved") {

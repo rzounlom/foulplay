@@ -1,5 +1,7 @@
 import {
   requiredApprovals,
+  requiredRejections,
+  voteThreshold,
   canResolveSubmission,
   getVoteCounts,
 } from "@/lib/game/approval";
@@ -18,8 +20,8 @@ describe("Approval Logic", () => {
       expect(requiredApprovals(2)).toBe(1);
     });
 
-    it("should return 2 for 3 players", () => {
-      expect(requiredApprovals(3)).toBe(2);
+    it("should return 1 for 3 players (small room)", () => {
+      expect(requiredApprovals(3)).toBe(1);
     });
 
     it("should return 2 for 4 players", () => {
@@ -79,18 +81,28 @@ describe("Approval Logic", () => {
       expect(result).toBe("approved");
     });
 
-    it("should approve when both thresholds are met (approvals checked first)", () => {
-      // 4 players, 2 approve, 2 reject - both meet threshold, but approvals are checked first
-      // requiredApprovals(4) = 2, so 2 approvals >= 2, returns "approved"
-      const result = canResolveSubmission(4, 2, 2);
-      expect(result).toBe("approved");
+    it("should reject with one vote in a 3-player room", () => {
+      expect(canResolveSubmission(3, 0, 1)).toBe("rejected");
+    });
+
+    it("should approve with one vote in a 3-player room", () => {
+      expect(canResolveSubmission(3, 1, 0)).toBe("approved");
+    });
+
+    it("should resolve by deciding vote when both thresholds are met", () => {
+      expect(canResolveSubmission(3, 1, 1, 2, true)).toBe("approved");
+      expect(canResolveSubmission(3, 1, 1, 2, false)).toBe("rejected");
+      expect(canResolveSubmission(3, 1, 1, 2)).toBe("pending");
+    });
+
+    it("should return pending when both thresholds are met without deciding vote", () => {
+      expect(canResolveSubmission(4, 2, 2)).toBe("pending");
     });
 
     it("should handle edge case with 2 players", () => {
       expect(canResolveSubmission(2, 1, 0)).toBe("approved");
       expect(canResolveSubmission(2, 0, 1)).toBe("rejected");
-      // 2 players, 1 approve, 1 reject - approvals checked first, 1 >= 1, so approved
-      expect(canResolveSubmission(2, 1, 1)).toBe("approved");
+      expect(canResolveSubmission(2, 1, 1)).toBe("pending");
     });
 
     it("should resolve immediately when 50% or more of eligible voters have voted (majority rule)", () => {
@@ -101,10 +113,14 @@ describe("Approval Logic", () => {
     });
 
     it("should resolve immediately when all eligible voters have voted", () => {
-      // 3 players, 2 eligible voters. Both voted: 1 approve, 1 reject. Majority = reject
-      expect(canResolveSubmission(3, 1, 1, 2)).toBe("rejected");
-      // 3 players, 2 eligible voters. Both voted: 2 approve. Approved
+      expect(canResolveSubmission(3, 1, 1, 2)).toBe("pending");
+      expect(canResolveSubmission(3, 1, 0, 2)).toBe("approved");
       expect(canResolveSubmission(3, 2, 0, 2)).toBe("approved");
+    });
+
+    it("should align rejection threshold with approval for small rooms", () => {
+      expect(requiredRejections(3)).toBe(requiredApprovals(3));
+      expect(requiredRejections(3)).toBe(1);
     });
 
     it("should return pending when no votes yet (for auto-accept at timeout)", () => {

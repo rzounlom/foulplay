@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
+import { voteThreshold, canResolveSubmission } from "@/lib/game/approval";
 
 interface Card {
   id: string;
@@ -70,7 +71,8 @@ export function VotingUI({
 }: VotingUIProps) {
   const [isVoting, setIsVoting] = useState<Record<string, boolean>>({});
   
-  const requiredApprovals = Math.ceil(totalPlayers / 2);
+  const votesNeeded = voteThreshold(totalPlayers);
+  const eligibleVoters = totalPlayers - 1;
 
   // Calculate vote counts per card
   const cardVoteData = useMemo(() => {
@@ -81,10 +83,12 @@ export function VotingUI({
       const userVoteRecord = votes.find((v) => v.voter.user.id === currentUserId);
       const hasVoted = !!userVoteRecord;
       const userVote = userVoteRecord?.vote ?? null;
-      const resolution = 
-        approvalVotes >= requiredApprovals ? "approved" :
-        rejectionVotes >= requiredApprovals ? "rejected" :
-        "pending";
+      const resolution = canResolveSubmission(
+        totalPlayers,
+        approvalVotes,
+        rejectionVotes,
+        eligibleVoters,
+      );
 
       return {
         cardInstanceId: cardInstance.id,
@@ -95,7 +99,7 @@ export function VotingUI({
         resolution,
       };
     });
-  }, [submission.cardInstances, currentUserId, requiredApprovals]);
+  }, [submission.cardInstances, currentUserId, totalPlayers, eligibleVoters]);
 
   const canVote =
     !votingPaused &&
@@ -236,7 +240,7 @@ export function VotingUI({
                 <div className="text-[10px] mb-3">
                   <div className="flex items-center justify-between">
                     <span className="text-neutral-500 dark:text-neutral-400">
-                      Approve: {cardData.approvalVotes}/{requiredApprovals}
+                      Approve: {cardData.approvalVotes}/{votesNeeded}
                     </span>
                     <span className="text-neutral-500 dark:text-neutral-400">
                       Reject: {cardData.rejectionVotes}

@@ -1,6 +1,7 @@
 "use client";
 
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
+import { voteThreshold } from "@/lib/game/approval";
 
 interface Card {
   id: string;
@@ -40,7 +41,7 @@ interface SubmissionPendingProps {
 export function SubmissionPending({ submission, totalPlayers, roomMode = null }: SubmissionPendingProps) {
   const approvalVotes = submission.votes.filter((v) => v.vote === true).length;
   const rejectionVotes = submission.votes.filter((v) => v.vote === false).length;
-  const requiredApprovals = Math.ceil(totalPlayers / 2);
+  const votesNeeded = voteThreshold(totalPlayers);
 
   return (
     <div className="bg-surface rounded-lg p-4 md:p-6 border border-border shadow-sm dark:shadow-none">
@@ -91,7 +92,7 @@ export function SubmissionPending({ submission, totalPlayers, roomMode = null }:
       <div>
         <div className="flex items-center justify-between text-sm mb-2">
           <span className="text-neutral-600 dark:text-neutral-400">
-            Approvals: {approvalVotes}/{requiredApprovals}
+            Approvals: {approvalVotes}/{votesNeeded}
           </span>
           <span className="text-neutral-600 dark:text-neutral-400">
             Rejections: {rejectionVotes}
@@ -101,7 +102,7 @@ export function SubmissionPending({ submission, totalPlayers, roomMode = null }:
           <div
             className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
             style={{
-              width: `${Math.min((approvalVotes / requiredApprovals) * 100, 100)}%`,
+              width: `${Math.min((approvalVotes / votesNeeded) * 100, 100)}%`,
             }}
           />
         </div>

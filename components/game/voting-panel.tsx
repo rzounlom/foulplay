@@ -3,8 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { getCardDescriptionForDisplay } from "@/lib/game/display";
-
 import { AUTO_ACCEPT_SECONDS } from "@/lib/game/constants";
+import { voteThreshold, canResolveSubmission } from "@/lib/game/approval";
 
 interface Card {
   id: string;
@@ -88,7 +88,7 @@ export function VotingPanel({
     setVotedAllSubmissionIds(new Set());
   }, [submissionIdsKey]);
 
-  const requiredApprovals = Math.ceil(totalPlayers / 2);
+  const votesNeeded = voteThreshold(totalPlayers);
 
   const isAnyVoteInProgress = Object.values(isVoting).some(Boolean);
 
@@ -246,12 +246,12 @@ export function VotingPanel({
                   const approvalVotes = votes.filter((v) => v.vote === true).length;
                   const rejectionVotes = votes.filter((v) => v.vote === false).length;
                   const hasVoted = votes.some((v) => v.voter.user.id === currentUserId);
-                  const resolution =
-                    approvalVotes >= requiredApprovals
-                      ? "approved"
-                      : rejectionVotes >= requiredApprovals
-                        ? "rejected"
-                        : "pending";
+                  const resolution = canResolveSubmission(
+                    totalPlayers,
+                    approvalVotes,
+                    rejectionVotes,
+                    totalPlayers - 1,
+                  );
 
                   return (
                     <div
@@ -295,7 +295,7 @@ export function VotingPanel({
                       {resolution === "pending" && (
                         <div className="space-y-2 pt-3 mt-auto">
                           <div className="flex items-center justify-between text-xs text-neutral-500">
-                            <span>Approve: {approvalVotes}/{requiredApprovals}</span>
+                            <span>Approve: {approvalVotes}/{votesNeeded}</span>
                             <span>Reject: {rejectionVotes}</span>
                           </div>
                           {canVoteThis && !hasVoted && (
