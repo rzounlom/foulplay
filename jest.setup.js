@@ -1,6 +1,11 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import "@testing-library/jest-dom";
 
+jest.mock("@/lib/analytics/track-event", () => ({
+  trackEvent: jest.fn().mockResolvedValue(undefined),
+  trackEventFireAndForget: jest.fn(),
+}));
+
 // Polyfill for Next.js Request/Response APIs in Jest
 import { TextEncoder, TextDecoder } from "util";
 

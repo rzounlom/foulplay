@@ -13,6 +13,7 @@ import {
 } from "@/lib/game/party-chain";
 import { z } from "zod";
 import { emitPublicChaosEvent } from "@/lib/analytics/public-chaos-events";
+import { trackEventFireAndForget } from "@/lib/analytics/track-event";
 
 const bodySchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
@@ -134,6 +135,17 @@ export async function POST(request: NextRequest) {
         hostUserId: user.id,
       });
     }
+
+    trackEventFireAndForget({
+      name: "rematch_started",
+      userId: user.id,
+      props: {
+        previousRoomCode: room.code,
+        newRoomCode: created.code,
+        isPublicChaos: room.isPublicChaos,
+        readyPlayerCount: ready.length,
+      },
+    });
 
     return NextResponse.json({
       success: true,

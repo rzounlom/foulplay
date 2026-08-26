@@ -1,6 +1,9 @@
 /**
- * Structured public chaos analytics — logs + optional webhook for future monetization / dashboards.
+ * Public chaos analytics — persists via trackEvent + optional webhook (legacy export).
  */
+
+import type { PublicChaosJoinSource } from "@/lib/analytics/events";
+import { trackEventFireAndForget } from "@/lib/analytics/track-event";
 
 export type PublicChaosEventName =
   | "public_room_created"
@@ -9,27 +12,24 @@ export type PublicChaosEventName =
   | "public_room_run_it_back"
   | "public_room_abandoned";
 
-export type PublicChaosJoinSource = "drop_in" | "invite_link";
+export type { PublicChaosJoinSource };
 
-/** Single JSON line per event; extend payloads in callers as product needs grow. */
 export function emitPublicChaosEvent(
   name: PublicChaosEventName,
   payload: Record<string, unknown>,
 ): void {
-  const record = {
-    event: name,
-    ts: new Date().toISOString(),
-    ...payload,
-  };
-  const line = JSON.stringify(record);
-  console.info("[public_chaos_analytics]", line);
+  const userId =
+    typeof payload.userId === "string"
+      ? payload.userId
+      : typeof payload.hostUserId === "string"
+        ? payload.hostUserId
+        : null;
+  const roomId = typeof payload.roomId === "string" ? payload.roomId : null;
 
-  const url = process.env.PUBLIC_CHAOS_ANALYTICS_WEBHOOK_URL;
-  if (url) {
-    void fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: line,
-    }).catch(() => {});
-  }
+  trackEventFireAndForget({
+    name,
+    userId,
+    roomId,
+    props: payload,
+  });
 }

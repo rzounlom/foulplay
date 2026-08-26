@@ -10,6 +10,7 @@ import {
   type PublicChaosJoinSource,
 } from "@/lib/analytics/public-chaos-events";
 import { assertDrinkingModeAccess } from "@/lib/user/age-gate";
+import { trackEventFireAndForget } from "@/lib/analytics/track-event";
 
 export type JoinRoomUser = { id: string; name: string };
 
@@ -172,6 +173,21 @@ export async function joinRoomCore(
       playerCount: after.players.length,
       joinSource: options?.joinSource ?? "invite_link",
       roomStatusAtJoin: room.status,
+    });
+  }
+
+  if (after) {
+    trackEventFireAndForget({
+      name: "room_joined",
+      userId: user.id,
+      roomId: room.id,
+      props: {
+        roomCode: room.code,
+        playerCount: after.players.length,
+        joinSource: options?.joinSource ?? "invite_link",
+        isPublicChaos: room.isPublicChaos,
+        roomStatusAtJoin: room.status,
+      },
     });
   }
 

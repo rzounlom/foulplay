@@ -2,6 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { createClerkClient } from "@clerk/backend";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { trackEventFireAndForget } from "@/lib/analytics/track-event";
 
 function clerkUserName(clerkUser: { firstName: string | null; lastName: string | null; username: string | null; emailAddresses: { emailAddress: string }[] }): string {
   return clerkUser.firstName && clerkUser.lastName
@@ -107,6 +108,11 @@ async function syncUserToDb(clerkId: string, name: string) {
   if (!user) {
     user = await prisma.user.create({
       data: { clerkId, name },
+    });
+    trackEventFireAndForget({
+      name: "user_signup_synced",
+      userId: user.id,
+      props: { clerkId },
     });
   } else if (user.name !== name) {
     user = await prisma.user.update({

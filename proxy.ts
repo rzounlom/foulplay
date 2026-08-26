@@ -7,6 +7,8 @@ const isProtectedRoute = createRouteMatcher([
   "/game(.*)",
   "/api/game(.*)",
   "/api/rooms(.*)",
+  "/admin(.*)",
+  "/api/admin(.*)",
 ]);
 
 const APP_ROUTES = [
@@ -15,6 +17,7 @@ const APP_ROUTES = [
   "/game",
   "/games",
   "/profile",
+  "/admin",
   "/sign-in",
   "/sign-up",
   "/active-games",

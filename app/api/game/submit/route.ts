@@ -9,6 +9,7 @@ import {
   getAutoAcceptQstashDelay,
   getAutoAcceptSeconds,
 } from "@/lib/game/constants";
+import { trackEventFireAndForget } from "@/lib/analytics/track-event";
 import { z } from "zod";
 
 const submitCardSchema = z.object({
@@ -238,6 +239,17 @@ export async function POST(request: NextRequest) {
     } catch (ablyError) {
       console.error("Failed to publish Ably event:", ablyError);
     }
+
+    trackEventFireAndForget({
+      name: "submission_created",
+      userId: user.id,
+      roomId: room.id,
+      props: {
+        roomCode: room.code,
+        submissionId: submission.id,
+        cardCount: cardInstances.length,
+      },
+    });
 
     return NextResponse.json({
       success: true,

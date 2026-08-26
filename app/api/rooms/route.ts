@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db/prisma";
 import { gameModeSchemaOptional } from "@/lib/game/modes";
 import { emitPublicChaosEvent } from "@/lib/analytics/public-chaos-events";
 import { assertDrinkingModeAccess } from "@/lib/user/age-gate";
+import { trackEventFireAndForget } from "@/lib/analytics/track-event";
 import { z } from "zod";
 
 const createRoomSchema = z.object({
@@ -101,6 +102,20 @@ export async function POST(request: NextRequest) {
         hostUserId: user.id,
       });
     }
+
+    trackEventFireAndForget({
+      name: "room_created",
+      userId: user.id,
+      roomId: room.id,
+      props: {
+        roomCode: room.code,
+        mode: mode ?? null,
+        sport: sport ?? null,
+        handSize: handSize ?? 6,
+        isPublicChaos: !!isPublicChaos,
+        createdVia: isPublicChaos ? "host_create" : "private",
+      },
+    });
 
     // Fetch room with players
     const roomWithPlayers = await prisma.room.findUnique({

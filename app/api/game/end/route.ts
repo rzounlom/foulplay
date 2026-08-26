@@ -6,6 +6,7 @@ import {
   buildPartyMetaAfterGameEnd,
   parsePartyChainMeta,
 } from "@/lib/game/party-chain";
+import { trackEventFireAndForget } from "@/lib/analytics/track-event";
 import { z } from "zod";
 
 const endGameSchema = z.object({
@@ -208,6 +209,20 @@ export async function POST(request: NextRequest) {
     } catch (ablyError) {
       console.error("Failed to publish Ably event:", ablyError);
     }
+
+    const durationMs = Date.now() - room.createdAt.getTime();
+    trackEventFireAndForget({
+      name: "game_ended",
+      userId: user.id,
+      roomId: room.id,
+      props: {
+        roomCode: room.code,
+        playerCount: room.players.length,
+        isPublicChaos: room.isPublicChaos,
+        durationMs,
+        winnerUserId: winner.userId,
+      },
+    });
 
     return NextResponse.json({
       success: true,

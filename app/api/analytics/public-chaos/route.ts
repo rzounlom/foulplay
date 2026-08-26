@@ -34,9 +34,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { event: _e, ...rest } = parsed.data;
     emitPublicChaosEvent("public_room_abandoned", {
-      ...rest,
+      ...parsed.data,
       userId: user.id,
     });
 

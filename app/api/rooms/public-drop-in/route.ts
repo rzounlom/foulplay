@@ -10,6 +10,7 @@ import {
   userCanAccessDrinkingMode,
   getUserAgeGate,
 } from "@/lib/user/age-gate";
+import { trackEventFireAndForget } from "@/lib/analytics/track-event";
 
 /**
  * POST — matchmake into a live public chaos room or spawn a new lobby.
@@ -35,6 +36,16 @@ export async function POST(_request: NextRequest) {
         { joinSource: "drop_in" },
       );
       if (joined.ok) {
+        trackEventFireAndForget({
+          name: "drop_in_matched",
+          userId: user.id,
+          roomId: joined.room.id,
+          props: {
+            roomCode: joined.room.code,
+            created: false,
+            status: joined.room.status,
+          },
+        });
         return NextResponse.json({
           code: joined.room.code,
           status: joined.room.status,
@@ -47,6 +58,17 @@ export async function POST(_request: NextRequest) {
     const room = await prisma.room.findUnique({
       where: { id: newRoom.id },
       select: { code: true, status: true },
+    });
+
+    trackEventFireAndForget({
+      name: "drop_in_matched",
+      userId: user.id,
+      roomId: newRoom.id,
+      props: {
+        roomCode: room?.code ?? newRoom.code,
+        created: true,
+        status: room?.status ?? "lobby",
+      },
     });
 
     return NextResponse.json({

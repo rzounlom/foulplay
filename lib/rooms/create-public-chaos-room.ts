@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { generateRoomCode } from "@/lib/rooms/utils";
 import { emitPublicChaosEvent } from "@/lib/analytics/public-chaos-events";
+import { trackEventFireAndForget } from "@/lib/analytics/track-event";
 
 /**
  * New drop-in lobby: one host player, defaults suitable for instant matchmaking.
@@ -57,6 +58,19 @@ export async function createPublicChaosLobbyRoom(user: {
     playerCount: 1,
     createdVia: "matchmaking",
     hostUserId: user.id,
+  });
+
+  trackEventFireAndForget({
+    name: "room_created",
+    userId: user.id,
+    roomId: out.id,
+    props: {
+      roomCode: out.code,
+      isPublicChaos: true,
+      createdVia: "matchmaking",
+      mode: "party",
+      sport: "football",
+    },
   });
 
   return out;

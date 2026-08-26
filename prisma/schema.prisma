@@ -181,3 +181,16 @@ model WaitlistSignup {
 
   @@index([email])
 }
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String?
+  roomId    String?
+  props     Json?
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}

@@ -9,6 +9,7 @@ import {
 } from "@/lib/game/engine";
 import { getRoomChannel } from "@/lib/ably/client";
 import { emitPublicChaosEvent } from "@/lib/analytics/public-chaos-events";
+import { trackEventFireAndForget } from "@/lib/analytics/track-event";
 
 export async function startRoomGameInternal(opts: {
   roomCode: string;
@@ -162,6 +163,20 @@ export async function startRoomGameInternal(opts: {
       publicChaosAuto: !!opts.publicChaosAuto,
     });
   }
+
+  trackEventFireAndForget({
+    name: "game_started",
+    userId: opts.actingUserId,
+    roomId: room.id,
+    props: {
+      roomCode: room.code,
+      playerCount: room.players.length,
+      isPublicChaos: room.isPublicChaos,
+      publicChaosAuto: !!opts.publicChaosAuto,
+      mode: room.mode,
+      sport: room.sport,
+    },
+  });
 
   return { ok: true };
 }

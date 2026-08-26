@@ -3,6 +3,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { trackEventFireAndForget } from "@/lib/analytics/track-event";
 
 const ageConfirmSchema = z.object({
   is21Plus: z.boolean(),
@@ -43,6 +44,12 @@ export async function POST(request: NextRequest) {
         is21Plus: true,
         ageConfirmedAt: true,
       },
+    });
+
+    trackEventFireAndForget({
+      name: "age_gate_confirmed",
+      userId: user.id,
+      props: { is21Plus },
     });
 
     return NextResponse.json({
