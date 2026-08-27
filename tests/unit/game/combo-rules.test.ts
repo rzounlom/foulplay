@@ -33,7 +33,7 @@ describe("combo-rules", () => {
   describe("getTitleClusterIndex", () => {
     it("maps related titles to the same cluster", () => {
       expect(getTitleClusterIndex("Complete Pass")).toBe(
-        getTitleClusterIndex("Incomplete Pass"),
+        getTitleClusterIndex("Dropped Pass"),
       );
       expect(getTitleClusterIndex("Touchdown")).toBe(
         getTitleClusterIndex("Field Goal"),
@@ -58,7 +58,7 @@ describe("combo-rules", () => {
     it("flags cards when another hand card shares an event cluster", () => {
       expect(
         cardShowsComboInsight(passCard, {
-          hand: [passCard, { ...passCard, id: "def_inc", title: "Incomplete Pass" }],
+          hand: [passCard, { ...passCard, id: "def_drop", title: "Dropped Pass" }],
           identityGroupSize: 1,
         }),
       ).toBe(true);
@@ -94,15 +94,15 @@ describe("combo-rules", () => {
     });
 
     it("shows combo when two cards share a cluster", () => {
-      const incomplete = { ...passCard, id: "def_inc", title: "Incomplete Pass" };
+      const dropped = { ...passCard, id: "def_drop", title: "Dropped Pass" };
       const hand = [
         { id: "i1", card: passCard },
-        { id: "i2", card: incomplete },
+        { id: "i2", card: dropped },
       ];
       const groups = buildIdentityGroups(hand);
       expect(
         computeSelectionComboFeedback(
-          [passCard, incomplete],
+          [passCard, dropped],
           hand.map((h) => h.card),
           groups,
           ["i1", "i2"],
@@ -114,7 +114,7 @@ describe("combo-rules", () => {
     });
 
     it("shows big swing for three-card combo selections", () => {
-      const incomplete = { ...passCard, id: "def_inc", title: "Incomplete Pass" };
+      const dropped = { ...passCard, id: "def_drop", title: "Dropped Pass" };
       const interception = {
         ...passCard,
         id: "def_int",
@@ -122,11 +122,11 @@ describe("combo-rules", () => {
       };
       const hand = [
         { id: "i1", card: passCard },
-        { id: "i2", card: incomplete },
+        { id: "i2", card: dropped },
         { id: "i3", card: interception },
       ];
       const groups = buildIdentityGroups(hand);
-      const selected = [passCard, incomplete, interception];
+      const selected = [passCard, dropped, interception];
       expect(
         computeSelectionComboFeedback(
           selected,

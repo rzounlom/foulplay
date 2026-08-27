@@ -13,12 +13,12 @@ export type ComboCardFields = CardLike & {
 
 /** Event families that often fire close together during live play. */
 const TITLE_CLUSTER_KEYWORDS: readonly string[][] = [
-  ["pass", "complete", "incomplete", "interception", "qb"],
+  ["pass", "complete", "incomplete", "interception", "qb", "drop", "deflect"],
   ["run", "rush", "scramble", "slide", "carry"],
   ["score", "touchdown", "field goal", "basket", "dunk", "three"],
-  ["penalty", "flag", "foul", "technical"],
+  ["penalty", "flag", "foul", "technical", "roughing"],
   ["turnover", "fumble", "steal", "block"],
-  ["kick", "punt", "return", "special"],
+  ["kick", "punt", "return", "special", "onside"],
 ];
 
 export function getTitleClusterIndex(title: string): number | null {

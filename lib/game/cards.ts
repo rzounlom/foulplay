@@ -39,19 +39,10 @@ export const PENALTIES = {
 } as const;
 
 // -------------------
-// FOOTBALL (Revamped ~55 + High-Frequency Add-ons)
+// FOOTBALL — NFL launch deck (gameplay-aligned pacing)
 // -------------------
 export const FOOTBALL_CARDS: CardDefinition[] = [
   // Mild (Common Gameplay Events)
-  {
-    sport: "football",
-    title: "Incomplete Pass",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "common",
-  },
   {
     sport: "football",
     title: "Complete Pass",
@@ -253,8 +244,8 @@ export const FOOTBALL_CARDS: CardDefinition[] = [
     description: PENALTIES.TWO_DRINKS,
     severity: "moderate",
     type: "penalty",
-    points: 4,
-    tier: "common",
+    points: 5,
+    tier: "rare",
   },
 
   {
@@ -306,20 +297,20 @@ export const FOOTBALL_CARDS: CardDefinition[] = [
   },
   {
     sport: "football",
-    title: "Turnover (Any)",
+    title: "Interception",
     description: PENALTIES.TWO_DRINKS,
     severity: "moderate",
     type: "penalty",
-    points: 5,
-    tier: "common",
+    points: 6,
+    tier: "rare",
   },
   {
     sport: "football",
-    title: "Interception",
-    description: PENALTIES.SHOT,
+    title: "Turnover on Downs",
+    description: PENALTIES.TWO_DRINKS,
     severity: "moderate",
     type: "penalty",
-    points: 5,
+    points: 3,
     tier: "common",
   },
 
@@ -573,8 +564,8 @@ export const FOOTBALL_CARDS: CardDefinition[] = [
     description: PENALTIES.TWO_DRINKS,
     severity: "moderate",
     type: "penalty",
-    points: 4,
-    tier: "common",
+    points: 5,
+    tier: "rare",
   },
   {
     sport: "football",
@@ -634,7 +625,7 @@ export const FOOTBALL_CARDS: CardDefinition[] = [
     severity: "mild",
     type: "penalty",
     points: 1,
-    tier: "common",
+    tier: "hf",
   },
   {
     sport: "football",
@@ -661,7 +652,7 @@ export const FOOTBALL_CARDS: CardDefinition[] = [
     severity: "mild",
     type: "penalty",
     points: 1,
-    tier: "common",
+    tier: "hf",
   },
   {
     sport: "football",
@@ -670,7 +661,7 @@ export const FOOTBALL_CARDS: CardDefinition[] = [
     severity: "mild",
     type: "penalty",
     points: 1,
-    tier: "common",
+    tier: "hf",
   },
   {
     sport: "football",
@@ -679,63 +670,7 @@ export const FOOTBALL_CARDS: CardDefinition[] = [
     severity: "mild",
     type: "penalty",
     points: 1,
-    tier: "common",
-  },
-
-  // Jersey / Team Color (always true, keeps flow)
-  {
-    sport: "football",
-    title: "Team Wearing White Jerseys",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
     tier: "hf",
-  },
-  {
-    sport: "football",
-    title: "Team Wearing Dark Jerseys",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "hf",
-  },
-  {
-    sport: "football",
-    title: "Team Has Red in Jerseys",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "common",
-  },
-  {
-    sport: "football",
-    title: "Team Has Blue in Jerseys",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "common",
-  },
-  {
-    sport: "football",
-    title: "Team Has Black in Jerseys",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "common",
-  },
-  {
-    sport: "football",
-    title: "Team Has Green in Jerseys",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "common",
   },
 
   // Ref / Flags / Chains (constant appearances)
@@ -867,7 +802,7 @@ export const FOOTBALL_CARDS: CardDefinition[] = [
     severity: "mild",
     type: "penalty",
     points: 1,
-    tier: "hf",
+    tier: "common",
   },
   {
     sport: "football",
@@ -876,7 +811,7 @@ export const FOOTBALL_CARDS: CardDefinition[] = [
     severity: "mild",
     type: "penalty",
     points: 1,
-    tier: "hf",
+    tier: "common",
   },
 
   // Announcer Phrases (super common)
@@ -1051,6 +986,164 @@ export const FOOTBALL_CARDS: CardDefinition[] = [
   {
     sport: "football",
     title: "Camera Shows a Player on the Bench",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "hf",
+  },
+
+  // -------------------
+  // NFL launch additions — core moments & pacing
+  // -------------------
+
+  // Down & distance (frequent tension)
+  {
+    sport: "football",
+    title: "4th Down Attempt",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 2,
+    tier: "common",
+  },
+  {
+    sport: "football",
+    title: "4th Down Converted",
+    description: PENALTIES.TWO_DRINKS,
+    severity: "moderate",
+    type: "penalty",
+    points: 3,
+    tier: "common",
+  },
+  {
+    sport: "football",
+    title: "Dropped Pass",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "common",
+  },
+  {
+    sport: "football",
+    title: "Pass Deflected",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "common",
+  },
+  {
+    sport: "football",
+    title: "QB Under Pressure",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "common",
+  },
+  {
+    sport: "football",
+    title: "Roughing the Passer",
+    description: PENALTIES.TWO_DRINKS,
+    severity: "moderate",
+    type: "penalty",
+    points: 4,
+    tier: "common",
+  },
+
+  // Special teams (non-TD returns)
+  {
+    sport: "football",
+    title: "Punt Return (No TD)",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "common",
+  },
+  {
+    sport: "football",
+    title: "Kick Return (No TD)",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "common",
+  },
+  {
+    sport: "football",
+    title: "Onside Kick",
+    description: PENALTIES.TWO_DRINKS,
+    severity: "moderate",
+    type: "penalty",
+    points: 5,
+    tier: "rare",
+  },
+
+  // Scoring & clock
+  {
+    sport: "football",
+    title: "Extra Point Made",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "common",
+  },
+  {
+    sport: "football",
+    title: "Spike or Kneel Down",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "common",
+  },
+  {
+    sport: "football",
+    title: "Two-Minute Drill",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 2,
+    tier: "common",
+  },
+  {
+    sport: "football",
+    title: "Halftime",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 2,
+    tier: "rare",
+  },
+
+  // Challenges & reviews
+  {
+    sport: "football",
+    title: "Challenge Stands",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "common",
+  },
+  {
+    sport: "football",
+    title: "Challenge Overturned",
+    description: PENALTIES.TWO_DRINKS,
+    severity: "moderate",
+    type: "penalty",
+    points: 3,
+    tier: "common",
+  },
+
+  // Broadcast (high hit-rate)
+  {
+    sport: "football",
+    title: "Announcer Says 'Blitz'",
     description: PENALTIES.DRINK,
     severity: "mild",
     type: "penalty",
