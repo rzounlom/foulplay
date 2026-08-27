@@ -513,11 +513,6 @@ export function Hand({
                 )}
                 {isNonDrinkingMode(roomMode) && " ⚖️"}
               </p>
-              <p className="text-xs text-primary dark:text-primary/90 font-medium">
-                {selectedIds.length}{" "}
-                {selectedIds.length === 1 ? "card" : "cards"} → potential +
-                {selectedSubmissionPotentialPoints} pts 😏
-              </p>
               {selectionComboFeedback.comboLine ? (
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
                   {selectionComboFeedback.comboLine}
