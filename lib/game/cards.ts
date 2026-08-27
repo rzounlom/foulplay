@@ -1153,7 +1153,7 @@ export const FOOTBALL_CARDS: CardDefinition[] = [
 ];
 
 // -------------------
-// BASKETBALL (Revamped ~50 + High-Frequency Add-ons)
+// BASKETBALL — gameplay-aligned pacing (mirrors NFL deck pass)
 // -------------------
 export const BASKETBALL_CARDS: CardDefinition[] = [
   // Mild (Common Events)
@@ -1202,16 +1202,6 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
     points: 1,
     tier: "common",
   },
-  {
-    sport: "basketball",
-    title: "Missed Layup",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "common",
-  },
-
   {
     sport: "basketball",
     title: "Defensive Rebound",
@@ -1270,16 +1260,6 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
   },
   {
     sport: "basketball",
-    title: "Shooting Foul",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "common",
-  },
-
-  {
-    sport: "basketball",
     title: "Timeout",
     description: PENALTIES.DRINK,
     severity: "mild",
@@ -1336,15 +1316,6 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
 
   {
     sport: "basketball",
-    title: "Out of Bounds Turnover",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "common",
-  },
-  {
-    sport: "basketball",
     title: "Fast Break Score",
     description: PENALTIES.DRINK,
     severity: "mild",
@@ -1369,8 +1340,8 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
     description: PENALTIES.TWO_DRINKS,
     severity: "moderate",
     type: "penalty",
-    points: 4,
-    tier: "common",
+    points: 5,
+    tier: "rare",
   },
   {
     sport: "basketball",
@@ -1387,8 +1358,8 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
     description: PENALTIES.THREE_DRINKS,
     severity: "moderate",
     type: "penalty",
-    points: 5,
-    tier: "common",
+    points: 6,
+    tier: "rare",
   },
 
   {
@@ -1417,7 +1388,7 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
     severity: "moderate",
     type: "penalty",
     points: 5,
-    tier: "common",
+    tier: "rare",
   },
   {
     sport: "basketball",
@@ -1433,11 +1404,11 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
   {
     sport: "basketball",
     title: "Buzzer Beater (End of Quarter)",
-    description: PENALTIES.SHOT,
-    severity: "severe",
+    description: PENALTIES.TWO_DRINKS,
+    severity: "moderate",
     type: "penalty",
-    points: 6,
-    tier: "common",
+    points: 5,
+    tier: "rare",
   },
   {
     sport: "basketball",
@@ -1455,7 +1426,7 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
     severity: "severe",
     type: "penalty",
     points: 8,
-    tier: "common",
+    tier: "rare",
   },
   {
     sport: "basketball",
@@ -1473,7 +1444,7 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
     severity: "severe",
     type: "penalty",
     points: 7,
-    tier: "common",
+    tier: "rare",
   },
   {
     sport: "basketball",
@@ -1482,7 +1453,25 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
     severity: "severe",
     type: "penalty",
     points: 8,
-    tier: "common",
+    tier: "rare",
+  },
+  {
+    sport: "basketball",
+    title: "Coach Ejected",
+    description: PENALTIES.SHOTGUN,
+    severity: "severe",
+    type: "penalty",
+    points: 8,
+    tier: "rare",
+  },
+  {
+    sport: "basketball",
+    title: "Halftime",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 2,
+    tier: "rare",
   },
 
   // Fun / Broadcast Moments
@@ -1709,54 +1698,7 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
     severity: "mild",
     type: "penalty",
     points: 1,
-    tier: "common",
-  },
-
-  // Team / Jersey Color (always present)
-  {
-    sport: "basketball",
-    title: "Team Wearing White Jerseys",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
     tier: "hf",
-  },
-  {
-    sport: "basketball",
-    title: "Team Wearing Dark Jerseys",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "hf",
-  },
-  {
-    sport: "basketball",
-    title: "Team Has Red in Jerseys",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "common",
-  },
-  {
-    sport: "basketball",
-    title: "Team Has Blue in Jerseys",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "common",
-  },
-  {
-    sport: "basketball",
-    title: "Team Has Black in Jerseys",
-    description: PENALTIES.DRINK,
-    severity: "mild",
-    type: "penalty",
-    points: 1,
-    tier: "common",
   },
 
   // Broadcast / Graphics (constant)
@@ -1841,7 +1783,7 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
     severity: "mild",
     type: "penalty",
     points: 1,
-    tier: "hf",
+    tier: "common",
   },
   {
     sport: "basketball",
@@ -2011,7 +1953,7 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
     severity: "mild",
     type: "penalty",
     points: 1,
-    tier: "hf",
+    tier: "common",
   },
   {
     sport: "basketball",
@@ -2020,7 +1962,7 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
     severity: "mild",
     type: "penalty",
     points: 1,
-    tier: "hf",
+    tier: "common",
   },
 
   // “Always Works” Wildcards
@@ -2054,6 +1996,137 @@ export const BASKETBALL_CARDS: CardDefinition[] = [
   {
     sport: "basketball",
     title: "Camera Shows Player on the Bench",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "hf",
+  },
+
+  // -------------------
+  // Basketball launch additions — core moments & pacing
+  // -------------------
+
+  // Fouls & violations
+  {
+    sport: "basketball",
+    title: "Charge Taken / Offensive Foul",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 2,
+    tier: "common",
+  },
+  {
+    sport: "basketball",
+    title: "Goaltending",
+    description: PENALTIES.TWO_DRINKS,
+    severity: "moderate",
+    type: "penalty",
+    points: 3,
+    tier: "common",
+  },
+  {
+    sport: "basketball",
+    title: "Intentional Foul",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 2,
+    tier: "common",
+  },
+  {
+    sport: "basketball",
+    title: "Jump Ball",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "common",
+  },
+
+  // Reviews
+  {
+    sport: "basketball",
+    title: "Challenge Stands",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "common",
+  },
+  {
+    sport: "basketball",
+    title: "Challenge Overturned",
+    description: PENALTIES.TWO_DRINKS,
+    severity: "moderate",
+    type: "penalty",
+    points: 3,
+    tier: "common",
+  },
+
+  // Dunks & highlights
+  {
+    sport: "basketball",
+    title: "Poster Dunk",
+    description: PENALTIES.TWO_DRINKS,
+    severity: "moderate",
+    type: "penalty",
+    points: 4,
+    tier: "common",
+  },
+  {
+    sport: "basketball",
+    title: "Missed Dunk",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 2,
+    tier: "common",
+  },
+
+  // Clock & quarters
+  {
+    sport: "basketball",
+    title: "End of Quarter",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 2,
+    tier: "common",
+  },
+
+  // Broadcast graphics (high hit-rate)
+  {
+    sport: "basketball",
+    title: "Graphic Shows Lead Change",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "hf",
+  },
+  {
+    sport: "basketball",
+    title: "Graphic Shows Crunch Time",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "hf",
+  },
+  {
+    sport: "basketball",
+    title: "Announcer Says 'Pick and Roll'",
+    description: PENALTIES.DRINK,
+    severity: "mild",
+    type: "penalty",
+    points: 1,
+    tier: "hf",
+  },
+  {
+    sport: "basketball",
+    title: "Player Subbed In",
     description: PENALTIES.DRINK,
     severity: "mild",
     type: "penalty",

@@ -15,10 +15,12 @@ export type ComboCardFields = CardLike & {
 const TITLE_CLUSTER_KEYWORDS: readonly string[][] = [
   ["pass", "complete", "incomplete", "interception", "qb", "drop", "deflect"],
   ["run", "rush", "scramble", "slide", "carry"],
-  ["score", "touchdown", "field goal", "basket", "dunk", "three"],
-  ["penalty", "flag", "foul", "technical", "roughing"],
+  ["score", "touchdown", "field goal", "basket", "dunk", "three", "layup", "poster"],
+  ["penalty", "flag", "foul", "technical", "roughing", "charge", "offensive", "intentional", "flagrant"],
   ["turnover", "fumble", "steal", "block"],
   ["kick", "punt", "return", "special", "onside"],
+  ["challenge", "review", "overturn"],
+  ["goaltend", "goaltending", "jump ball"],
 ];
 
 export function getTitleClusterIndex(title: string): number | null {
