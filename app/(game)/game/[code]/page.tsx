@@ -3,6 +3,9 @@ import { prisma } from "@/lib/db/prisma";
 import { redirect } from "next/navigation";
 import { Lobby } from "@/components/game/lobby";
 import { GameBoard, type Room } from "@/components/game/game-board";
+import { getUserEntitlements } from "@/lib/billing/entitlements";
+import { getLobbyPartnerLinks } from "@/lib/partners/lobby-links";
+import { isStripeConfigured } from "@/lib/stripe/client";
 
 export default async function GameRoomPage({
   params,
@@ -65,9 +68,22 @@ export default async function GameRoomPage({
     redirect(`/join?code=${roomCode}`);
   }
 
+  const entitlements = getUserEntitlements(user);
+  const isPremium = entitlements.isAdFree;
+  const partnerLinks = getLobbyPartnerLinks(room.sport);
+  const stripeEnabled = isStripeConfigured();
+  const lobbyExtras = { isPremium, partnerLinks, stripeEnabled };
+
   // Render lobby or game board based on room status
   if (room.status === "lobby") {
-    return <Lobby roomCode={roomCode} currentUserId={user.id} initialRoom={room} />;
+    return (
+      <Lobby
+        roomCode={roomCode}
+        currentUserId={user.id}
+        initialRoom={room}
+        {...lobbyExtras}
+      />
+    );
   }
 
   if (room.status === "active") {
@@ -91,5 +107,12 @@ export default async function GameRoomPage({
     }
   }
 
-  return <Lobby roomCode={roomCode} currentUserId={user.id} initialRoom={room} />;
+  return (
+    <Lobby
+      roomCode={roomCode}
+      currentUserId={user.id}
+      initialRoom={room}
+      {...lobbyExtras}
+    />
+  );
 }

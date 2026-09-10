@@ -11,6 +11,13 @@ export const ANALYTICS_EVENTS = [
   "rematch_started",
   "drop_in_matched",
   "submission_created",
+  "subscription_checkout_started",
+  "subscription_activated",
+  "paywall_viewed",
+  "paywall_triggered",
+  "checkout_started",
+  "checkout_completed",
+  "checkout_canceled",
   // Legacy public chaos names (still emitted for webhook compat)
   "public_room_created",
   "public_room_joined",

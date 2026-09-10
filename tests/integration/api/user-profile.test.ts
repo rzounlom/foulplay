@@ -58,6 +58,13 @@ const mockProfile = {
   gamesWon: 0,
   totalPoints: 0,
   skipTour: false,
+  is21Plus: true,
+  ageConfirmedAt: new Date(),
+  subscriptionStatus: "free",
+  subscriptionCurrentPeriodEnd: null as Date | null,
+  gameNightPassExpiresAt: null as Date | null,
+  lifetimeAccess: false,
+  stripeCustomerId: null as string | null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

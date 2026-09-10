@@ -17,6 +17,7 @@ const APP_ROUTES = [
   "/game",
   "/games",
   "/profile",
+  "/upgrade",
   "/admin",
   "/sign-in",
   "/sign-up",

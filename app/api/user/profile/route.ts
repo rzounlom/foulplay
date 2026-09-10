@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
+import { withProfileBilling } from "@/lib/billing/profile-billing";
 
 const updateProfileSchema = z.object({
   defaultNickname: z
@@ -10,6 +11,56 @@ const updateProfileSchema = z.object({
     .transform((v) => (v === "" ? null : v)),
   skipTour: z.boolean().optional(),
 });
+
+const profileSelect = {
+  id: true,
+  name: true,
+  defaultNickname: true,
+  gamesPlayed: true,
+  gamesWon: true,
+  totalPoints: true,
+  skipTour: true,
+  is21Plus: true,
+  ageConfirmedAt: true,
+  subscriptionStatus: true,
+  subscriptionCurrentPeriodEnd: true,
+  gameNightPassExpiresAt: true,
+  lifetimeAccess: true,
+  stripeCustomerId: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+function toProfileJson(
+  profile: {
+    id: string;
+    name: string;
+    defaultNickname: string | null;
+    gamesPlayed: number;
+    gamesWon: number;
+    totalPoints: number;
+    skipTour: boolean;
+    is21Plus: boolean | null;
+    ageConfirmedAt: Date | null;
+    subscriptionStatus: string;
+    subscriptionCurrentPeriodEnd: Date | null;
+    gameNightPassExpiresAt: Date | null;
+    lifetimeAccess: boolean;
+    stripeCustomerId: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+) {
+  const { stripeCustomerId, createdAt, updatedAt, ...rest } = profile;
+  const billing = withProfileBilling({ ...rest, stripeCustomerId });
+  return {
+    ...rest,
+    ageConfirmedAt: profile.ageConfirmedAt?.toISOString() ?? null,
+    createdAt: createdAt.toISOString(),
+    updatedAt: updatedAt.toISOString(),
+    ...billing,
+  };
+}
 
 /**
  * GET /api/user/profile
@@ -23,29 +74,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch user with all profile data
     const profile = await prisma.user.findUnique({
       where: { id: user.id },
-      select: {
-        id: true,
-        name: true,
-        defaultNickname: true,
-        gamesPlayed: true,
-        gamesWon: true,
-        totalPoints: true,
-        skipTour: true,
-        is21Plus: true,
-        ageConfirmedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: profileSelect,
     });
 
     if (!profile) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ profile });
+    return NextResponse.json({
+      profile: toProfileJson(profile),
+    });
   } catch (error) {
     console.error("Error fetching user profile:", error);
     return NextResponse.json(
@@ -70,26 +110,15 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const validatedData = updateProfileSchema.parse(body);
 
-    // Update user profile
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: validatedData,
-      select: {
-        id: true,
-        name: true,
-        defaultNickname: true,
-        gamesPlayed: true,
-        gamesWon: true,
-        totalPoints: true,
-        skipTour: true,
-        is21Plus: true,
-        ageConfirmedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: profileSelect,
     });
 
-    return NextResponse.json({ profile: updatedUser });
+    return NextResponse.json({
+      profile: toProfileJson(updatedUser),
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

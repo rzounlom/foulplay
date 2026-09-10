@@ -7,6 +7,10 @@ import { gameModeSchemaOptional } from "@/lib/game/modes";
 import { emitPublicChaosEvent } from "@/lib/analytics/public-chaos-events";
 import { assertDrinkingModeAccess } from "@/lib/user/age-gate";
 import { trackEventFireAndForget } from "@/lib/analytics/track-event";
+import {
+  assertCanHostPrivateGame,
+  assertCanHostPublicGame,
+} from "@/lib/billing/hosted-games";
 import { z } from "zod";
 
 const createRoomSchema = z.object({
@@ -14,7 +18,7 @@ const createRoomSchema = z.object({
   sport: z.string().optional(),
   handSize: z.number().int().min(4).max(12).optional(),
   allowQuarterClearing: z.boolean().optional(),
-  /** Public (drop-in) chaos: anyone can join live; no paywall yet — reserved for future host monetization. */
+  /** Public (drop-in) chaos: anyone can join live; hosting is a premium entitlement. */
   isPublicChaos: z.boolean().optional().default(false),
 });
 
@@ -38,6 +42,29 @@ export async function POST(request: NextRequest) {
       const liveAccess = await assertDrinkingModeAccess(user.id, "party");
       if (!liveAccess.ok) {
         return NextResponse.json({ error: liveAccess.error }, { status: 403 });
+      }
+      const publicHost = assertCanHostPublicGame(user);
+      if (!publicHost.ok) {
+        trackEventFireAndForget({
+          name: "paywall_triggered",
+          userId: user.id,
+          props: { trigger: "public_hosting" },
+        });
+        return NextResponse.json(publicHost.body, { status: publicHost.status });
+      }
+    } else {
+      const privateHost = await assertCanHostPrivateGame(user, {
+        trigger: "daily_game_limit",
+      });
+      if (!privateHost.ok) {
+        trackEventFireAndForget({
+          name: "paywall_triggered",
+          userId: user.id,
+          props: { trigger: "daily_game_limit" },
+        });
+        return NextResponse.json(privateHost.body, {
+          status: privateHost.status,
+        });
       }
     }
 

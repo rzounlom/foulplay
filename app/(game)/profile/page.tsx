@@ -9,6 +9,20 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAgeGate } from "@/components/auth/age-gate-provider";
 
+import { formatGameNightEnd } from "@/lib/billing/format-game-night";
+import type { EntitlementPlan } from "@/lib/billing/entitlements";
+import { BILLING_CATALOG } from "@/lib/billing/plans";
+
+interface UserEntitlementsPayload {
+  isPremium: boolean;
+  hasActiveGameNightPass: boolean;
+  hasMonthlySubscription: boolean;
+  hasLifetimeAccess: boolean;
+  isAdFree: boolean;
+  plan: EntitlementPlan;
+  gameNightPassExpiresAt: string | null;
+}
+
 interface UserProfile {
   id: string;
   name: string;
@@ -19,6 +33,12 @@ interface UserProfile {
   skipTour: boolean;
   is21Plus: boolean | null;
   ageConfirmedAt: string | null;
+  subscriptionStatus: string;
+  subscriptionCurrentPeriodEnd: string | null;
+  gameNightPassExpiresAt: string | null;
+  lifetimeAccess: boolean;
+  isPremium: boolean;
+  entitlements?: UserEntitlementsPayload;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,6 +55,23 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [defaultNickname, setDefaultNickname] = useState("");
   const [skipTour, setSkipTour] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(false);
+
+  const openBillingPortal = async () => {
+    setBillingLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        throw new Error(data.error ?? "Could not open billing portal");
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Billing portal failed");
+      setBillingLoading(false);
+    }
+  };
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -248,6 +285,15 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          <div className="rounded-lg border border-neutral-200 dark:border-neutral-700 p-4 space-y-3">
+            <BillingSection
+              profile={profile}
+              billingLoading={billingLoading}
+              onOpenPortal={() => void openBillingPortal()}
+              onUpgrade={() => router.push("/upgrade")}
+            />
+          </div>
+
           {/* Save Button */}
           <Button
             variant="outline-primary"
@@ -262,5 +308,72 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function BillingSection({
+  profile,
+  billingLoading,
+  onOpenPortal,
+  onUpgrade,
+}: {
+  profile: UserProfile | null;
+  billingLoading: boolean;
+  onOpenPortal: () => void;
+  onUpgrade: () => void;
+}) {
+  const plan = profile?.entitlements?.plan ?? (profile?.isPremium ? "monthly" : "free");
+  const passEnd =
+    profile?.entitlements?.gameNightPassExpiresAt ??
+    profile?.gameNightPassExpiresAt;
+
+  let title = "Free plan";
+  let caption = "Useful free hosting. Upgrade only when you need more.";
+  if (plan === "lifetime") {
+    title = "FoulPlay+ Lifetime";
+    caption = "No recurring payment.";
+  } else if (plan === "monthly") {
+    title = "FoulPlay+ Monthly";
+    caption = profile?.subscriptionCurrentPeriodEnd
+      ? `Renews ${new Date(profile.subscriptionCurrentPeriodEnd).toLocaleDateString()}.`
+      : "Active monthly subscription.";
+  } else if (plan === "game_night") {
+    title = "Game Night active";
+    caption = passEnd
+      ? formatGameNightEnd(passEnd)
+      : "24-hour host pass is active.";
+  }
+
+  return (
+    <>
+      <div>
+        <h3 className="text-base font-semibold text-foreground">Premium</h3>
+        <p className="text-caption mt-1">
+          <span className="font-medium text-foreground">{title}</span>
+          {" — "}
+          {caption}
+        </p>
+      </div>
+      {plan === "monthly" ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onOpenPortal}
+          isLoading={billingLoading}
+        >
+          Manage subscription
+        </Button>
+      ) : plan === "lifetime" ? (
+        <p className="text-xs text-neutral-500">Thanks for the early support.</p>
+      ) : plan === "game_night" ? (
+        <Button variant="primary" size="sm" onClick={onUpgrade}>
+          Upgrade to {BILLING_CATALOG.monthly.name} — {BILLING_CATALOG.monthly.displayPrice}/mo
+        </Button>
+      ) : (
+        <Button variant="primary" size="sm" onClick={onUpgrade}>
+          Upgrade
+        </Button>
+      )}
+    </>
   );
 }

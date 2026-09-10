@@ -34,6 +34,7 @@ export type RoomEvent =
   | "suggest_end_round_updated"
   | "suggest_end_round_declined"
   | "round_reset"
+  | "host_upgrade_needed"
   | "message_sent"
   | "reaction_sent";
 

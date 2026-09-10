@@ -42,6 +42,7 @@ function JoinRoomForm() {
   const [streakNudge, setStreakNudge] = useState<StreakNudgePayload | null>(
     null,
   );
+  const [waitingOnHost, setWaitingOnHost] = useState(false);
 
   useEffect(() => {
     setStreakNudge(readStreakNudge());
@@ -157,11 +158,22 @@ function JoinRoomForm() {
 
       if (!response.ok) {
         let errorMessage = "Failed to join room";
+        let waiting = false;
         try {
-          const data = await response.json();
+          const data = (await response.json()) as {
+            error?: string;
+            waiting?: boolean;
+            code?: string;
+          };
           errorMessage = data.error || errorMessage;
+          waiting = Boolean(data.waiting || data.code === "HOST_PLAYER_LIMIT");
         } catch {
           errorMessage = response.statusText || errorMessage;
+        }
+        if (waiting) {
+          setWaitingOnHost(true);
+          setError(null);
+          return;
         }
         throw new Error(errorMessage);
       }
@@ -174,6 +186,43 @@ function JoinRoomForm() {
       setIsJoining(false);
     }
   };
+
+  useEffect(() => {
+    if (!waitingOnHost || code.length !== 6) return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const response = await fetch("/api/rooms/join", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: code.toUpperCase(),
+            nickname: nickname.trim() || undefined,
+          }),
+        });
+        if (cancelled) return;
+        if (response.ok) {
+          const room = await response.json();
+          router.push(`/game/${room.code}`);
+          return;
+        }
+        const data = (await response.json().catch(() => ({}))) as {
+          waiting?: boolean;
+          code?: string;
+        };
+        if (!(data.waiting || data.code === "HOST_PLAYER_LIMIT")) {
+          setWaitingOnHost(false);
+        }
+      } catch {
+        /* keep waiting */
+      }
+    };
+    const id = setInterval(() => void tick(), 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [waitingOnHost, code, nickname, router]);
 
   const inviterLine = hostInviteName
     ? `${hostInviteName} invited you to play`
@@ -279,6 +328,16 @@ function JoinRoomForm() {
                   : "You can set this after you sign in"}
               </p>
             </div>
+
+            {waitingOnHost && (
+              <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-sm text-foreground space-y-1">
+                <p className="font-semibold">Waiting on the host</p>
+                <p className="text-neutral-700 dark:text-neutral-300">
+                  Their free room is full. You don&apos;t need to pay — hang
+                  tight while they unlock a larger room.
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-sm">

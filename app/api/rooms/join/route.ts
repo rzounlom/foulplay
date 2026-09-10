@@ -26,7 +26,12 @@ export async function POST(request: NextRequest) {
 
     if (!result.ok) {
       return NextResponse.json(
-        { error: result.error },
+        {
+          error: result.error,
+          ...(result.code ? { code: result.code } : {}),
+          ...(result.paywall ? { paywall: result.paywall } : {}),
+          ...(result.waiting ? { waiting: true } : {}),
+        },
         { status: result.status },
       );
     }

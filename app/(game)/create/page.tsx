@@ -11,6 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CreateRoomCardSkeleton } from "@/components/create/create-room-card-skeleton";
 import { useClerkInFlowSignIn } from "@/lib/auth/use-clerk-in-flow-sign-in";
 import { useAgeGate } from "@/components/auth/age-gate-provider";
+import { ContextualPaywall } from "@/components/billing/contextual-paywall";
+import type { PaywallTrigger } from "@/lib/billing/hosting-limits";
 
 export default function CreateRoomPage() {
   const router = useRouter();
@@ -25,6 +27,10 @@ export default function CreateRoomPage() {
   const [handSize, setHandSize] = useState<number>(6);
   const [allowQuarterClearing, setAllowQuarterClearing] = useState<boolean>(false);
   const [isPublicChaos, setIsPublicChaos] = useState<boolean>(false);
+  const [canHostPublicGames, setCanHostPublicGames] = useState<boolean>(false);
+  const [paywallTrigger, setPaywallTrigger] = useState<PaywallTrigger | null>(
+    null,
+  );
 
   useEffect(() => {
     if (is21Plus === false) {
@@ -32,6 +38,23 @@ export default function CreateRoomPage() {
       setIsPublicChaos(false);
     }
   }, [is21Plus]);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    let cancelled = false;
+    void fetch("/api/user/profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.profile?.entitlements) return;
+        setCanHostPublicGames(
+          Boolean(data.profile.entitlements.canHostPublicGames),
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn]);
 
   const handleCreateRoom = async () => {
     if (!isSignedIn) {
@@ -68,11 +91,20 @@ export default function CreateRoomPage() {
 
       if (!response.ok) {
         let errorMessage = "Failed to create room";
+        let paywall: PaywallTrigger | null = null;
         try {
           const data = await response.json();
           errorMessage = data.error || errorMessage;
+          if (data.paywall?.trigger) {
+            paywall = data.paywall.trigger as PaywallTrigger;
+          }
         } catch {
           errorMessage = response.statusText || errorMessage;
+        }
+        if (paywall) {
+          setPaywallTrigger(paywall);
+          setError(null);
+          return;
         }
         throw new Error(errorMessage);
       }
@@ -154,6 +186,16 @@ export default function CreateRoomPage() {
             </div>
           )}
 
+          {paywallTrigger ? (
+            <div className="mb-4">
+              <ContextualPaywall
+                trigger={paywallTrigger}
+                returnPath="/create"
+                onDismiss={() => setPaywallTrigger(null)}
+              />
+            </div>
+          ) : null}
+
           <div className="space-y-4 md:space-y-5 mb-6">
           <div>
             <Label htmlFor="mode" className="mb-2" required>Game Mode</Label>
@@ -233,7 +275,14 @@ export default function CreateRoomPage() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox
                   checked={isPublicChaos}
-                  onChange={(e) => setIsPublicChaos(e.target.checked)}
+                  onChange={(e) => {
+                    if (e.target.checked && !canHostPublicGames) {
+                      setPaywallTrigger("public_hosting");
+                      setIsPublicChaos(false);
+                      return;
+                    }
+                    setIsPublicChaos(e.target.checked);
+                  }}
                 />
                 <span className="text-sm text-neutral-700 dark:text-neutral-300">
                   🌍 Make this a public game

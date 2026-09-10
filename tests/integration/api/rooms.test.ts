@@ -74,6 +74,7 @@ jest.mock("@/lib/db/prisma", () => {
         findUnique: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
       },
       player: {
         create: jest.fn(),
@@ -125,7 +126,11 @@ describe("Room API Routes", () => {
     mockPrisma.user.findUnique = jest.fn().mockResolvedValue({
       is21Plus: true,
       ageConfirmedAt: new Date(),
+      subscriptionStatus: "free",
+      lifetimeAccess: false,
+      gameNightPassExpiresAt: null,
     });
+    mockPrisma.room.count = jest.fn().mockResolvedValue(0);
   });
 
   describe("POST /api/rooms", () => {
@@ -179,6 +184,10 @@ describe("Room API Routes", () => {
     });
 
     it("should persist isPublicChaos when public game is requested", async () => {
+      mockGetCurrentUserFromRequest.mockResolvedValue({
+        ...mockUser,
+        lifetimeAccess: true,
+      });
       const mockTransactionPrisma = {
         user: {
           findUnique: jest.fn().mockResolvedValue(mockUser),
@@ -235,6 +244,43 @@ describe("Room API Routes", () => {
           playerCount: 1,
         }),
       );
+    });
+
+    it("rejects public hosting for free users with a paywall payload", async () => {
+      const request = new NextRequest("http://localhost:3000/api/rooms", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "party",
+          sport: "football",
+          handSize: 6,
+          isPublicChaos: true,
+        }),
+      });
+      const response = await createRoom(request, {
+        params: Promise.resolve({ code: "" }),
+      });
+      const data = await response.json();
+      expect(response.status).toBe(403);
+      expect(data.code).toBe("PUBLIC_HOSTING_PREMIUM");
+      expect(data.paywall.trigger).toBe("public_hosting");
+    });
+
+    it("rejects a third private hosted game for a free user", async () => {
+      mockPrisma.room.count = jest.fn().mockResolvedValue(2);
+      const request = new NextRequest("http://localhost:3000/api/rooms", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "casual",
+          sport: "football",
+          handSize: 6,
+        }),
+      });
+      const response = await createRoom(request, {
+        params: Promise.resolve({ code: "" }),
+      });
+      const data = await response.json();
+      expect(response.status).toBe(403);
+      expect(data.code).toBe("DAILY_HOST_LIMIT");
     });
 
     it("should return 401 when user is not authenticated", async () => {
@@ -421,6 +467,93 @@ describe("Room API Routes", () => {
 
       const response = await joinRoom(request);
       expect(response.status).toBe(400);
+    });
+
+    it("lets a free user join a private room under the host player cap", async () => {
+      const emptyLobby = {
+        ...mockRoom,
+        status: "lobby",
+        gameState: null,
+        players: [mockPlayer],
+        isPublicChaos: false,
+      };
+      mockPrisma.room.findUnique = jest
+        .fn()
+        .mockResolvedValueOnce(emptyLobby)
+        .mockResolvedValueOnce({ ...mockRoom, players: [mockPlayer, { ...mockPlayer, id: "p2" }] })
+        .mockResolvedValueOnce({ ...mockRoom, players: [mockPlayer, { ...mockPlayer, id: "p2" }] });
+      mockPrisma.room.update = jest.fn().mockResolvedValue({ version: 1 });
+      mockPrisma.player.findUnique = jest.fn().mockResolvedValue(null);
+      mockPrisma.player.create = jest.fn().mockResolvedValue({
+        ...mockPlayer,
+        id: "player_joiner",
+        isHost: false,
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/join", {
+        method: "POST",
+        body: JSON.stringify({ code: "ABC123" }),
+      });
+      const response = await joinRoom(request);
+      expect(response.status).toBe(200);
+    });
+
+    it("does not require the joining player to pay when the host is at the free player cap", async () => {
+      const fourPlayers = [0, 1, 2, 3].map((i) => ({
+        ...mockPlayer,
+        id: `player_${i}`,
+        userId: `user_${i}`,
+      }));
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        status: "lobby",
+        gameState: null,
+        isPublicChaos: false,
+        players: fourPlayers,
+      });
+      mockPrisma.player.findUnique = jest.fn().mockResolvedValue(null);
+      mockPrisma.room.update = jest.fn().mockResolvedValue({ playerLimitWaiters: [] });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/join", {
+        method: "POST",
+        body: JSON.stringify({ code: "ABC123" }),
+      });
+      const response = await joinRoom(request);
+      const data = await response.json();
+      expect(response.status).toBe(409);
+      expect(data.code).toBe("HOST_PLAYER_LIMIT");
+      expect(data.waiting).toBe(true);
+      expect(data.paywall.trigger).toBe("player_limit");
+      expect(mockPrisma.player.create).not.toHaveBeenCalled();
+    });
+
+    it("lets anyone join a public live game without paying", async () => {
+      const publicLobby = {
+        ...mockRoom,
+        isPublicChaos: true,
+        status: "lobby",
+        gameState: null,
+        players: [mockPlayer],
+      };
+      mockPrisma.room.findUnique = jest
+        .fn()
+        .mockResolvedValueOnce(publicLobby)
+        .mockResolvedValueOnce({ ...publicLobby, players: [mockPlayer] })
+        .mockResolvedValueOnce({ ...publicLobby, players: [mockPlayer] });
+      mockPrisma.room.update = jest.fn().mockResolvedValue({ version: 1 });
+      mockPrisma.player.findUnique = jest.fn().mockResolvedValue(null);
+      mockPrisma.player.create = jest.fn().mockResolvedValue({
+        ...mockPlayer,
+        id: "dropin",
+        isHost: false,
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/join", {
+        method: "POST",
+        body: JSON.stringify({ code: "ABC123" }),
+      });
+      const response = await joinRoom(request);
+      expect(response.status).toBe(200);
     });
   });
 

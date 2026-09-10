@@ -20,6 +20,12 @@ model User {
   skipTour       Boolean  @default(false) // Whether to skip the interactive tour on game start
   is21Plus         Boolean? // null = not answered; true/false = self-reported at ageConfirmedAt
   ageConfirmedAt   DateTime? // When user confirmed 21+ status (CYA audit trail)
+  stripeCustomerId String?  @unique
+  stripeSubscriptionId String? @unique
+  subscriptionStatus String @default("free") // free | active | trialing | past_due | canceled | ...
+  subscriptionCurrentPeriodEnd DateTime?
+  gameNightPassExpiresAt DateTime? // 24h pass; active while > now
+  lifetimeAccess Boolean @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   players        Player[]
@@ -49,6 +55,7 @@ model Room {
   rematchSpawnMembers Json?    // string[] User.id in that lobby when spawned
   partyChainMeta      Json?    // Party Never Ends: streak, crew, defending champ (lobby + ended)
   isPublicChaos       Boolean  @default(false) // Matchmaking / drop-in live games
+  playerLimitWaiters  Json?    // { userId, name, requestedAt }[] — joiners waiting on host player-limit upgrade
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   players             Player[]
@@ -193,4 +200,11 @@ model AnalyticsEvent {
   @@index([name, createdAt])
   @@index([createdAt])
   @@index([userId, createdAt])
+}
+
+/** Stripe webhook event IDs for idempotent processing */
+model StripeWebhookEvent {
+  id          String   @id // Stripe event.id
+  type        String
+  processedAt DateTime @default(now())
 }

@@ -25,6 +25,10 @@ import {
   type RematchEntryPayload,
 } from "@/lib/game/rematch-entry-storage";
 import { consumeLiveJoinToast } from "@/lib/game/live-dropin-session";
+import { LobbyMonetizationStrip } from "./lobby-monetization-strip";
+import type { LobbyPartnerLink } from "@/lib/partners/lobby-links";
+import { ContextualPaywall } from "@/components/billing/contextual-paywall";
+import { parsePlayerLimitWaiters } from "@/lib/billing/player-limit-waiters";
 
 interface Player {
   id: string;
@@ -50,15 +54,26 @@ interface Room {
   players: Player[];
   partyChainMeta?: unknown;
   isPublicChaos?: boolean;
+  playerLimitWaiters?: unknown;
 }
 
 interface LobbyProps {
   roomCode: string;
   currentUserId: string;
   initialRoom: Room;
+  isPremium: boolean;
+  partnerLinks: LobbyPartnerLink[];
+  stripeEnabled: boolean;
 }
 
-export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
+export function Lobby({
+  roomCode,
+  currentUserId,
+  initialRoom,
+  isPremium,
+  partnerLinks,
+  stripeEnabled,
+}: LobbyProps) {
   const router = useRouter();
   const { addToast } = useToast();
   const { is21Plus } = useAgeGate();
@@ -73,6 +88,7 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   const [rematchEntry, setRematchEntry] = useState<RematchEntryPayload | null>(
     null,
   );
+  const [hostPaywallDismissed, setHostPaywallDismissed] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -145,6 +161,8 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
   // Subscribe to room events; fall back to polling when Ably is disconnected
   const { isConnected } = useRoomChannel(roomCode, (event: RoomEvent) => {
     if (event === "player_joined") {
+      fetchRoom();
+    } else if (event === "host_upgrade_needed") {
       fetchRoom();
     } else if (event === "room_settings_updated") {
       fetchRoom();
@@ -234,6 +252,9 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
     (p) => p.user.id === currentUserId && p.isHost,
   );
   const canStart = room.players.length >= 2 && isHost;
+  const playerLimitWaiters = parsePlayerLimitWaiters(room.playerLimitWaiters);
+  const showHostPlayerLimitPaywall =
+    isHost && playerLimitWaiters.length > 0 && !hostPaywallDismissed;
 
   const partyMeta = useMemo(
     () => parsePartyChainMeta(room.partyChainMeta),
@@ -367,6 +388,15 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
 
   return (
     <div className="container mx-auto px-4 py-6 md:p-6 max-w-4xl min-h-screen bg-background">
+      {showHostPlayerLimitPaywall ? (
+        <div className="mb-5">
+          <ContextualPaywall
+            trigger="player_limit"
+            returnPath={`/game/${roomCode}`}
+            onDismiss={() => setHostPaywallDismissed(true)}
+          />
+        </div>
+      ) : null}
       {room.isPublicChaos ? (
         <div className="mb-5 rounded-xl border border-orange-500/40 bg-orange-500/10 dark:bg-orange-500/15 px-4 py-3 text-center text-sm text-foreground">
           <p className="font-semibold">Live drop-in room</p>
@@ -679,6 +709,13 @@ export function Lobby({ roomCode, currentUserId, initialRoom }: LobbyProps) {
           )}
         </div>
       </div>
+
+      <LobbyMonetizationStrip
+        sport={room.sport}
+        partnerLinks={partnerLinks}
+        isPremium={isPremium}
+        stripeEnabled={stripeEnabled}
+      />
     </div>
   );
 }

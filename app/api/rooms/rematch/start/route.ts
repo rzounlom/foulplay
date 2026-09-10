@@ -14,6 +14,10 @@ import {
 import { z } from "zod";
 import { emitPublicChaosEvent } from "@/lib/analytics/public-chaos-events";
 import { trackEventFireAndForget } from "@/lib/analytics/track-event";
+import {
+  assertCanHostPrivateGame,
+  assertCanHostPublicGame,
+} from "@/lib/billing/hosted-games";
 
 const bodySchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
@@ -53,6 +57,34 @@ export async function POST(request: NextRequest) {
         { error: "Only the host can start the next game" },
         { status: 403 },
       );
+    }
+
+    if (room.isPublicChaos) {
+      const publicHost = assertCanHostPublicGame(user);
+      if (!publicHost.ok) {
+        trackEventFireAndForget({
+          name: "paywall_triggered",
+          userId: user.id,
+          roomId: room.id,
+          props: { trigger: "run_it_back", reason: "public_hosting" },
+        });
+        return NextResponse.json(publicHost.body, { status: publicHost.status });
+      }
+    } else {
+      const privateHost = await assertCanHostPrivateGame(user, {
+        trigger: "run_it_back",
+      });
+      if (!privateHost.ok) {
+        trackEventFireAndForget({
+          name: "paywall_triggered",
+          userId: user.id,
+          roomId: room.id,
+          props: { trigger: "run_it_back", reason: "daily_game_limit" },
+        });
+        return NextResponse.json(privateHost.body, {
+          status: privateHost.status,
+        });
+      }
     }
 
     const memberSet = new Set(room.players.map((p) => p.userId));

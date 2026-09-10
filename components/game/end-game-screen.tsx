@@ -21,6 +21,8 @@ import {
 import { writeRematchEntry } from "@/lib/game/rematch-entry-storage";
 import { fireRematchTransitionConfetti } from "@/lib/game/rematch-transition-confetti";
 import { recordStreakNudge, clearStreakNudge } from "@/lib/game/party-streak-nudge";
+import { ContextualPaywall } from "@/components/billing/contextual-paywall";
+import type { PaywallTrigger } from "@/lib/billing/hosting-limits";
 
 interface LeaderboardEntry {
   playerId: string;
@@ -132,6 +134,9 @@ function RematchSection({
   const [optInLoading, setOptInLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [paywallTrigger, setPaywallTrigger] = useState<PaywallTrigger | null>(
+    null,
+  );
   const handledSpawnRef = useRef<string | null>(null);
   const prevReadyRef = useRef<string[] | null>(null);
   const [joinFlash, setJoinFlash] = useState<string | null>(null);
@@ -345,10 +350,18 @@ function RematchSection({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
+        const trigger = (body as { paywall?: { trigger?: PaywallTrigger } })
+          .paywall?.trigger;
+        if (trigger === "run_it_back" || trigger === "public_hosting" || trigger === "daily_game_limit") {
+          setPaywallTrigger(trigger === "daily_game_limit" ? "run_it_back" : trigger);
+          setStartError(null);
+          return;
+        }
         throw new Error(
           typeof body.error === "string" ? body.error : "Couldn’t start lobby",
         );
       }
+      setPaywallTrigger(null);
       const code = body.code as string | undefined;
       const members = body.memberUserIds as string[] | undefined;
       if (code && Array.isArray(members)) {
@@ -360,6 +373,21 @@ function RematchSection({
       setStartLoading(false);
     }
   };
+
+  const paymentRetryRef = useRef(false);
+  useEffect(() => {
+    if (!isHost || paymentRetryRef.current) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("success") !== "1") return;
+    paymentRetryRef.current = true;
+    const t = setTimeout(() => {
+      void handleStartNext();
+    }, 1500);
+    return () => clearTimeout(t);
+    // Retry once after returning from Stripe; handleStartNext is recreated each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHost]);
 
   const primaryRunClass =
     "inline-flex flex-col items-center justify-center w-full py-3.5 px-5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-transform active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 disabled:pointer-events-none shadow-md";
@@ -520,17 +548,27 @@ function RematchSection({
 
           {isHost && (
             <div className="pt-1 space-y-1.5">
-              <button
-                type="button"
-                className={hostSecondaryClass}
-                onClick={() => void handleStartNext()}
-                disabled={startLoading}
-              >
-                {startLoading ? "Creating lobby…" : "🚀 Start next game"}
-              </button>
-              <p className="text-[11px] text-center text-neutral-500 dark:text-neutral-400">
-                Start anytime — not everyone has to be ready.
-              </p>
+              {paywallTrigger ? (
+                <ContextualPaywall
+                  trigger={paywallTrigger}
+                  returnPath={`/game/${roomCode}/end-game`}
+                  onDismiss={() => setPaywallTrigger(null)}
+                />
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={hostSecondaryClass}
+                    onClick={() => void handleStartNext()}
+                    disabled={startLoading}
+                  >
+                    {startLoading ? "Creating lobby…" : "🚀 Start next game"}
+                  </button>
+                  <p className="text-[11px] text-center text-neutral-500 dark:text-neutral-400">
+                    Start anytime — not everyone has to be ready.
+                  </p>
+                </>
+              )}
               {startError && (
                 <p className="text-xs text-center text-red-600 dark:text-red-400">
                   {startError}

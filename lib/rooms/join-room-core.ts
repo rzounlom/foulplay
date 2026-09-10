@@ -11,6 +11,12 @@ import {
 } from "@/lib/analytics/public-chaos-events";
 import { assertDrinkingModeAccess } from "@/lib/user/age-gate";
 import { trackEventFireAndForget } from "@/lib/analytics/track-event";
+import { getUserEntitlements, isHostAtPlayerLimit } from "@/lib/billing/entitlements";
+import {
+  PAYWALL_ERROR_CODE,
+  paywallResponseBody,
+} from "@/lib/billing/hosting-limits";
+import { upsertPlayerLimitWaiter } from "@/lib/billing/player-limit-waiters";
 
 export type JoinRoomUser = { id: string; name: string };
 
@@ -31,7 +37,14 @@ export async function joinRoomCore(
       ok: true;
       room: NonNullable<Awaited<ReturnType<typeof fetchJoinedRoom>>>;
     }
-  | { ok: false; status: number; error: string }
+  | {
+      ok: false;
+      status: number;
+      error: string;
+      code?: string;
+      paywall?: { trigger: string };
+      waiting?: boolean;
+    }
 > {
   const upper = code.toUpperCase();
 
@@ -89,6 +102,62 @@ export async function joinRoomCore(
     };
   }
 
+  const host = await prisma.user.findUnique({ where: { id: room.hostId } });
+  const hostEntitlements = getUserEntitlements(host ?? {});
+  if (
+    isHostAtPlayerLimit(
+      hostEntitlements,
+      room.isPublicChaos,
+      room.players.length,
+    )
+  ) {
+    const waiters = upsertPlayerLimitWaiter(room.playerLimitWaiters, {
+      userId: user.id,
+      name: user.name,
+      requestedAt: new Date().toISOString(),
+    });
+    await prisma.room.update({
+      where: { id: room.id },
+      data: { playerLimitWaiters: waiters },
+    });
+    try {
+      const channel = getRoomChannel(room.code);
+      await channel.publish("host_upgrade_needed", {
+        trigger: "player_limit",
+        waiterUserId: user.id,
+        waiterName: user.name,
+        roomCode: room.code,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (ablyError) {
+      console.error("Failed to publish host_upgrade_needed:", ablyError);
+    }
+    trackEventFireAndForget({
+      name: "paywall_triggered",
+      userId: room.hostId,
+      roomId: room.id,
+      props: {
+        trigger: "player_limit",
+        waiterUserId: user.id,
+        playerCount: room.players.length,
+      },
+    });
+    const body = paywallResponseBody(
+      PAYWALL_ERROR_CODE.HOST_PLAYER_LIMIT,
+      "player_limit",
+      "This room is full until the host unlocks a larger room. You don't need to pay — hang tight.",
+      { waiting: true },
+    );
+    return {
+      ok: false,
+      status: 409,
+      error: body.error,
+      code: body.code,
+      paywall: body.paywall,
+      waiting: true,
+    };
+  }
+
   const newPlayer = await prisma.player.create({
     data: {
       userId: user.id,
@@ -129,7 +198,7 @@ export async function joinRoomCore(
 
   const updatedRoomForVersion = await prisma.room.update({
     where: { id: room.id },
-    data: { version: { increment: 1 } },
+    data: { version: { increment: 1 }, playerLimitWaiters: [] },
     select: { version: true },
   });
 

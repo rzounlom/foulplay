@@ -6,6 +6,12 @@ export const mockUser = {
   id: "user_123",
   clerkId: "clerk_123",
   name: "Test User",
+  subscriptionStatus: "free",
+  subscriptionCurrentPeriodEnd: null,
+  gameNightPassExpiresAt: null,
+  lifetimeAccess: false,
+  stripeCustomerId: null,
+  stripeSubscriptionId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
