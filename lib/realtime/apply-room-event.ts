@@ -45,6 +45,8 @@ export interface RoomSnapshot {
     createdAt?: string;
   }>;
   hand: Array<{ id: string; card: unknown; status: string }>;
+  refreshHandAvailableAt?: string | null;
+  canRefreshHand?: boolean;
 }
 
 /**

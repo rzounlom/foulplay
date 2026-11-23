@@ -121,6 +121,10 @@ interface HandProps {
   pendingSubmissionAutoAcceptAt?: string | null;
   /** First-session hint beside the “Your Hand” heading (inline gameplay guidance) */
   showStartHereHint?: boolean;
+  canRefreshHand?: boolean;
+  refreshHandAvailableAt?: string | null;
+  onRefreshHand?: () => void;
+  isRefreshingHand?: boolean;
 }
 
 export function Hand({
@@ -140,10 +144,17 @@ export function Hand({
   hasPendingSubmission = false,
   pendingSubmissionAutoAcceptAt = null,
   showStartHereHint = false,
+  canRefreshHand = false,
+  refreshHandAvailableAt = null,
+  onRefreshHand,
+  isRefreshingHand = false,
 }: HandProps) {
   const [handLayout, setHandLayout] = useHandLayout();
   const isSmallViewport = useIsSmallViewport();
   const [pendingSecondsLeft, setPendingSecondsLeft] = useState<number | null>(
+    null,
+  );
+  const [refreshSecondsLeft, setRefreshSecondsLeft] = useState<number | null>(
     null,
   );
 
@@ -158,6 +169,47 @@ export function Hand({
     const interval = setInterval(compute, 1000);
     return () => clearInterval(interval);
   }, [hasPendingSubmission, pendingSubmissionAutoAcceptAt]);
+
+  useEffect(() => {
+    if (canRefreshHand || !refreshHandAvailableAt || !onRefreshHand) return;
+    const compute = () => {
+      const target = new Date(refreshHandAvailableAt).getTime();
+      const secs = Math.max(0, Math.ceil((target - Date.now()) / 1000));
+      setRefreshSecondsLeft(secs);
+    };
+    compute();
+    const interval = setInterval(compute, 1000);
+    return () => clearInterval(interval);
+  }, [canRefreshHand, refreshHandAvailableAt, onRefreshHand]);
+
+  const refreshLabel = (() => {
+    if (isRefreshingHand) return "Refreshing…";
+    if (canRefreshHand) return "Refresh Hand";
+    if (refreshSecondsLeft != null && refreshSecondsLeft > 0) {
+      const m = Math.floor(refreshSecondsLeft / 60);
+      const s = String(refreshSecondsLeft % 60).padStart(2, "0");
+      return `Refresh in ${m}:${s}`;
+    }
+    return "Refresh Hand";
+  })();
+
+  const refreshControl =
+    onRefreshHand && !isQuarterIntermission ? (
+      <Button
+        type="button"
+        variant="outline-primary"
+        size="sm"
+        data-testid="refresh-hand"
+        onClick={onRefreshHand}
+        disabled={!canRefreshHand || isRefreshingHand || hasPendingSubmission}
+        isLoading={isRefreshingHand}
+        className="whitespace-nowrap"
+        title="Replace your unplayed cards after 5 quiet minutes"
+      >
+        {refreshLabel}
+      </Button>
+    ) : null;
+
   const isMultiSelect = !!(onCardSubmit || onQuarterDiscardSelection);
   const cardsInHand = cards.filter((c) => c.status === "drawn");
   const reorder = useHandReorder(cardsInHand);
@@ -405,6 +457,7 @@ export function Hand({
               {currentUserPoints} pts
             </span>
           )}
+          {refreshControl}
           {isSmallViewport && (
             <HandLayoutGrid
               cardCount={cardsToDisplay.length}

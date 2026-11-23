@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
+import { findDealableCards } from "@/lib/game/dealable-cards";
 
 const discardCardSchema = z.object({
   roomCode: z.string().length(6, "Room code must be 6 characters"),
@@ -136,10 +137,7 @@ export async function POST(request: NextRequest) {
       );
 
       if (cardsToDeal > 0) {
-        const cards = await prisma.card.findMany({
-          where: { sport: room.sport },
-          orderBy: { id: "asc" },
-        });
+        const cards = await findDealableCards(room.sport);
 
         if (cards.length > 0) {
           const remainingHand = await prisma.cardInstance.findMany({

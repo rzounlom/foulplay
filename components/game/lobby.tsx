@@ -13,6 +13,7 @@ import { ShareModal } from "./share-modal";
 import { Select } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { MODE_LABELS, isValidGameMode, getAvailableModes } from "@/lib/game/modes";
+import { LAUNCH_PUBLIC_CHAOS_VISIBLE } from "@/lib/game/launch-scope";
 import { useAgeGate } from "@/components/auth/age-gate-provider";
 import {
   getPartyStreakCosmeticTitle,
@@ -77,8 +78,8 @@ export function Lobby({
   const router = useRouter();
   const { addToast } = useToast();
   const { is21Plus } = useAgeGate();
-  const availableModes = getAvailableModes(is21Plus);
   const [room, setRoom] = useState<Room>(initialRoom);
+  const availableModes = getAvailableModes(is21Plus, room.mode);
   const [isStarting, setIsStarting] = useState(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -397,7 +398,7 @@ export function Lobby({
           />
         </div>
       ) : null}
-      {room.isPublicChaos ? (
+      {LAUNCH_PUBLIC_CHAOS_VISIBLE && room.isPublicChaos ? (
         <div className="mb-5 rounded-xl border border-orange-500/40 bg-orange-500/10 dark:bg-orange-500/15 px-4 py-3 text-center text-sm text-foreground">
           <p className="font-semibold">Live drop-in room</p>
           <p className="text-neutral-600 dark:text-neutral-400 mt-1 text-xs sm:text-sm">
@@ -658,37 +659,6 @@ export function Lobby({
                       </span>
                     </label>
                   </div>
-                  {(room.sport === "football" ||
-                    room.sport === "basketball") && (
-                    <div>
-                      <Label className="mb-2 text-neutral-600 dark:text-neutral-400">
-                        End Round
-                      </Label>
-                      <label
-                        className={`flex items-center gap-2 ${isUpdatingSettings ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
-                      >
-                        <Checkbox
-                          checked={room.allowQuarterClearing}
-                          disabled={isUpdatingSettings}
-                          onChange={(e) =>
-                            updateRoomSettings({
-                              allowQuarterClearing: e.target.checked,
-                            })
-                          }
-                        />
-                        <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                          Enable round-based card clearing
-                        </span>
-                      </label>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-6">
-                        Host can end rounds; players get 5 minutes to turn in
-                        unwanted cards
-                        {room.mode === "non-drinking"
-                          ? " (points apply)."
-                          : " (drink penalty applies)."}
-                      </p>
-                    </div>
-                  )}
                 </>
               )}
             </div>

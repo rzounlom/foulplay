@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getRoomChannel } from "@/lib/ably/client";
 import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
 import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
+import { findDealableCards } from "@/lib/game/dealable-cards";
 import { startRoomGameInternal } from "@/lib/game/start-room-game";
 import { PUBLIC_CHAOS_MAX_PLAYERS } from "@/lib/game/constants";
 import { roomAllowsMidGameJoin } from "@/lib/rooms/public-chaos-invariant";
@@ -170,10 +171,7 @@ export async function joinRoomCore(
 
   const gameState = room.gameState;
   if (room.status === "active" && gameState && room.sport) {
-    const cards = await prisma.card.findMany({
-      where: { sport: room.sport },
-      orderBy: { id: "asc" },
-    });
+    const cards = await findDealableCards(room.sport);
     if (cards.length > 0) {
       const handSize = room.handSize ?? 6;
       const mode = room.mode ?? null;

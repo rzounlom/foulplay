@@ -33,6 +33,7 @@ import {
   isNonDrinkingMode,
   combinePenalties,
 } from "@/lib/game/display";
+import { LAUNCH_ROUND_CONTROLS_VISIBLE } from "@/lib/game/launch-scope";
 import {
   pickPointsAwardedMessage,
   pickCardsRejectedMessage,
@@ -371,6 +372,7 @@ export function GameBoard({
       ?.autoAcceptAt ?? null;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRefreshingHand, setIsRefreshingHand] = useState(false);
   const handLoading = snapshotLoading;
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [startTour, setStartTour] = useState(false);
@@ -968,6 +970,33 @@ export function GameBoard({
   const showHandHighlight =
     showGameplayGuidance && !!currentPlayer && !handHighlightDismissed;
 
+  const handleRefreshHand = async () => {
+    if (isRefreshingHand) return;
+    setIsRefreshingHand(true);
+    try {
+      const response = await fetch("/api/game/refresh-hand", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomCode }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast.addToast(data.error || "Could not refresh your hand", "error");
+      } else {
+        toast.addToast("New hand dealt", "success");
+        setSelectedCardIds([]);
+        await resyncRef.current();
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("Failed to refresh hand:", error);
+      }
+      toast.addToast("Could not refresh your hand", "error");
+    } finally {
+      setIsRefreshingHand(false);
+    }
+  };
+
   const handleSubmitCard = async (cardInstanceIds: string | string[]) => {
     setIsSubmitting(true);
     try {
@@ -1249,7 +1278,9 @@ export function GameBoard({
   const isFootballOrBasketball =
     room.sport === "football" || room.sport === "basketball";
   const showQuarterControls =
-    room.allowQuarterClearing && isFootballOrBasketball;
+    LAUNCH_ROUND_CONTROLS_VISIBLE &&
+    room.allowQuarterClearing &&
+    isFootballOrBasketball;
 
   const roundLabel = room.currentQuarter?.replace(/^Q/, "") ?? null;
 
@@ -2238,6 +2269,10 @@ export function GameBoard({
                   hasPendingSubmission={hasPendingSubmission}
                   pendingSubmissionAutoAcceptAt={pendingSubmissionAutoAcceptAt}
                   showStartHereHint={showHandHighlight}
+                  canRefreshHand={!!snapshot?.canRefreshHand}
+                  refreshHandAvailableAt={snapshot?.refreshHandAvailableAt ?? null}
+                  onRefreshHand={handleRefreshHand}
+                  isRefreshingHand={isRefreshingHand}
                 />
               )}
             </div>

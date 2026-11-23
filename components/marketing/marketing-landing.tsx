@@ -16,7 +16,6 @@ export function MarketingLanding() {
   const appBase = appUrl.replace(/\/$/, "");
   const createRoomUrl = `${appBase}/create`;
   const joinRoomUrl = `${appBase}/join`;
-  const playLiveUrl = `${appBase}/play-live`;
 
   const socialQuoteUnderCtas = (
     <div
@@ -105,15 +104,6 @@ export function MarketingLanding() {
                 Start a Room
               </Link>
               <Link
-                href={playLiveUrl}
-                className="flex-1 min-h-[48px] flex items-center justify-center py-3 px-6 bg-white/12 text-white text-sm font-semibold rounded-lg text-center border border-white/25 hover:bg-white/18 transition-colors"
-              >
-                🔥 Join Live Game
-              </Link>
-              <p className="text-xs text-neutral-400 text-center -mt-1 px-2">
-                Jump into a game already in progress
-              </p>
-              <Link
                 href={joinRoomUrl}
                 className="flex-1 min-h-[48px] flex items-center justify-center py-3 px-6 border border-white/35 text-white/75 text-sm font-semibold rounded-lg text-center bg-transparent hover:bg-white/6 hover:text-white/90 transition-colors"
               >
@@ -199,15 +189,6 @@ export function MarketingLanding() {
                   Join a Room
                 </Link>
               </div>
-              <Link
-                href={playLiveUrl}
-                className="inline-flex flex-col items-center justify-center min-h-[48px] px-6 py-2.5 w-full sm:w-auto rounded-lg bg-white/12 text-white text-sm font-semibold border border-white/25 hover:bg-white/18 transition-colors text-center"
-              >
-                <span>🔥 Join Live Game</span>
-                <span className="text-xs font-normal text-neutral-300 mt-0.5">
-                  Jump into a game already in progress
-                </span>
-              </Link>
             </div>
             {socialQuoteUnderCtas}
             <p className="text-sm text-neutral-400 max-w-xl mx-auto">

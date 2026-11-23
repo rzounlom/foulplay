@@ -56,39 +56,27 @@ export function GameTour({
   const steps: TourStep[] = useMemo(() => [
     {
       target: '[data-tour="game-info"]',
-      title: "Game Room Info",
-      content: "Here you see the room's Mode and Sport. Mode affects the mix of card severities (mild / moderate / severe). You'll also find the How to Play and Chat buttons here.",
-      position: "top",
-    },
-    {
-      target: '[data-tour="player-list"]',
-      title: "Player List",
-      content: "See all players in the game. The host can toggle whether everyone sees each other's scores. You need at least 2 players to start.",
+      title: "Room info",
+      content: "This shows the sport you’re watching and the mode: Non-drinking (points only) or Party (points plus honor-system drinks).",
       position: "top",
     },
     {
       target: '[data-tour="your-cards"]',
-      title: "Your Cards & Submitting",
-      content: "Your hand! Click cards to select them (you can select multiple), then click 'Submit Selected Cards' when you see matching events in the game. Submitted cards go to Pending Submissions where other players vote Approve or Reject—approved cards earn points; rejected cards return to your hand. You can't vote on your own submission. Your hand size is set by the host.",
+      title: "Your cards",
+      content: "Watch the game. When something on a card happens, tap it and submit. Friends vote; if nobody votes it auto-accepts in 30 seconds. Approved cards score points.",
       position: "top",
     },
     {
-      target: '[data-tour="chat-button"]',
-      title: "Chat",
-      content: "Open the room chat to send messages to all players. The badge shows unread message count when you have new messages.",
+      target: '[data-tour="player-list"]',
+      title: "Players & scores",
+      content: "See who’s in the room. The host can show or hide points. Highest score wins when the host ends the game.",
       position: "top",
     },
     {
       target: '[data-tour="host-controls"]',
       fallbackTarget: '[data-tour="players-button"]',
-      title: "Host Controls (host only)",
-      content: "If you're the host, tap the Players button to access host controls: show/hide points, reset points, end round, or end the game. On desktop, host controls appear in the left sidebar.",
-      position: "top",
-    },
-    {
-      target: '[data-tour="instructions"]',
-      title: "How to Play",
-      content: "Click 'How to Play' anytime for full rules: game mode, voting, host controls, chat, and round-based clearing (if enabled).",
+      title: "Host controls",
+      content: "Hosts can show points, reset scores, or end the game. Play is continuous — no rounds to manage.",
       position: "top",
     },
   ], []);

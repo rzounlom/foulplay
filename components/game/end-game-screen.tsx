@@ -23,6 +23,7 @@ import { fireRematchTransitionConfetti } from "@/lib/game/rematch-transition-con
 import { recordStreakNudge, clearStreakNudge } from "@/lib/game/party-streak-nudge";
 import { ContextualPaywall } from "@/components/billing/contextual-paywall";
 import type { PaywallTrigger } from "@/lib/billing/hosting-limits";
+import { LAUNCH_PUBLIC_CHAOS_VISIBLE } from "@/lib/game/launch-scope";
 
 interface LeaderboardEntry {
   playerId: string;
@@ -857,7 +858,7 @@ export function EndGameScreen({
           </p>
 
           <div className="pt-1 space-y-2 border-t border-neutral-200 dark:border-neutral-700">
-            {isPublicChaos ? (
+            {LAUNCH_PUBLIC_CHAOS_VISIBLE && isPublicChaos ? (
               <div className="rounded-xl border border-orange-500/35 bg-orange-500/10 dark:bg-orange-500/15 px-4 py-4 text-center mb-2">
                 <p className="text-sm font-medium text-foreground mb-3">
                   Jump into another live game?

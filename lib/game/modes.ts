@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { LAUNCH_MODES } from "@/lib/game/launch-scope";
 
 /** All valid game modes. Non-drinking affects display only; others affect severe caps. */
 export const GAME_MODES = [
@@ -33,10 +34,10 @@ export function isValidGameMode(value: unknown): value is GameMode {
 /** Display labels for each game mode (for UI selects). */
 export const MODE_LABELS: Record<GameMode, string> = {
   casual: "Casual — mild drinking penalties",
-  party: "Party — balanced mix",
+  party: "Party — points plus drinks",
   lit: "Get Lit — intense drinking penalties",
   anything_goes: "Anything Goes",
-  "non-drinking": "Non-drinking",
+  "non-drinking": "Non-drinking — points only",
 };
 
 /** Modes that show drinking penalties (require 21+ self-certification). */
@@ -48,10 +49,28 @@ export function isDrinkingMode(mode: string | null | undefined): boolean {
   return mode != null && mode !== "non-drinking";
 }
 
-/** Modes a user may select based on age self-certification. */
-export function getAvailableModes(is21Plus: boolean | null): GameMode[] {
-  if (is21Plus === false) {
-    return ["non-drinking"];
+/**
+ * Modes a user may pick in launch UI.
+ * Stored rooms with a legacy mode still validate via GAME_MODES / isValidGameMode.
+ * Pass currentMode so a host of an existing casual/lit room can keep that value.
+ */
+export function getAvailableModes(
+  is21Plus: boolean | null,
+  currentMode?: string | null,
+): GameMode[] {
+  const launch: GameMode[] =
+    is21Plus === false ? ["non-drinking"] : [...LAUNCH_MODES];
+
+  if (
+    currentMode &&
+    isValidGameMode(currentMode) &&
+    !launch.includes(currentMode)
+  ) {
+    if (is21Plus === false && isDrinkingMode(currentMode)) {
+      return launch;
+    }
+    return [currentMode, ...launch];
   }
-  return [...GAME_MODES];
+
+  return launch;
 }

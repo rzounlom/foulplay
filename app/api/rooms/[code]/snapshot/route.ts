@@ -3,6 +3,8 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { getAutoAcceptSeconds } from "@/lib/game/constants";
 import { effectiveAllowJoinInProgress } from "@/lib/rooms/public-chaos-invariant";
+import { LAUNCH_REFRESH_HAND_ENABLED } from "@/lib/game/launch-scope";
+import { evaluateRefreshHand } from "@/lib/game/refresh-hand";
 
 /**
  * GET /api/rooms/[code]/snapshot
@@ -109,6 +111,8 @@ export async function GET(
     // Viewer's hand (only if they are a player)
     const currentPlayer = room.players.find((p) => p.userId === user.id);
     let hand: Array<{ id: string; card: unknown; status: string }> = [];
+    let refreshHandAvailableAt: string | null = null;
+    let canRefreshHand = false;
     if (currentPlayer) {
       const cardsInHand = await prisma.cardInstance.findMany({
         where: {
@@ -124,6 +128,45 @@ export async function GET(
         card: ci.card,
         status: ci.status,
       }));
+
+      if (LAUNCH_REFRESH_HAND_ENABLED && room.status === "active") {
+        const lastSubmission = await prisma.cardSubmission.findFirst({
+          where: {
+            roomId: room.id,
+            submittedById: currentPlayer.id,
+          },
+          orderBy: { createdAt: "desc" },
+          select: { createdAt: true },
+        });
+        const refreshable = cardsInHand.filter((ci) => ci.submissionId == null);
+        const newestDrawnAt =
+          refreshable.length > 0
+            ? refreshable.reduce(
+                (latest, ci) =>
+                  ci.createdAt > latest ? ci.createdAt : latest,
+                refreshable[0].createdAt,
+              )
+            : null;
+        const hasPendingSubmission = pendingSubmissions.some(
+          (submission) => submission.submittedById === currentPlayer.id,
+        );
+        const intermissionActive = !!(
+          room.quarterIntermissionEndsAt &&
+          new Date(room.quarterIntermissionEndsAt).getTime() > Date.now()
+        );
+        const decision = evaluateRefreshHand({
+          now: new Date(),
+          roomStatus: room.status,
+          hasPendingSubmission,
+          intermissionActive,
+          drawnCount: refreshable.length,
+          playerJoinedAt: currentPlayer.createdAt,
+          lastSubmissionAt: lastSubmission?.createdAt ?? null,
+          newestDrawnAt,
+        });
+        refreshHandAvailableAt = decision.availableAt.toISOString();
+        canRefreshHand = decision.ok;
+      }
     }
 
     const snapshot = {
@@ -156,6 +199,8 @@ export async function GET(
       activeCardInstance: room.gameState?.activeCardInstance ?? null,
       submissions: submissionsWithCards,
       hand,
+      refreshHandAvailableAt,
+      canRefreshHand,
     };
 
     return NextResponse.json(snapshot);

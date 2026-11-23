@@ -98,16 +98,33 @@ describe("Game Modes", () => {
   });
 
   describe("getAvailableModes", () => {
-    it("returns all modes when user is 21+", () => {
-      expect(getAvailableModes(true)).toEqual([...GAME_MODES]);
+    it("returns launch modes when user is 21+", () => {
+      expect(getAvailableModes(true)).toEqual(["non-drinking", "party"]);
     });
 
     it("returns only non-drinking when user is under 21", () => {
       expect(getAvailableModes(false)).toEqual(["non-drinking"]);
     });
 
-    it("returns all modes before age confirmation", () => {
-      expect(getAvailableModes(null)).toEqual([...GAME_MODES]);
+    it("returns launch modes before age confirmation", () => {
+      expect(getAvailableModes(null)).toEqual(["non-drinking", "party"]);
+    });
+
+    it("keeps a legacy stored mode so existing rooms still display it", () => {
+      expect(getAvailableModes(true, "casual")).toEqual([
+        "casual",
+        "non-drinking",
+        "party",
+      ]);
+      expect(getAvailableModes(true, "lit")).toEqual([
+        "lit",
+        "non-drinking",
+        "party",
+      ]);
+    });
+
+    it("does not expose a legacy drinking mode to under-21 hosts", () => {
+      expect(getAvailableModes(false, "casual")).toEqual(["non-drinking"]);
     });
   });
 });

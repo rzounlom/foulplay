@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
+import { findDealableCards } from "@/lib/game/dealable-cards";
 import { getRoomChannel } from "@/lib/ably/client";
 import { z } from "zod";
 
@@ -93,10 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get all cards for the sport
-    const cards = await prisma.card.findMany({
-      where: { sport: room.sport! },
-      orderBy: { id: "asc" },
-    });
+    const cards = await findDealableCards(room.sport!);
 
     if (cards.length === 0) {
       return NextResponse.json(

@@ -70,7 +70,7 @@ export async function createRematchLobbyFromEndedRoom(options: {
         mode: source.mode,
         sport: source.sport,
         handSize: source.handSize,
-        allowQuarterClearing: source.allowQuarterClearing,
+        allowQuarterClearing: false,
         showPoints: source.showPoints,
         allowJoinInProgress: source.isPublicChaos
           ? true

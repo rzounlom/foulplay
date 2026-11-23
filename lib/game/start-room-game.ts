@@ -7,6 +7,7 @@ import {
   initializeGameState,
   drawRandomCardIndicesSmart,
 } from "@/lib/game/engine";
+import { findDealableCards } from "@/lib/game/dealable-cards";
 import { getRoomChannel } from "@/lib/ably/client";
 import { emitPublicChaosEvent } from "@/lib/analytics/public-chaos-events";
 import { trackEventFireAndForget } from "@/lib/analytics/track-event";
@@ -73,10 +74,7 @@ export async function startRoomGameInternal(opts: {
     };
   }
 
-  const cards = await prisma.card.findMany({
-    where: { sport: room.sport },
-    orderBy: { id: "asc" },
-  });
+  const cards = await findDealableCards(room.sport);
 
   if (cards.length === 0) {
     return { ok: false, error: "No cards found for this sport", status: 500 };

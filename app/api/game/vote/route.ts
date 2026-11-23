@@ -5,6 +5,7 @@ import {
 } from "@/lib/game/approval";
 
 import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
+import { findDealableCards } from "@/lib/game/dealable-cards";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { getRoomChannel } from "@/lib/ably/client";
 import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
@@ -404,10 +405,7 @@ export async function POST(request: NextRequest) {
         if (room.gameState && room.sport && cardsApproved > 0) {
           const cardsNeeded = Math.min(handSizeLimit - cardsInHand, cardsApproved);
 
-          const cards = await prisma.card.findMany({
-            where: { sport: room.sport },
-            orderBy: { id: "asc" },
-          });
+          const cards = await findDealableCards(room.sport);
 
           if (cards.length > 0 && cardsNeeded > 0) {
             const handWithCards = await prisma.cardInstance.findMany({

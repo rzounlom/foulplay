@@ -9,6 +9,7 @@ import {
 } from "@/lib/game/approval";
 import { getAutoAcceptSeconds } from "@/lib/game/constants";
 import { drawRandomCardIndicesSmart } from "@/lib/game/engine";
+import { findDealableCards } from "@/lib/game/dealable-cards";
 import { prisma } from "@/lib/db/prisma";
 
 export {
@@ -264,10 +265,7 @@ export async function processAutoAccept(
       room.sport &&
       cardsNeeded > 0
     ) {
-      const cards = await prisma.card.findMany({
-        where: { sport: room.sport },
-        orderBy: { id: "asc" },
-      });
+      const cards = await findDealableCards(room.sport);
 
       const handWithCards = await prisma.cardInstance.findMany({
         where: {

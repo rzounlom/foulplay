@@ -1,29 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useEffect, useState } from "react";
-import { consumeLiveExitPrompt } from "@/lib/game/live-dropin-session";
+import { useEffect } from "react";
 import { IosInstallHint } from "@/components/pwa/ios-install-hint";
 
 const LANDING_BG = "/social-branding.png";
 
 export function AppHome() {
-  const [showLiveExitPrompt, setShowLiveExitPrompt] = useState(false);
-
   useEffect(() => {
     document.body.classList.add("landing-no-scroll");
     return () => document.body.classList.remove("landing-no-scroll");
   }, []);
 
-  useEffect(() => {
-    if (!consumeLiveExitPrompt()) return;
-    startTransition(() => setShowLiveExitPrompt(true));
-  }, []);
-
   const steps = [
-    "Start a room",
-    "Send the code",
-    "Play during the game",
+    "Start a room and send the code",
+    "Watch the game. Tap a card when it happens.",
+    "Friends confirm. You score.",
   ] as const;
 
   const contentSection = (
@@ -32,19 +24,6 @@ export function AppHome() {
         Start a game. Invite your friends. Let chaos happen.
       </h1>
       <div className="flex flex-col gap-3 md:gap-4 w-full max-w-md">
-        {showLiveExitPrompt ? (
-          <div className="rounded-xl border border-orange-500/40 bg-orange-500/15 px-4 py-3 text-center">
-            <p className="text-sm font-medium text-neutral-100 mb-2">
-              Jump into another live game?
-            </p>
-            <Link
-              href="/play-live"
-              className="inline-flex items-center justify-center w-full min-h-[44px] rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
-            >
-              🔥 Find another game
-            </Link>
-          </div>
-        ) : null}
         <div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full">
           <Link
             href="/create"
@@ -59,15 +38,6 @@ export function AppHome() {
             Join a Game
           </Link>
         </div>
-        <Link
-          href="/play-live"
-          className="w-full min-h-[48px] flex flex-col items-center justify-center py-3 px-6 rounded-lg border border-white/35 bg-white/8 text-white text-sm font-semibold hover:bg-white/12 transition-colors"
-        >
-          <span>🔥 Join Live Game</span>
-          <span className="text-xs font-normal text-neutral-300 mt-1">
-            Jump into a game already in progress
-          </span>
-        </Link>
       </div>
       <p className="text-sm text-neutral-400 text-center px-2">
         No signup required to join

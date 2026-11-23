@@ -7,7 +7,6 @@ import { MODE_LABELS, getAvailableModes, isDrinkingMode } from "@/lib/game/modes
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { CreateRoomCardSkeleton } from "@/components/create/create-room-card-skeleton";
 import { useClerkInFlowSignIn } from "@/lib/auth/use-clerk-in-flow-sign-in";
 import { useAgeGate } from "@/components/auth/age-gate-provider";
@@ -22,12 +21,9 @@ export default function CreateRoomPage() {
   const availableModes = getAvailableModes(is21Plus);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<string>("");
+  const [mode, setMode] = useState<string>("non-drinking");
   const [sport, setSport] = useState<string>("");
   const [handSize, setHandSize] = useState<number>(6);
-  const [allowQuarterClearing, setAllowQuarterClearing] = useState<boolean>(false);
-  const [isPublicChaos, setIsPublicChaos] = useState<boolean>(false);
-  const [canHostPublicGames, setCanHostPublicGames] = useState<boolean>(false);
   const [paywallTrigger, setPaywallTrigger] = useState<PaywallTrigger | null>(
     null,
   );
@@ -35,26 +31,8 @@ export default function CreateRoomPage() {
   useEffect(() => {
     if (is21Plus === false) {
       setMode("non-drinking");
-      setIsPublicChaos(false);
     }
   }, [is21Plus]);
-
-  useEffect(() => {
-    if (!isSignedIn) return;
-    let cancelled = false;
-    void fetch("/api/user/profile")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled || !data?.profile?.entitlements) return;
-        setCanHostPublicGames(
-          Boolean(data.profile.entitlements.canHostPublicGames),
-        );
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [isSignedIn]);
 
   const handleCreateRoom = async () => {
     if (!isSignedIn) {
@@ -82,10 +60,7 @@ export default function CreateRoomPage() {
           mode,
           sport,
           handSize,
-          ...(isPublicChaos ? { isPublicChaos: true } : {}),
-          ...(sport === "football" || sport === "basketball"
-            ? { allowQuarterClearing }
-            : {}),
+          allowQuarterClearing: false,
         }),
       });
 
@@ -205,7 +180,6 @@ export default function CreateRoomPage() {
               onChange={(e) => setMode(e.target.value)}
               required
             >
-              <option value="">Select mode</option>
               {availableModes.map((m) => (
                 <option key={m} value={m}>
                   {MODE_LABELS[m]}
@@ -218,7 +192,7 @@ export default function CreateRoomPage() {
               </p>
             ) : (
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                How intense do you want this to get?
+                Points only, or points plus honor-system drinks.
               </p>
             )}
             {isDrinkingMode(mode) ? (
@@ -249,9 +223,6 @@ export default function CreateRoomPage() {
                   return;
                 }
                 setSport(newSport);
-                if (newSport !== "football" && newSport !== "basketball") {
-                  setAllowQuarterClearing(false);
-                }
               }}
               required
             >
@@ -280,56 +251,6 @@ export default function CreateRoomPage() {
               Soccer and Baseball are coming soon after beta.
             </p>
           </div>
-
-          {is21Plus !== false ? (
-            <div>
-              <label
-                className="flex items-center gap-2 cursor-pointer"
-                data-testid="public-game-toggle"
-              >
-                <Checkbox
-                  checked={isPublicChaos}
-                  onChange={(e) => {
-                    if (e.target.checked && !canHostPublicGames) {
-                      setPaywallTrigger("public_hosting");
-                      setIsPublicChaos(false);
-                      return;
-                    }
-                    setIsPublicChaos(e.target.checked);
-                  }}
-                />
-                <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                  🌍 Make this a public game
-                </span>
-              </label>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-6">
-                Anyone can join this game live
-              </p>
-              {isPublicChaos ? (
-                <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mt-2 ml-6 font-medium">
-                  You&apos;ll be hosting a live game — players can join anytime
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          {(sport === "football" || sport === "basketball") && (
-            <div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={allowQuarterClearing}
-                  onChange={(e) => setAllowQuarterClearing(e.target.checked)}
-                />
-                <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                  Enable round clearing
-                </span>
-              </label>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-6">
-                Host controls when rounds end; players get 5 minutes to turn in unwanted cards
-                {mode === "non-drinking" ? " (points apply)." : " (drink penalty applies)."}
-              </p>
-            </div>
-          )}
 
           <div>
             <Label htmlFor="handSize" className="mb-2" required>Cards Per Hand</Label>

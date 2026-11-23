@@ -21,10 +21,16 @@ export async function createPrivateRoom(
   await page.locator("#mode").selectOption("non-drinking");
   await page.locator("#sport").selectOption("football");
   if (options?.allowQuarterClearing) {
-    await page.getByLabel(/enable round clearing/i).check();
+    const roundToggle = page.getByLabel(/enable round clearing/i);
+    if ((await roundToggle.count()) > 0) {
+      await roundToggle.check();
+    }
   }
   if (options?.publicIfAllowed) {
-    await page.getByTestId("public-game-toggle").locator("input").check();
+    const publicToggle = page.getByTestId("public-game-toggle").locator("input");
+    if ((await publicToggle.count()) > 0) {
+      await publicToggle.check();
+    }
   }
   const submit = page.getByTestId("create-room-submit");
   await expect(submit).toBeEnabled({ timeout: 15_000 });
