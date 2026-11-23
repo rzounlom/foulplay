@@ -10,6 +10,8 @@ import {
   getAutoAcceptSeconds,
 } from "@/lib/game/constants";
 import { trackEventFireAndForget } from "@/lib/analytics/track-event";
+import { isE2EAppEnv } from "@/lib/e2e/env";
+import { processAutoAccept } from "@/lib/game/auto-accept";
 import { z } from "zod";
 
 const submitCardSchema = z.object({
@@ -194,6 +196,20 @@ export async function POST(request: NextRequest) {
         });
       } catch (enqueueError) {
         console.error("Failed to enqueue auto-accept job:", enqueueError);
+      }
+
+      // E2E-only: in-process fallback so auto-accept tests work without QStash.
+      if (isE2EAppEnv()) {
+        const delayMs = getAutoAcceptSeconds(!!room.isPublicChaos) * 1000 + 250;
+        const submissionId = submission.id;
+        const code = room.code;
+        setTimeout(() => {
+          void processAutoAccept(submissionId, code, {
+            skipElapsedCheck: false,
+          }).catch((err) => {
+            console.error("[e2e] auto-accept fallback failed:", err);
+          });
+        }, delayMs);
       }
 
       // Publish submission.created to state channel for client patching (only when creating new)

@@ -171,6 +171,7 @@ function PlanCard({
         onClick={() => onSelect(plan)}
         isLoading={loadingPlan === plan}
         disabled={loadingPlan !== null}
+        data-testid={`upgrade-${plan}`}
         className="min-h-[48px]"
       >
         {catalog.cta}

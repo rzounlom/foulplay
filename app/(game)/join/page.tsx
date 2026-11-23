@@ -330,7 +330,10 @@ function JoinRoomForm() {
             </div>
 
             {waitingOnHost && (
-              <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-sm text-foreground space-y-1">
+              <div
+                className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-sm text-foreground space-y-1"
+                data-testid="join-waiting-on-host"
+              >
                 <p className="font-semibold">Waiting on the host</p>
                 <p className="text-neutral-700 dark:text-neutral-300">
                   Their free room is full. You don&apos;t need to pay — hang
@@ -356,6 +359,7 @@ function JoinRoomForm() {
               variant="primary"
               size="lg"
               fullWidth
+              data-testid="join-room-submit"
               disabled={code.length !== 6}
               isLoading={isJoining}
               className={`min-h-[48px] ${showJoinPulse ? "lobby-invite-pulse" : ""}`}

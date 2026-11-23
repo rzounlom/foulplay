@@ -1,0 +1,33 @@
+# Snapshot polling + rematch-ready burst. Set E2E_LOAD_ROOM_CODE to a test room.
+config:
+  target: "http://localhost:3100"
+  phases:
+    - duration: 40
+      arrivalRate: 10
+      name: snapshot-poll
+  processor: "./processor.cjs"
+  http:
+    timeout: 15
+scenarios:
+  - name: snapshot
+    weight: 70
+    flow:
+      - function: "assertSafeTarget"
+      - function: "setToken"
+      - get:
+          url: "/api/e2e/load/snapshot?code={{ roomCode }}"
+          headers:
+            Authorization: "Bearer {{ token }}"
+  - name: rematch-ready
+    weight: 30
+    flow:
+      - function: "assertSafeTarget"
+      - function: "setClerkId"
+      - post:
+          url: "/api/e2e/load/rematch-ready"
+          headers:
+            Authorization: "Bearer {{ token }}"
+            Content-Type: "application/json"
+          json:
+            clerkId: "{{ clerkId }}"
+            roomCode: "{{ roomCode }}"

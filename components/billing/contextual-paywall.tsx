@@ -56,7 +56,9 @@ export function ContextualPaywall({
   const inner = (
     <div className="space-y-3">
       <div>
-        <h2 className="text-lg font-semibold text-foreground">{copy.title}</h2>
+        <h2 className="text-lg font-semibold text-foreground" data-testid="paywall-title">
+          {copy.title}
+        </h2>
         <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
           {copy.body}
         </p>
@@ -72,6 +74,7 @@ export function ContextualPaywall({
           variant="primary"
           size="md"
           fullWidth
+          data-testid="paywall-game-night"
           isLoading={loadingPlan === "game_night"}
           disabled={loadingPlan !== null}
           onClick={() => void checkout("game_night")}
@@ -82,6 +85,7 @@ export function ContextualPaywall({
           variant="secondary"
           size="md"
           fullWidth
+          data-testid="paywall-monthly"
           isLoading={loadingPlan === "monthly"}
           disabled={loadingPlan !== null}
           onClick={() => void checkout("monthly")}
@@ -119,6 +123,8 @@ export function ContextualPaywall({
       >
         <div
           className="w-full max-w-md rounded-xl bg-surface border border-border p-5 shadow-lg"
+          data-testid="paywall"
+          data-paywall-trigger={trigger}
           onClick={(e) => e.stopPropagation()}
         >
           {inner}
@@ -128,7 +134,11 @@ export function ContextualPaywall({
   }
 
   return (
-    <div className="rounded-xl border border-primary/40 bg-primary/5 dark:bg-primary/10 p-4 md:p-5">
+    <div
+      data-testid="paywall"
+      data-paywall-trigger={trigger}
+      className="rounded-xl border border-primary/40 bg-primary/5 dark:bg-primary/10 p-4 md:p-5"
+    >
       {inner}
     </div>
   );

@@ -88,6 +88,7 @@ export default function PlayLivePage() {
           fullWidth
           isLoading={isFinding}
           className="min-h-[52px]"
+          data-testid="join-live-submit"
           disabled={!ageGateComplete || is21Plus === false}
           onClick={onPrimaryClick}
         >

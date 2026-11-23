@@ -165,6 +165,7 @@ export function VotingUI({
           <Button
             variant="outline-success"
             size="md"
+            data-testid="vote-approve-all"
             onClick={() => handleVoteAll(true)}
             disabled={Object.values(isVoting).some((v) => v)}
             fullWidth
@@ -175,6 +176,7 @@ export function VotingUI({
           <Button
             variant="outline-destructive"
             size="md"
+            data-testid="vote-reject-all"
             onClick={() => handleVoteAll(false)}
             disabled={Object.values(isVoting).some((v) => v)}
             fullWidth

@@ -272,7 +272,10 @@ export default function CreateRoomPage() {
 
           {is21Plus !== false ? (
             <div>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label
+                className="flex items-center gap-2 cursor-pointer"
+                data-testid="public-game-toggle"
+              >
                 <Checkbox
                   checked={isPublicChaos}
                   onChange={(e) => {
@@ -356,6 +359,7 @@ export default function CreateRoomPage() {
             variant="primary"
             size="lg"
             fullWidth
+            data-testid="create-room-submit"
             onClick={handleCreateRoom}
             disabled={!mode || !sport || !handSize || !ageGateComplete}
             isLoading={isCreating}

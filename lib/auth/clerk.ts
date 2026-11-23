@@ -59,6 +59,7 @@ export async function getCurrentUserFromRequest(request: NextRequest) {
     ...(vercelUrl && vercelUrl !== appUrl ? [vercelUrl] : []),
     "http://localhost:3000",
     "https://localhost:3000",
+    "http://localhost:3100", // Playwright E2E
     "http://localhost:8081", // Expo dev
   ];
   // Include the request's origin so cookie auth works when it matches our app (e.g. production)

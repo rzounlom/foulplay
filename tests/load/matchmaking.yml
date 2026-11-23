@@ -1,0 +1,34 @@
+# Matchmaking burst against test-only /api/e2e/load/drop-in.
+# Requires APP_ENV=test, E2E_TEST_TOKEN, E2E_LOAD_CLERK_IDS.
+config:
+  target: "http://localhost:3100"
+  phases:
+    - duration: 20
+      arrivalRate: 5
+      name: ramp
+    - duration: 30
+      arrivalRate: 20
+      maxVusers: 100
+      name: burst
+  processor: "./processor.cjs"
+  http:
+    timeout: 20
+scenarios:
+  - name: public-drop-in
+    flow:
+      - function: "assertSafeTarget"
+      - function: "setClerkId"
+      - post:
+          url: "/api/e2e/load/drop-in"
+          headers:
+            Authorization: "Bearer {{ token }}"
+            Content-Type: "application/json"
+          json:
+            clerkId: "{{ clerkId }}"
+          capture:
+            - json: "$.code"
+              as: matchedCode
+      - get:
+          url: "/api/e2e/load/snapshot?code={{ matchedCode }}"
+          headers:
+            Authorization: "Bearer {{ token }}"

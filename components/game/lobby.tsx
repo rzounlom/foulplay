@@ -699,6 +699,7 @@ export function Lobby({
               variant="primary"
               size="lg"
               fullWidth
+              data-testid="lobby-start-game"
               onClick={handleStartGame}
               disabled={!canStart}
               isLoading={isStarting}

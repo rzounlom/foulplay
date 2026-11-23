@@ -63,6 +63,7 @@ export function AgeGateModal({ onConfirm }: AgeGateModalProps) {
             checked={checked}
             onChange={(e) => setChecked(e.target.checked)}
             disabled={isSubmitting}
+            data-testid="age-gate-checkbox"
           />
           <span className="text-sm text-neutral-700 dark:text-neutral-300">
             I confirm I am 21 years of age or older.
@@ -82,6 +83,7 @@ export function AgeGateModal({ onConfirm }: AgeGateModalProps) {
             fullWidth
             disabled={!checked}
             isLoading={isSubmitting && checked}
+            data-testid="age-gate-confirm-21"
             onClick={() => void handleConfirm21Plus()}
           >
             Continue

@@ -14,7 +14,19 @@
     "prepare": "husky",
     "db:seed": "tsx prisma/seed.ts",
     "db:fix-card-descriptions": "tsx scripts/fix-card-descriptions.ts",
-    "db:migrate-hand-size": "tsx scripts/apply-hand-size-migration.ts"
+    "db:migrate-hand-size": "tsx scripts/apply-hand-size-migration.ts",
+    "dev:e2e": "APP_ENV=test tsx scripts/e2e-dev.ts",
+    "e2e:db:reset": "APP_ENV=test tsx scripts/e2e-db-reset.ts",
+    "e2e:auth:setup": "APP_ENV=test tsx scripts/e2e-auth-setup.ts",
+    "test:e2e": "APP_ENV=test playwright test --project=setup --project=e2e",
+    "test:e2e:headed": "APP_ENV=test playwright test --project=setup --project=e2e --headed",
+    "test:e2e:ui": "APP_ENV=test playwright test --ui",
+    "test:e2e:debug": "APP_ENV=test playwright test --project=setup --project=e2e --debug",
+    "test:e2e:ci": "APP_ENV=test tsx scripts/e2e-ci.ts",
+    "test:e2e:stripe": "APP_ENV=test RUN_STRIPE_E2E=true playwright test --project=setup --project=stripe",
+    "test:load": "APP_ENV=test artillery run tests/load/public-smoke.yml",
+    "test:load:matchmaking": "APP_ENV=test artillery run tests/load/matchmaking.yml",
+    "test:load:gameplay": "APP_ENV=test artillery run tests/load/gameplay.yml"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.37.1",
@@ -36,6 +48,7 @@
   },
   "devDependencies": {
     "@jest/test-sequencer": "^30.2.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -44,6 +57,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "artillery": "^2.0.34",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "husky": "^9.1.7",

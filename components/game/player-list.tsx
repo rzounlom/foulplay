@@ -34,6 +34,8 @@ export function PlayerList({
   return (
     <div className="space-y-2">
       <h3
+        data-testid="lobby-player-count"
+        data-player-count={players.length}
         className={`text-lg font-semibold ${players.length === 1 ? "mb-2" : "mb-4"}`}
       >
         Players ({players.length})

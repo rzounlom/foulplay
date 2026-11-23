@@ -36,6 +36,9 @@ STRIPE_PRICE_LIFETIME=price_...     # one-time $79.99 lifetime
 
 ```
 stripe listen --forward-to localhost:3000/api/stripe/webhook
+
+# E2E app (port 3100)
+stripe listen --forward-to localhost:3100/api/stripe/webhook
 ```
 
 Copy the CLI `whsec_...` into `STRIPE_WEBHOOK_SECRET`.

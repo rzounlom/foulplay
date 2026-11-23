@@ -541,6 +541,7 @@ export function Hand({
               variant="outline-primary"
               size="md"
               className="flex-1"
+              data-testid="submit-cards"
               onClick={() => onCardSubmit?.(selectedIds)}
             >
               Submit {selectedIds.length} Card
@@ -555,6 +556,7 @@ export function Hand({
                 variant="outline-primary"
                 size="md"
                 className="flex-1"
+                data-testid="intermission-discard-submit"
                 onClick={() => {
                   const toAdd = selectedIds.filter(
                     (id) => !myQuarterSelectionIds.includes(id),
@@ -616,6 +618,7 @@ export function Hand({
           return (
             <div
               key={cardInstance.id}
+              data-testid="hand-card"
               data-hand-card-id={cardInstance.id}
               onClick={() => {
                 if (reorder.shouldSuppressClick()) return;

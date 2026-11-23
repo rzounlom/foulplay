@@ -61,7 +61,7 @@ export function LobbyMonetizationStrip({
 
   return (
     <>
-      <div className="mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+      <div className="mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-800" data-testid="lobby-partner-strip">
         <p className="text-[10px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400 mb-2">
           Watch party picks
         </p>

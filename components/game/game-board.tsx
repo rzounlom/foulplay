@@ -1652,6 +1652,7 @@ export function GameBoard({
                                   type="button"
                                   variant="outline-primary"
                                   size="sm"
+                                  data-testid="end-round"
                                   onClick={() => {
                                     setShowEndRoundModal(true);
                                     setPlayersPanelOpen(false);
@@ -1891,6 +1892,7 @@ export function GameBoard({
                                   type="button"
                                   variant="outline-primary"
                                   size="sm"
+                                  data-testid="end-round"
                                   onClick={() => setShowEndRoundModal(true)}
                                 >
                                   End Round
@@ -2155,6 +2157,7 @@ export function GameBoard({
                     type="button"
                     variant={iAmDone ? "secondary" : "primary"}
                     size="sm"
+                    data-testid="intermission-lock-in"
                     onClick={handleMarkDone}
                     disabled={isMarkingDone}
                   >
@@ -2166,6 +2169,7 @@ export function GameBoard({
                     type="button"
                     variant="primary"
                     size="sm"
+                    data-testid="end-round-early"
                     onClick={() => setShowEndRoundEarlyModal(true)}
                   >
                     Start next round
@@ -2450,6 +2454,7 @@ export function GameBoard({
               <Button
                 variant="outline-primary"
                 fullWidth
+                data-testid="end-round-confirm"
                 onClick={handleEndRound}
                 isLoading={isEndingRound}
               >

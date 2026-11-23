@@ -1,0 +1,30 @@
+# Unauthenticated public-page / preview load. Never point this at production.
+config:
+  target: "http://localhost:3100"
+  phases:
+    - duration: 30
+      arrivalRate: 2
+      name: warmup
+    - duration: 45
+      arrivalRate: 8
+      name: joins-burst
+  processor: "./processor.cjs"
+  http:
+    timeout: 15
+scenarios:
+  - name: marketing-and-join
+    weight: 50
+    flow:
+      - function: "assertSafeTarget"
+      - get:
+          url: "/"
+      - get:
+          url: "/join"
+      - get:
+          url: "/play-live"
+  - name: invite-preview
+    weight: 50
+    flow:
+      - function: "assertSafeTarget"
+      - get:
+          url: "/api/rooms/invite-preview?code=AAAA11"

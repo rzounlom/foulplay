@@ -467,6 +467,7 @@ function RematchSection({
         <div className="rounded-xl bg-primary/8 dark:bg-primary/15 border border-primary/25 px-4 py-3 mb-4">
           <p
             className="text-center text-lg sm:text-xl font-bold text-primary tabular-nums"
+            data-testid="rematch-ready-count"
             aria-live="polite"
           >
             <span key={readyCount} className="inline-block rematch-count-pop">
@@ -526,6 +527,7 @@ function RematchSection({
                 <button
                   type="button"
                   className={`${primaryRunClass} rematch-cta-pulse`}
+                  data-testid="run-it-back"
                   onClick={() => void handleOptIn()}
                   disabled={optInLoading}
                 >
@@ -559,6 +561,7 @@ function RematchSection({
                   <button
                     type="button"
                     className={hostSecondaryClass}
+                    data-testid="start-next-game"
                     onClick={() => void handleStartNext()}
                     disabled={startLoading}
                   >
@@ -591,6 +594,7 @@ function RematchSection({
               <button
                 type="button"
                 className={`${primaryRunClass} rematch-cta-pulse py-3 shadow-lg`}
+                data-testid="run-it-back"
                 onClick={() => void handleOptIn()}
                 disabled={optInLoading}
               >
