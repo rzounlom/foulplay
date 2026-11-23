@@ -51,11 +51,13 @@ const mockGetUser = getCurrentUserFromRequest as jest.MockedFunction<
 
 describe("GET /api/ably/token", () => {
   const originalKey = process.env.ABLY_API_KEY;
+  const originalNamespace = process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE;
 
   beforeEach(() => {
     jest.clearAllMocks();
     resetRateLimitBuckets();
     process.env.ABLY_API_KEY = "ably-test-key";
+    delete process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE;
     mockCreateTokenRequest.mockResolvedValue({
       keyName: "key",
       timestamp: 1,
@@ -66,6 +68,11 @@ describe("GET /api/ably/token", () => {
 
   afterAll(() => {
     process.env.ABLY_API_KEY = originalKey;
+    if (originalNamespace === undefined) {
+      delete process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE;
+    } else {
+      process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE = originalNamespace;
+    }
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -113,6 +120,27 @@ describe("GET /api/ably/token", () => {
         capability: JSON.stringify({
           "room:ABC123": ["subscribe"],
           "room:ABC123:state": ["subscribe"],
+        }),
+      }),
+    );
+  });
+
+  it("issues namespaced capabilities when a preview namespace is set", async () => {
+    process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE = "preview";
+    mockGetUser.mockResolvedValue(mockUser as never);
+    (prisma.room.findUnique as jest.Mock).mockResolvedValue({
+      id: "room_123",
+      hostId: mockUser.id,
+      players: [{ userId: mockUser.id }],
+    });
+    const request = new NextRequest("http://localhost/api/ably/token?roomCode=ABC123");
+    const response = await issueToken(request);
+    expect(response.status).toBe(200);
+    expect(mockCreateTokenRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        capability: JSON.stringify({
+          "room:preview:ABC123": ["subscribe"],
+          "room:preview:ABC123:state": ["subscribe"],
         }),
       }),
     );

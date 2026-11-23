@@ -4,6 +4,10 @@ import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { getRoomChannel } from "@/lib/ably/client";
 import { prisma } from "@/lib/db/prisma";
 import { enqueue } from "@/lib/queue/qstash";
+import {
+  qstashCallbackUrl,
+  qstashDeliveryHeaders,
+} from "@/lib/queue/callback-url";
 import { publishRoomEvent } from "@/lib/realtime/publish-room-event";
 import {
   getAutoAcceptQstashDelay,
@@ -184,15 +188,12 @@ export async function POST(request: NextRequest) {
       });
 
       // Enqueue durable auto-accept callback
-      const appUrl =
-        process.env.APP_URL ||
-        process.env.NEXT_PUBLIC_APP_URL ||
-        "http://localhost:3000";
       try {
         await enqueue({
-          url: `${appUrl}/api/qstash/auto-accept`,
+          url: qstashCallbackUrl("/api/qstash/auto-accept"),
           body: { submissionId: submission.id },
           delay: getAutoAcceptQstashDelay(!!room.isPublicChaos),
+          headers: qstashDeliveryHeaders(),
         });
       } catch (enqueueError) {
         console.error("Failed to enqueue auto-accept job:", enqueueError);

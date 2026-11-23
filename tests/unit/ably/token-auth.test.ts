@@ -18,10 +18,31 @@ describe("Ably token auth helpers", () => {
   });
 
   it("grants subscribe-only capabilities on both room channels", () => {
+    const previous = process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE;
+    delete process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE;
     expect(ablySubscribeCapability("ABC123")).toEqual({
       "room:ABC123": ["subscribe"],
       "room:ABC123:state": ["subscribe"],
     });
+    if (previous === undefined) {
+      delete process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE;
+    } else {
+      process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE = previous;
+    }
+  });
+
+  it("namespaces preview channels so they cannot collide with production", () => {
+    const previous = process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE;
+    process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE = "preview";
+    expect(ablySubscribeCapability("ABC123")).toEqual({
+      "room:preview:ABC123": ["subscribe"],
+      "room:preview:ABC123:state": ["subscribe"],
+    });
+    if (previous === undefined) {
+      delete process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE;
+    } else {
+      process.env.NEXT_PUBLIC_ABLY_CHANNEL_NAMESPACE = previous;
+    }
   });
 
   it("allows hosts and seated players only", () => {

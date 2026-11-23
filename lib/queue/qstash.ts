@@ -21,6 +21,7 @@ export interface EnqueueOptions {
   body: Record<string, unknown>;
   /** Delay string (e.g. "30s", "1m"). Must match QStash Duration format. */
   delay?: string;
+  headers?: Record<string, string>;
 }
 
 /**
@@ -36,5 +37,6 @@ export async function enqueue(options: EnqueueOptions): Promise<void> {
     body: options.body,
     // QStash expects Duration (e.g. "30s"); our string is valid at runtime
     delay: (options.delay ?? "0s") as `${bigint}s` | `${bigint}m` | `${bigint}h` | `${bigint}d`,
+    headers: options.headers,
   });
 }

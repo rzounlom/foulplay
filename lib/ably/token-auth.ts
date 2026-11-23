@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/db/prisma";
+import {
+  ablyRoomChannelName,
+  ablyStateChannelName,
+} from "@/lib/ably/channels";
 
 const ROOM_CODE_RE = /^[A-Z0-9]{6}$/;
 
@@ -15,8 +19,8 @@ export function ablySubscribeCapability(
   roomCode: string,
 ): Record<string, string[]> {
   return {
-    [`room:${roomCode}`]: ["subscribe"],
-    [`room:${roomCode}:state`]: ["subscribe"],
+    [ablyRoomChannelName(roomCode)]: ["subscribe"],
+    [ablyStateChannelName(roomCode)]: ["subscribe"],
   };
 }
 

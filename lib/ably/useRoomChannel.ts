@@ -7,6 +7,7 @@ import {
   releaseAblySubscription,
 } from "@/lib/ably/channel-lifecycle";
 import { getBrowserAblyOptions } from "@/lib/ably/browser-options";
+import { ablyRoomChannelName } from "@/lib/ably/channels";
 
 export type RoomEvent =
   | "player_joined"
@@ -102,7 +103,7 @@ export function useRoomChannel(
     });
 
     // Subscribe to room channel
-    const channel = client.channels.get(`room:${roomCode}`);
+    const channel = client.channels.get(ablyRoomChannelName(roomCode));
     channelRef.current = channel;
 
     // Defer subscribe so Strict Mode cleanup cannot close mid-attach.

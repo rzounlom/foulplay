@@ -7,6 +7,7 @@ import {
   releaseAblySubscription,
 } from "@/lib/ably/channel-lifecycle";
 import { getBrowserAblyOptions } from "@/lib/ably/browser-options";
+import { ablyStateChannelName } from "@/lib/ably/channels";
 
 /**
  * Subscribe to room:{roomCode}:state for authoritative gameplay events.
@@ -32,7 +33,7 @@ export function useRoomStateChannel(
     isCleaningUpRef.current = false;
 
     const client = new Ably.Realtime(getBrowserAblyOptions(roomCode));
-    const channelName = `room:${roomCode}:state`;
+    const channelName = ablyStateChannelName(roomCode);
     const channel = client.channels.get(channelName);
 
     client.connection.on("connected", () => {

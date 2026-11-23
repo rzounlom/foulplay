@@ -1,4 +1,5 @@
 import Ably from "ably";
+import { ablyRoomChannelName } from "@/lib/ably/channels";
 
 let ablyClient: Ably.Realtime | null = null;
 
@@ -22,5 +23,5 @@ export function getAblyClient(): Ably.Realtime {
  */
 export function getRoomChannel(roomCode: string): Ably.RealtimeChannel {
   const client = getAblyClient();
-  return client.channels.get(`room:${roomCode}`);
+  return client.channels.get(ablyRoomChannelName(roomCode));
 }

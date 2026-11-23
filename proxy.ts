@@ -49,7 +49,10 @@ const clerkProxy = clerkMiddleware(async (auth, req) => {
     if (isAppRoute(pathname) && domainType !== "app") {
       const appUrl = getAppUrl();
       const url = new URL(pathname + req.nextUrl.search, appUrl);
-      return NextResponse.redirect(url);
+      // Never bounce a host onto itself — that 307 looped Clerk on Preview.
+      if (url.hostname !== req.nextUrl.hostname) {
+        return NextResponse.redirect(url);
+      }
     }
   }
 
