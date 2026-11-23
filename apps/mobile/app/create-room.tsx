@@ -19,17 +19,15 @@ const MODES = GAME_MODES.map((value) => ({
 const SPORTS = [
   { value: "football", label: "Football" },
   { value: "basketball", label: "Basketball" },
-  { value: "soccer", label: "Soccer" },
 ];
 
 export default function CreateRoomScreen() {
   const { getToken } = useAuth();
   const { signOut } = useClerk();
   const router = useRouter();
-  const [mode, setMode] = useState("casual");
+  const [mode, setMode] = useState("non-drinking");
   const [sport, setSport] = useState("football");
   const [handSize, setHandSize] = useState(6);
-  const [allowQuarterClearing, setAllowQuarterClearing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,9 +42,7 @@ export default function CreateRoomScreen() {
           mode,
           sport,
           handSize,
-          ...(sport === "football" || sport === "basketball"
-            ? { allowQuarterClearing }
-            : {}),
+          allowQuarterClearing: false,
         }),
       },
       {
@@ -63,7 +59,7 @@ export default function CreateRoomScreen() {
       return;
     }
     router.replace(`/room/${result.data.code}`);
-  }, [mode, sport, handSize, allowQuarterClearing, getToken, signOut, router]);
+  }, [mode, sport, handSize, getToken, signOut, router]);
 
   return (
     <View style={styles.container}>
@@ -124,21 +120,6 @@ export default function CreateRoomScreen() {
         }}
       />
 
-      {(sport === "football" || sport === "basketball") && (
-        <Pressable
-          style={styles.checkRow}
-          onPress={() => setAllowQuarterClearing((v) => !v)}
-        >
-          <View
-            style={[
-              styles.checkbox,
-              allowQuarterClearing && styles.checkboxChecked,
-            ]}
-          />
-          <Text style={styles.checkLabel}>Allow quarter clearing</Text>
-        </Pressable>
-      )}
-
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Pressable
@@ -182,16 +163,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: "#fff",
   },
-  checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: "#ccc",
-    borderRadius: 4,
-  },
-  checkboxChecked: { backgroundColor: "#0a7ea4", borderColor: "#0a7ea4" },
-  checkLabel: {},
   error: { color: "#c00", fontSize: 14 },
   button: {
     backgroundColor: "#0a7ea4",

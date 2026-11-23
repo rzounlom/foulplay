@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
-import { MODE_LABELS, getAvailableModes } from "@/lib/game/modes";
+import { MODE_LABELS, getAvailableModes, isDrinkingMode } from "@/lib/game/modes";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -221,6 +221,17 @@ export default function CreateRoomPage() {
                 How intense do you want this to get?
               </p>
             )}
+            {isDrinkingMode(mode) ? (
+              <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mt-2">
+                Party and other drinking modes suggest sips as an honor-system
+                penalty. FoulPlay does not sell alcohol. You must be 21 or older.
+                Play safely and never drink and drive. See{" "}
+                <a href="/terms" className="underline">
+                  Terms
+                </a>
+                .
+              </p>
+            ) : null}
           </div>
 
           <div>

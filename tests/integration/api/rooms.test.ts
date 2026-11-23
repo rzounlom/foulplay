@@ -622,6 +622,22 @@ describe("Room API Routes", () => {
 
       expect(response.status).toBe(404);
     });
+
+    it("should return 403 when the caller is not in the room", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        hostId: "other_host",
+        players: [],
+        gameState: null,
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/ABC123/snapshot");
+      const response = await getSnapshot(request, {
+        params: Promise.resolve({ code: "ABC123" }),
+      });
+
+      expect(response.status).toBe(403);
+    });
   });
 
   describe("PATCH /api/rooms/[code]", () => {

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isE2EAppEnv, isProductionDeploy } from "@/lib/e2e/env";
+import { isE2EAppEnv, isProductionDeploy, isVercelHosted } from "@/lib/e2e/env";
 
 export function isE2eHttpAuthorized(request: {
   headers: { get(name: string): string | null };
 }): boolean {
-  if (isProductionDeploy() || !isE2EAppEnv()) {
+  if (isProductionDeploy() || isVercelHosted() || !isE2EAppEnv()) {
     return false;
   }
 

@@ -101,7 +101,16 @@ export function AgeGateModal({ onConfirm }: AgeGateModalProps) {
 
         <p className="mt-4 text-xs text-neutral-500 dark:text-neutral-500">
           If you are under 21, you can still play in non-drinking (points) mode
-          only. Your choice is saved to your account.
+          only. Your choice is saved to your account. Drinking suggestions are
+          optional and honor-system; FoulPlay does not sell alcohol. See{" "}
+          <a href="/privacy" className="underline">
+            Privacy
+          </a>{" "}
+          and{" "}
+          <a href="/terms" className="underline">
+            Terms
+          </a>
+          .
         </p>
       </div>
     </div>

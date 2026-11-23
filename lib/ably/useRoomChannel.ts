@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   releaseAblySubscription,
 } from "@/lib/ably/channel-lifecycle";
+import { getBrowserAblyOptions } from "@/lib/ably/browser-options";
 
 export type RoomEvent =
   | "player_joined"
@@ -73,31 +74,7 @@ export function useRoomChannel(
 
     isCleaningUpRef.current = false;
 
-    // Prefer token auth in production (keeps API key server-side, often more reliable)
-    const apiKey = process.env.NEXT_PUBLIC_ABLY_API_KEY;
-    const useTokenAuth =
-      process.env.NODE_ENV === "production" ||
-      process.env.NEXT_PUBLIC_ABLY_USE_TOKEN === "true";
-
-    if (!apiKey && !useTokenAuth) {
-      setTimeout(() => {
-        setConnectionError(
-          new Error("NEXT_PUBLIC_ABLY_API_KEY or ABLY_API_KEY (with token auth) is not set")
-        );
-      }, 0);
-      return;
-    }
-
-    const clientOptions = {
-      // Token auth: client fetches short-lived token from our API (recommended for production)
-      ...(useTokenAuth
-        ? { authUrl: "/api/ably/token" }
-        : { key: apiKey }),
-      realtimeRequestTimeout: 60000,
-      disconnectedRetryTimeout: 10000,
-    } as Ably.ClientOptions;
-
-    const client = new Ably.Realtime(clientOptions);
+    const client = new Ably.Realtime(getBrowserAblyOptions(roomCode));
     clientRef.current = client;
 
     // Set up connection state listeners

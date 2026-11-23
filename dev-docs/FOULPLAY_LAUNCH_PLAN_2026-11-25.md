@@ -113,7 +113,7 @@ Assume you accepted **hide rounds, web-only, trim commercials, no refresh-hand, 
 | After | Watch Ably/QStash/Stripe dashboards 1 hour |
 | Not today | App Store / Play submission |
 
-**Mobile:** ship the website. Optional: TestFlight later this month after shared `modes` fix — still not “submitted Wednesday.”
+**Mobile / iPhone:** ship the **web PWA** (Safari → Add to Home Screen). There is **no Apple Developer membership and no Expo account** as of 23 November 2026, so TestFlight is a stretch goal only. See `dev-docs/MOBILE_ACCOUNT_SETUP.md`.
 
 ---
 
@@ -203,15 +203,16 @@ Assume you accepted **hide rounds, web-only, trim commercials, no refresh-hand, 
 - Apply full launch decks
 - Playwright CI with `RUN_E2E`
 - Sentry + rate limits
-- PWA
-- Native Phase 2 **only after** web gameplay is boringly stable
+- Native TestFlight **only after** Expo account + Apple Developer membership + explicit approval
+- Native Phase 2 gameplay **only after** web gameplay is boringly stable
 
 ---
 
 ## Explicit non-goals this week
 
-- App Store / Google Play submission
-- Promising store approval dates
+- App Store / Google Play submission or promised TestFlight dates
+- Creating a new Expo project or duplicating `apps/mobile`
+- Service worker / offline gameplay cache
 - Load tests against production
 - Enabling `APP_ENV=test` in production so E2E timers fire
 - Bypassing Clerk

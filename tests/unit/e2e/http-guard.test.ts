@@ -20,6 +20,16 @@ describe("isE2eHttpAuthorized", () => {
 
   it("denies outside APP_ENV=test", () => {
     process.env.APP_ENV = "production";
+    delete process.env.VERCEL_ENV;
+    process.env.E2E_TEST_TOKEN = "a".repeat(16);
+    expect(
+      isE2eHttpAuthorized(req({ authorization: "Bearer " + "a".repeat(16) })),
+    ).toBe(false);
+  });
+
+  it("denies on any Vercel deploy even if APP_ENV=test", () => {
+    process.env.APP_ENV = "test";
+    process.env.VERCEL_ENV = "preview";
     process.env.E2E_TEST_TOKEN = "a".repeat(16);
     expect(
       isE2eHttpAuthorized(req({ authorization: "Bearer " + "a".repeat(16) })),

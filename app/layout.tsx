@@ -4,7 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { ClerkProviderWrapper } from "@/components/auth/clerk-provider-wrapper";
 import { AgeGateProvider } from "@/components/auth/age-gate-provider";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { DomainAwareNav } from "@/components/navigation/domain-aware-nav";
@@ -24,13 +24,33 @@ const baseUrl =
   process.env.NEXT_PUBLIC_APP_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
+export const viewport: Viewport = {
+  themeColor: "#0A0A0A",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
+  applicationName: "FoulPlay",
   title: "FoulPlay - Real-time Social Card Games",
   description: "Play interactive card-based games with friends in real-time",
+  appleWebApp: {
+    capable: true,
+    title: "FoulPlay",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
-    icon: "/favicon-new.png",
-    apple: "/favicon-new.png",
+    icon: [
+      { url: "/favicon-new.png", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
     title: "FoulPlay - Real-time Social Card Games",

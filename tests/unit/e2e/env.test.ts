@@ -3,6 +3,7 @@ import {
   e2eIntermissionSeconds,
   isE2EAppEnv,
   isProductionDeploy,
+  isVercelHosted,
 } from "@/lib/e2e/env";
 
 describe("e2e env guards", () => {
@@ -24,6 +25,13 @@ describe("e2e env guards", () => {
   it("treats VERCEL_ENV=production as a production deploy", () => {
     process.env.VERCEL_ENV = "production";
     expect(isProductionDeploy()).toBe(true);
+  });
+
+  it("treats any VERCEL_ENV as hosted", () => {
+    process.env.VERCEL_ENV = "preview";
+    expect(isVercelHosted()).toBe(true);
+    delete process.env.VERCEL_ENV;
+    expect(isVercelHosted()).toBe(false);
   });
 
   it("ignores timer overrides unless APP_ENV=test", () => {

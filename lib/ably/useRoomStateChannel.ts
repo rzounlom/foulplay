@@ -6,6 +6,7 @@ import type { RoomEvent } from "@/lib/realtime/room-events";
 import {
   releaseAblySubscription,
 } from "@/lib/ably/channel-lifecycle";
+import { getBrowserAblyOptions } from "@/lib/ably/browser-options";
 
 /**
  * Subscribe to room:{roomCode}:state for authoritative gameplay events.
@@ -30,20 +31,7 @@ export function useRoomStateChannel(
 
     isCleaningUpRef.current = false;
 
-    const apiKey = process.env.NEXT_PUBLIC_ABLY_API_KEY;
-    const useTokenAuth =
-      process.env.NODE_ENV === "production" ||
-      process.env.NEXT_PUBLIC_ABLY_USE_TOKEN === "true";
-
-    if (!apiKey && !useTokenAuth) return;
-
-    const clientOptions = {
-      ...(useTokenAuth ? { authUrl: "/api/ably/token" } : { key: apiKey }),
-      realtimeRequestTimeout: 60000,
-      disconnectedRetryTimeout: 10000,
-    } as Ably.ClientOptions;
-
-    const client = new Ably.Realtime(clientOptions);
+    const client = new Ably.Realtime(getBrowserAblyOptions(roomCode));
     const channelName = `room:${roomCode}:state`;
     const channel = client.channels.get(channelName);
 

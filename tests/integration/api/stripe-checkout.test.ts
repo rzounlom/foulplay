@@ -70,6 +70,7 @@ import { POST as checkout } from "@/app/api/stripe/checkout/route";
 import { getCurrentUserFromRequest } from "@/lib/auth/clerk";
 import { mockUser } from "@/tests/helpers/mocks";
 import { BILLING_CATALOG } from "@/lib/billing/plans";
+import { resetRateLimitBuckets } from "@/lib/http/rate-limit";
 
 const mockGetUser = getCurrentUserFromRequest as jest.MockedFunction<
   typeof getCurrentUserFromRequest
@@ -78,6 +79,7 @@ const mockGetUser = getCurrentUserFromRequest as jest.MockedFunction<
 describe("POST /api/stripe/checkout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetRateLimitBuckets();
     mockGetUser.mockResolvedValue({
       ...mockUser,
       stripeCustomerId: "cus_existing",

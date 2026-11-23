@@ -59,6 +59,13 @@ export async function GET(
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
+    const isMember =
+      room.hostId === user.id ||
+      room.players.some((player) => player.userId === user.id);
+    if (!isMember) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     // Pending submissions (visible to all players)
     const pendingSubmissions = await prisma.cardSubmission.findMany({
       where: {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ShareModal } from "@/components/game/share-modal";
 import { getAppUrl } from "@/lib/host";
+import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { useState } from "react";
 
 export function MarketingLanding() {
@@ -268,8 +269,9 @@ export function MarketingLanding() {
 
       {/* Footer */}
       <footer className="relative z-10 shrink-0 border-t border-white/10 bg-black/20 backdrop-blur-sm py-3">
-        <div className="container mx-auto px-4 text-center text-neutral-500 text-xs">
+        <div className="container mx-auto px-4 text-center text-neutral-500 text-xs space-y-1">
           <p>© {new Date().getFullYear()} FoulPlay. All rights reserved.</p>
+          <LegalFooterLinks />
         </div>
       </footer>
     </div>

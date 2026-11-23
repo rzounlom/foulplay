@@ -15,6 +15,11 @@ export function isProductionDeploy(): boolean {
   );
 }
 
+/** Any Vercel deployment (production or preview). E2E HTTP helpers must not run there. */
+export function isVercelHosted(): boolean {
+  return Boolean(process.env.VERCEL_ENV);
+}
+
 export function e2eAutoAcceptSeconds(): number | null {
   if (!isE2EAppEnv()) return null;
   const raw = process.env.AUTO_ACCEPT_SECONDS_E2E;

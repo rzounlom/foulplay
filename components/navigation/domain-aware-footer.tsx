@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { getDomainType } from "@/lib/host";
+import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 
 export async function DomainAwareFooter() {
   const headersList = await headers();
@@ -12,8 +13,9 @@ export async function DomainAwareFooter() {
 
   return (
     <footer className="shrink-0 border-t border-white/10 bg-black/20 backdrop-blur-sm py-3">
-      <div className="container mx-auto px-4 text-center text-neutral-500 text-xs">
+      <div className="container mx-auto px-4 text-center text-neutral-500 text-xs space-y-1">
         <p>© {new Date().getFullYear()} FoulPlay. All rights reserved.</p>
+        <LegalFooterLinks />
       </div>
     </footer>
   );

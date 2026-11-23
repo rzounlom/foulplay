@@ -1,12 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db/prisma";
+import { getRequestIp } from "@/lib/http/client-ip";
+import { consumeRateLimit } from "@/lib/http/rate-limit";
 
 /**
  * Public preview for invite links: host display name only (no auth).
  * Used on /join to personalize copy.
  */
 export async function GET(request: NextRequest) {
+  const limited = consumeRateLimit(
+    `invite-preview:${getRequestIp(request)}`,
+    60,
+    60_000,
+  );
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil(limited.retryAfterMs / 1000)),
+        },
+      },
+    );
+  }
+
   const raw = request.nextUrl.searchParams.get("code")?.trim() ?? "";
   const code = raw.toUpperCase();
   if (code.length !== 6) {

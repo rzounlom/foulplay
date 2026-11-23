@@ -4,8 +4,8 @@ For authoritative gameplay state channels, snapshot bootstrap, version-gap recov
 
 ## Why Ably may fail in production
 
-1. **API key not exposed**: `NEXT_PUBLIC_ABLY_API_KEY` must be set in your hosting provider's environment variables (e.g. Vercel) so the client can connect.
-2. **Token auth (recommended)**: In production builds, the app uses token auth (`authUrl: /api/ably/token`) instead of the raw API key. Set **`ABLY_API_KEY`** (server-side, no `NEXT_PUBLIC_` prefix) in Vercel. The client will fetch short-lived tokens from our API.
+1. **Never put the root key in the browser.** Do **not** set `NEXT_PUBLIC_ABLY_API_KEY` in production.
+2. **Token auth is required**: the client always uses `authUrl: /api/ably/token?roomCode=…`. Set **`ABLY_API_KEY`** (server-side only) in Vercel. Tokens are Clerk-authenticated and subscribe-only for that room.
 3. **Connection drops**: Proxies/firewalls may close idle WebSocket connections after ~30s. We've increased `realtimeRequestTimeout` and `disconnectedRetryTimeout` to improve resilience.
 
 ## Required environment variables

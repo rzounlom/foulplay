@@ -2,11 +2,13 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 import { NextResponse } from "next/server";
 import { getDomainType, getAppUrl } from "@/lib/host";
+import { isClerkExemptApiPath } from "@/lib/proxy/public-paths";
 
 const isProtectedRoute = createRouteMatcher([
   "/game(.*)",
   "/api/game(.*)",
   "/api/rooms(.*)",
+  "/api/ably(.*)",
   "/admin(.*)",
   "/api/admin(.*)",
 ]);
@@ -26,12 +28,15 @@ const APP_ROUTES = [
 
 function isAppRoute(pathname: string): boolean {
   return APP_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 }
 
-export default clerkMiddleware(async (auth, req) => {
-    // Host-based redirect: app routes on marketing domain → app subdomain
+/**
+ * Next.js 16 `proxy.ts` accepts a default export or a named `proxy` export.
+ * Clerk's Next.js 16 quickstart uses `export default clerkMiddleware(...)`.
+ */
+const clerkProxy = clerkMiddleware(async (auth, req) => {
   const pathname = req.nextUrl.pathname;
   if (
     !pathname.startsWith("/api/") &&
@@ -48,26 +53,25 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
+  if (isClerkExemptApiPath(pathname)) {
+    return NextResponse.next();
+  }
+
   if (isProtectedRoute(req)) {
     const { userId } = await auth();
     if (!userId) {
-      // For API routes, return JSON error. For pages, redirect to sign-in
       if (req.nextUrl.pathname.startsWith("/api")) {
-        return NextResponse.json(
-          { error: "Unauthorized" },
-          { status: 401 }
-        );
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      // For pages, Clerk will handle the redirect automatically
     }
   }
 });
 
+export default clerkProxy;
+
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
     "/(api|trpc)(.*)",
   ],
 };

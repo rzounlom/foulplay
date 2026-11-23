@@ -21,6 +21,7 @@ import {
   sanitizeCheckoutReturnPath,
   withCheckoutQuery,
 } from "@/lib/billing/checkout-return";
+import { consumeRateLimit } from "@/lib/http/rate-limit";
 
 function canPurchasePlan(
   plan: BillingPlanId,
@@ -62,6 +63,19 @@ export async function POST(request: NextRequest) {
     const user = await getCurrentUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const limited = consumeRateLimit(`stripe-checkout:${user.id}`, 10, 60_000);
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Too many checkout attempts" },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil(limited.retryAfterMs / 1000)),
+          },
+        },
+      );
     }
 
     let plan: BillingPlanId = "monthly";

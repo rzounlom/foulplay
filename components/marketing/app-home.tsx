@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { startTransition, useEffect, useState } from "react";
 import { consumeLiveExitPrompt } from "@/lib/game/live-dropin-session";
+import { IosInstallHint } from "@/components/pwa/ios-install-hint";
 
 const LANDING_BG = "/social-branding.png";
 
@@ -71,6 +72,7 @@ export function AppHome() {
       <p className="text-sm text-neutral-400 text-center px-2">
         No signup required to join
       </p>
+      <IosInstallHint />
       <ol className="flex flex-col gap-2 text-center text-sm text-neutral-300 list-none max-w-xs">
         {steps.map((label, i) => (
           <li key={label} className="flex justify-center items-baseline gap-2">

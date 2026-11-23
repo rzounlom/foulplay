@@ -26,7 +26,8 @@
     "test:e2e:stripe": "APP_ENV=test RUN_STRIPE_E2E=true playwright test --project=setup --project=stripe",
     "test:load": "APP_ENV=test artillery run tests/load/public-smoke.yml",
     "test:load:matchmaking": "APP_ENV=test artillery run tests/load/matchmaking.yml",
-    "test:load:gameplay": "APP_ENV=test artillery run tests/load/gameplay.yml"
+    "test:load:gameplay": "APP_ENV=test artillery run tests/load/gameplay.yml",
+    "check-env": "tsx scripts/check-env.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.37.1",
