@@ -246,6 +246,53 @@ describe("Room API Routes", () => {
       );
     });
 
+    it("ignores allowQuarterClearing true on create while launch hides round controls", async () => {
+      const mockTransactionPrisma = {
+        user: {
+          findUnique: jest.fn().mockResolvedValue(mockUser),
+          upsert: jest.fn().mockResolvedValue(mockUser),
+        },
+        room: {
+          create: jest.fn().mockResolvedValue(mockRoom),
+        },
+        player: {
+          create: jest.fn().mockResolvedValue(mockPlayer),
+        },
+      };
+
+      mockPrisma.$transaction = jest.fn().mockImplementation(async (callback) => {
+        return callback(mockTransactionPrisma);
+      });
+
+      mockPrisma.room.findUnique = jest
+        .fn()
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          ...mockRoom,
+          players: [mockPlayer],
+        });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "party",
+          sport: "football",
+          handSize: 6,
+          allowQuarterClearing: true,
+        }),
+      });
+
+      const response = await createRoom(request, {
+        params: Promise.resolve({ code: "" }),
+      });
+      expect(response.status).toBe(201);
+      expect(mockTransactionPrisma.room.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          allowQuarterClearing: false,
+        }),
+      });
+    });
+
     it("rejects public hosting for free users with a paywall payload", async () => {
       const request = new NextRequest("http://localhost:3000/api/rooms", {
         method: "POST",
@@ -668,6 +715,38 @@ describe("Room API Routes", () => {
       expect(response.status).toBe(200);
       expect(data.mode).toBe("party");
       expect(data.sport).toBe("basketball");
+    });
+
+    it("does not persist allowQuarterClearing true while launch hides round controls", async () => {
+      mockPrisma.room.findUnique = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        players: [mockPlayer],
+      });
+      mockPrisma.room.update = jest.fn().mockResolvedValue({
+        ...mockRoom,
+        allowQuarterClearing: false,
+        players: [mockPlayer],
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/rooms/ABC123", {
+        method: "PATCH",
+        body: JSON.stringify({
+          allowQuarterClearing: true,
+        }),
+      });
+
+      const response = await updateRoom(request, {
+        params: Promise.resolve({ code: "ABC123" }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(mockPrisma.room.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            allowQuarterClearing: false,
+          }),
+        }),
+      );
     });
 
     it("should return 403 when user is not host", async () => {

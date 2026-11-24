@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { authReady, createMultiUserGame } from "../helpers/multi-user";
 import { applyPersonaEntitlement } from "../helpers/seed";
 import { startLobbyGame, submitFirstHandCard, testLog } from "../helpers/ui";
@@ -25,6 +25,14 @@ test.describe("G. Basic game flow", () => {
           page.waitForURL(/\/game\/[A-Z0-9]{6}/, { timeout: 20_000 }),
         ),
       );
+
+      await expect(game.hostPage.getByTestId("refresh-hand")).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(game.hostPage.getByTestId("end-round")).toHaveCount(0);
+      await expect(
+        game.hostPage.getByLabel(/enable round clearing/i),
+      ).toHaveCount(0);
 
       const submitter = game.playerPages[0];
       const voter = game.playerPages[1];

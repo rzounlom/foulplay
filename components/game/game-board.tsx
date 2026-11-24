@@ -33,7 +33,10 @@ import {
   isNonDrinkingMode,
   combinePenalties,
 } from "@/lib/game/display";
-import { LAUNCH_ROUND_CONTROLS_VISIBLE } from "@/lib/game/launch-scope";
+import {
+  LAUNCH_PUBLIC_CHAOS_VISIBLE,
+  LAUNCH_ROUND_CONTROLS_VISIBLE,
+} from "@/lib/game/launch-scope";
 import {
   pickPointsAwardedMessage,
   pickCardsRejectedMessage,
@@ -238,6 +241,10 @@ export function GameBoard({
 
   const resyncRef = useRef(resyncRoomSnapshot);
   resyncRef.current = resyncRoomSnapshot;
+
+  const handleRefreshCooldownElapsed = useCallback(() => {
+    void resyncRef.current();
+  }, []);
 
   // Track tab visibility for hidden-tab disconnect
   useEffect(() => {
@@ -1309,7 +1316,7 @@ export function GameBoard({
         </div>
       )}
 
-      {room.isPublicChaos ? (
+      {LAUNCH_PUBLIC_CHAOS_VISIBLE && room.isPublicChaos ? (
         <div
           role="status"
           className="mb-3 rounded-xl border border-orange-500/40 bg-orange-500/10 dark:bg-orange-500/15 px-3 py-2.5 text-center text-sm text-foreground"
@@ -1355,7 +1362,7 @@ export function GameBoard({
             title="Share invite link"
             shareText={`Join my FoulPlay game! Room ${roomCode}`}
           />
-          {room.isPublicChaos ? (
+          {LAUNCH_PUBLIC_CHAOS_VISIBLE && room.isPublicChaos ? (
             <Link
               href="/"
               onClick={() => {
@@ -1632,7 +1639,14 @@ export function GameBoard({
                         Show all players&apos; points
                       </span>
                     </label>
-                    {!room.isPublicChaos ? (
+                    {LAUNCH_PUBLIC_CHAOS_VISIBLE && room.isPublicChaos ? (
+                      <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 dark:bg-orange-500/10 px-3 py-2">
+                        <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-snug">
+                          Public live games always allow players to join in
+                          progress — drop-ins stay open for active games.
+                        </p>
+                      </div>
+                    ) : (
                       <label className="flex items-center gap-2 cursor-pointer">
                         <Checkbox
                           checked={room.allowJoinInProgress ?? false}
@@ -1659,13 +1673,6 @@ export function GameBoard({
                           Allow new users to join
                         </span>
                       </label>
-                    ) : (
-                      <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 dark:bg-orange-500/10 px-3 py-2">
-                        <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-snug">
-                          Public live games always allow players to join in
-                          progress — drop-ins stay open for active games.
-                        </p>
-                      </div>
                     )}
                     {showQuarterControls && (
                       <>
@@ -1848,7 +1855,14 @@ export function GameBoard({
                     Show all players&apos; points
                   </span>
                 </label>
-                {!room.isPublicChaos ? (
+                {LAUNCH_PUBLIC_CHAOS_VISIBLE && room.isPublicChaos ? (
+                  <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 dark:bg-orange-500/10 px-3 py-2">
+                    <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-snug">
+                      Public live games always allow players to join in progress
+                      — drop-ins stay open for active games.
+                    </p>
+                  </div>
+                ) : (
                   <label className="flex items-center gap-2 cursor-pointer">
                     <Checkbox
                       checked={room.allowJoinInProgress ?? false}
@@ -1877,13 +1891,6 @@ export function GameBoard({
                       Allow new users to join
                     </span>
                   </label>
-                ) : (
-                  <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 dark:bg-orange-500/10 px-3 py-2">
-                    <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-snug">
-                      Public live games always allow players to join in progress
-                      — drop-ins stay open for active games.
-                    </p>
-                  </div>
                 )}
                 {showQuarterControls && !isQuarterIntermission && (
                   <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700">
@@ -2251,7 +2258,9 @@ export function GameBoard({
                   allowQuarterClearing={room.allowQuarterClearing}
                   currentQuarter={room.currentQuarter}
                   canTurnInCards={room.canTurnInCards}
-                  isQuarterIntermission={isQuarterIntermission}
+                  isQuarterIntermission={
+                    showQuarterControls && isQuarterIntermission
+                  }
                   intermissionSecondsLeft={intermissionSecondsLeft}
                   myQuarterSelectionIds={
                     (room.pendingQuarterDiscardSelections ?? null)?.[
@@ -2272,6 +2281,7 @@ export function GameBoard({
                   canRefreshHand={!!snapshot?.canRefreshHand}
                   refreshHandAvailableAt={snapshot?.refreshHandAvailableAt ?? null}
                   onRefreshHand={handleRefreshHand}
+                  onRefreshCooldownElapsed={handleRefreshCooldownElapsed}
                   isRefreshingHand={isRefreshingHand}
                 />
               )}

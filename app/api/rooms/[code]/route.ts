@@ -6,6 +6,7 @@ import { assertDrinkingModeAccess } from "@/lib/user/age-gate";
 import { z } from "zod";
 import { getRoomChannel } from "@/lib/ably/client";
 import { effectiveAllowJoinInProgress } from "@/lib/rooms/public-chaos-invariant";
+import { resolveLaunchQuarterClearing } from "@/lib/game/launch-scope";
 
 const updateRoomSchema = z.object({
   mode: gameModeSchemaOptional,
@@ -136,7 +137,9 @@ export async function PATCH(
         ...(handSize !== undefined && { handSize }),
         ...(showPoints !== undefined && { showPoints }),
         ...allowJoinPatch,
-        ...(allowQuarterClearing !== undefined && { allowQuarterClearing }),
+        ...(allowQuarterClearing !== undefined && {
+          allowQuarterClearing: resolveLaunchQuarterClearing(allowQuarterClearing),
+        }),
       },
       include: {
         players: {

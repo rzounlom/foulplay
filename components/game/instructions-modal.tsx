@@ -76,19 +76,27 @@ export function InstructionsModal({ onStartTour }: InstructionsModalProps) {
 
               <div className="space-y-4 text-neutral-700 dark:text-neutral-300">
                 <ol className="list-decimal list-inside space-y-2">
-                  <li>You get cards describing sports moments.</li>
-                  <li>Watch the game on TV.</li>
+                  <li>Watch the game on TV in a private room with friends.</li>
                   <li>When something on a card happens, tap it and submit.</li>
-                  <li>Your friends confirm it happened.</li>
                   <li>
-                    You earn points. In Party mode, drinks are honor-system only.
+                    Friends vote. If nobody votes, it auto-accepts after 30
+                    seconds.
+                  </li>
+                  <li>
+                    Approved cards score points. In Party mode, drinks are
+                    honor-system only.
                   </li>
                   <li>Keep playing until the host ends the game.</li>
                 </ol>
                 <p className="text-sm">
-                  If nobody votes, a card auto-accepts after 30 seconds. Highest
-                  score wins. Then you can Run It Back with the same crew. If
-                  your cards go cold for 5 minutes, tap Refresh Hand.
+                  Stuck with cards you can&apos;t play? After five minutes of
+                  inactivity, you can refresh your hand for new cards at no
+                  penalty, as long as you have no pending submissions. Submitting
+                  a card or receiving new cards restarts the five-minute timer.
+                </p>
+                <p className="text-sm">
+                  Highest score wins. Then you can Run It Back with the same
+                  crew.
                 </p>
               </div>
 

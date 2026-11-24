@@ -56,27 +56,31 @@ export function GameTour({
   const steps: TourStep[] = useMemo(() => [
     {
       target: '[data-tour="game-info"]',
-      title: "Room info",
-      content: "This shows the sport you’re watching and the mode: Non-drinking (points only) or Party (points plus honor-system drinks).",
+      title: "Watch the game",
+      content:
+        "Play along with the live game in a private room. Play is continuous until the host ends it.",
       position: "top",
     },
     {
       target: '[data-tour="your-cards"]',
-      title: "Your cards",
-      content: "Watch the game. When something on a card happens, tap it and submit. Friends vote; if nobody votes it auto-accepts in 30 seconds. Approved cards score points.",
+      title: "Play your cards",
+      content:
+        "When something on a card happens, tap it and submit. If nobody votes, it auto-accepts in 30 seconds.",
       position: "top",
     },
     {
       target: '[data-tour="player-list"]',
-      title: "Players & scores",
-      content: "See who’s in the room. The host can show or hide points. Highest score wins when the host ends the game.",
+      title: "Vote and score",
+      content:
+        "Friends confirm plays. Approved cards score points. Highest score wins.",
       position: "top",
     },
     {
-      target: '[data-tour="host-controls"]',
-      fallbackTarget: '[data-tour="players-button"]',
-      title: "Host controls",
-      content: "Hosts can show points, reset scores, or end the game. Play is continuous — no rounds to manage.",
+      target: '[data-tour="refresh-hand"]',
+      fallbackTarget: '[data-tour="your-cards"]',
+      title: "Refresh your hand",
+      content:
+        "Stuck with cards you can't play? After five minutes of inactivity, you can refresh your hand for new cards at no penalty, as long as you have no pending submissions.",
       position: "top",
     },
   ], []);

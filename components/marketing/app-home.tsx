@@ -13,9 +13,10 @@ export function AppHome() {
   }, []);
 
   const steps = [
-    "Start a room and send the code",
+    "Start a private room and send the code",
     "Watch the game. Tap a card when it happens.",
     "Friends confirm. You score.",
+    "Stuck? Refresh your hand after five minutes.",
   ] as const;
 
   const contentSection = (

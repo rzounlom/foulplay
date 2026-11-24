@@ -2,6 +2,7 @@ import { REFRESH_HAND_COOLDOWN_MS } from "@/lib/game/launch-scope";
 import {
   evaluateRefreshHand,
   getRefreshHandEligibleAt,
+  isRefreshHandControlEnabled,
 } from "@/lib/game/refresh-hand";
 
 describe("refresh-hand eligibility", () => {
@@ -83,5 +84,24 @@ describe("refresh-hand eligibility", () => {
       newestDrawnAt: join,
     });
     expect(result.ok).toBe(true);
+  });
+
+  it("enables the button locally when the countdown elapses, unless a vote is pending", () => {
+    expect(
+      isRefreshHandControlEnabled({
+        serverCanRefresh: false,
+        cooldownElapsed: true,
+        hasPendingSubmission: false,
+        isRefreshing: false,
+      }),
+    ).toBe(true);
+    expect(
+      isRefreshHandControlEnabled({
+        serverCanRefresh: true,
+        cooldownElapsed: true,
+        hasPendingSubmission: true,
+        isRefreshing: false,
+      }),
+    ).toBe(false);
   });
 });

@@ -11,6 +11,7 @@ import {
   assertCanHostPrivateGame,
   assertCanHostPublicGame,
 } from "@/lib/billing/hosted-games";
+import { resolveLaunchQuarterClearing } from "@/lib/game/launch-scope";
 import { z } from "zod";
 
 const createRoomSchema = z.object({
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
           mode: mode || null,
           sport: sport || null,
           handSize: handSize || 6,
-          allowQuarterClearing: allowQuarterClearing || false,
+          allowQuarterClearing: resolveLaunchQuarterClearing(allowQuarterClearing),
           canTurnInCards: true,
           showPoints: true,
           allowJoinInProgress: true,

@@ -14,3 +14,12 @@ export type LaunchMode = (typeof LAUNCH_MODES)[number];
 export function isLaunchSelectableMode(mode: string): mode is LaunchMode {
   return (LAUNCH_MODES as readonly string[]).includes(mode);
 }
+
+/**
+ * Round-clearing APIs remain, but launch rooms cannot turn the setting on.
+ * When round controls are visible again, the requested value is honored.
+ */
+export function resolveLaunchQuarterClearing(requested?: boolean): boolean {
+  if (!LAUNCH_ROUND_CONTROLS_VISIBLE) return false;
+  return requested === true;
+}

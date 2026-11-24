@@ -5,6 +5,7 @@ import {
   LAUNCH_REFRESH_HAND_ENABLED,
   REFRESH_HAND_COOLDOWN_MS,
   isLaunchSelectableMode,
+  resolveLaunchQuarterClearing,
 } from "@/lib/game/launch-scope";
 
 describe("launch scope", () => {
@@ -25,5 +26,11 @@ describe("launch scope", () => {
   it("keeps a five-minute refresh-hand cooldown", () => {
     expect(LAUNCH_REFRESH_HAND_ENABLED).toBe(true);
     expect(REFRESH_HAND_COOLDOWN_MS).toBe(5 * 60 * 1000);
+  });
+
+  it("refuses round clearing on new rooms while launch hides round controls", () => {
+    expect(resolveLaunchQuarterClearing(true)).toBe(false);
+    expect(resolveLaunchQuarterClearing(false)).toBe(false);
+    expect(resolveLaunchQuarterClearing(undefined)).toBe(false);
   });
 });

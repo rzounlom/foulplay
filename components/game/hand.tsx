@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AUTO_ACCEPT_SECONDS } from "@/lib/game/constants";
+import { isRefreshHandControlEnabled } from "@/lib/game/refresh-hand";
 import { useHandReorder } from "@/hooks/use-hand-reorder";
 
 import { Button } from "@/components/ui/button";
@@ -124,6 +125,7 @@ interface HandProps {
   canRefreshHand?: boolean;
   refreshHandAvailableAt?: string | null;
   onRefreshHand?: () => void;
+  onRefreshCooldownElapsed?: () => void;
   isRefreshingHand?: boolean;
 }
 
@@ -147,6 +149,7 @@ export function Hand({
   canRefreshHand = false,
   refreshHandAvailableAt = null,
   onRefreshHand,
+  onRefreshCooldownElapsed,
   isRefreshingHand = false,
 }: HandProps) {
   const [handLayout, setHandLayout] = useHandLayout();
@@ -157,6 +160,7 @@ export function Hand({
   const [refreshSecondsLeft, setRefreshSecondsLeft] = useState<number | null>(
     null,
   );
+  const refreshCooldownNotifiedRef = useRef(false);
 
   useEffect(() => {
     if (!hasPendingSubmission || !pendingSubmissionAutoAcceptAt) return;
@@ -171,24 +175,60 @@ export function Hand({
   }, [hasPendingSubmission, pendingSubmissionAutoAcceptAt]);
 
   useEffect(() => {
-    if (canRefreshHand || !refreshHandAvailableAt || !onRefreshHand) return;
+    refreshCooldownNotifiedRef.current = false;
+    if (!refreshHandAvailableAt || !onRefreshHand) return;
     const compute = () => {
       const target = new Date(refreshHandAvailableAt).getTime();
       const secs = Math.max(0, Math.ceil((target - Date.now()) / 1000));
       setRefreshSecondsLeft(secs);
+      if (secs === 0 && !refreshCooldownNotifiedRef.current) {
+        refreshCooldownNotifiedRef.current = true;
+        if (!canRefreshHand) onRefreshCooldownElapsed?.();
+      }
     };
     compute();
     const interval = setInterval(compute, 1000);
     return () => clearInterval(interval);
-  }, [canRefreshHand, refreshHandAvailableAt, onRefreshHand]);
+  }, [
+    refreshHandAvailableAt,
+    onRefreshHand,
+    onRefreshCooldownElapsed,
+    canRefreshHand,
+  ]);
+
+  const cooldownElapsed = refreshSecondsLeft === 0;
+  const refreshReady = isRefreshHandControlEnabled({
+    serverCanRefresh: canRefreshHand,
+    cooldownElapsed,
+    hasPendingSubmission,
+    isRefreshing: isRefreshingHand,
+  });
 
   const refreshLabel = (() => {
     if (isRefreshingHand) return "Refreshing…";
-    if (canRefreshHand) return "Refresh Hand";
+    if (refreshReady) return "Refresh Hand";
     if (refreshSecondsLeft != null && refreshSecondsLeft > 0) {
       const m = Math.floor(refreshSecondsLeft / 60);
       const s = String(refreshSecondsLeft % 60).padStart(2, "0");
       return `Refresh in ${m}:${s}`;
+    }
+    return "Refresh Hand";
+  })();
+
+  const refreshTitle = hasPendingSubmission
+    ? "Wait until your current cards are voted on"
+    : refreshReady
+      ? "Replace your unplayed cards at no penalty"
+      : "Available 5 minutes after you last joined, played a card, or received new cards";
+
+  const refreshAriaLabel = (() => {
+    if (refreshSecondsLeft != null && refreshSecondsLeft > 0) {
+      const m = Math.floor(refreshSecondsLeft / 60);
+      const s = refreshSecondsLeft % 60;
+      return `Refresh Hand available in ${m} minutes ${s} seconds`;
+    }
+    if (hasPendingSubmission) {
+      return "Refresh Hand disabled until your pending cards are voted on";
     }
     return "Refresh Hand";
   })();
@@ -200,11 +240,14 @@ export function Hand({
         variant="outline-primary"
         size="sm"
         data-testid="refresh-hand"
+        data-tour="refresh-hand"
         onClick={onRefreshHand}
-        disabled={!canRefreshHand || isRefreshingHand || hasPendingSubmission}
+        disabled={!refreshReady}
         isLoading={isRefreshingHand}
-        className="whitespace-nowrap"
-        title="Replace your unplayed cards after 5 quiet minutes"
+        className="whitespace-nowrap min-h-[44px]"
+        title={refreshTitle}
+        aria-label={refreshAriaLabel}
+        aria-live="polite"
       >
         {refreshLabel}
       </Button>

@@ -61,10 +61,21 @@ export function refreshHandErrorMessage(reason: RefreshHandBlockReason): string 
     case "intermission":
       return "Hand refresh is paused during intermission.";
     case "cooldown":
-      return "Refresh Hand is available every 5 minutes when you have not just played a card.";
+      return "Refresh Hand is available 5 minutes after you last joined, played a card, or received new cards.";
     case "empty":
       return "You have no cards in hand to refresh.";
     default:
       return "Game is not active.";
   }
+}
+
+/** Client enablement: server eligibility, or local countdown expiry, never while pending. */
+export function isRefreshHandControlEnabled(input: {
+  serverCanRefresh: boolean;
+  cooldownElapsed: boolean;
+  hasPendingSubmission: boolean;
+  isRefreshing: boolean;
+}): boolean {
+  if (input.hasPendingSubmission || input.isRefreshing) return false;
+  return input.serverCanRefresh || input.cooldownElapsed;
 }

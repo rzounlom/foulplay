@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { resolveLaunchQuarterClearing } from "@/lib/game/launch-scope";
 import { generateRoomCode } from "@/lib/rooms/utils";
 
 /**
@@ -70,7 +71,9 @@ export async function createRematchLobbyFromEndedRoom(options: {
         mode: source.mode,
         sport: source.sport,
         handSize: source.handSize,
-        allowQuarterClearing: false,
+        allowQuarterClearing: resolveLaunchQuarterClearing(
+          source.allowQuarterClearing,
+        ),
         showPoints: source.showPoints,
         allowJoinInProgress: source.isPublicChaos
           ? true
